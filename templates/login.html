@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <div class="logo-big">🐥</div>
+    <h1>تسجيل الدخول</h1>
+    <p class="sub">فريق تحصين الكتاكيت</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post">
+      <div class="field">
+        <label>اسم المستخدم</label>
+        <input name="username" required autofocus>
+      </div>
+      <div class="field">
+        <label>كلمة السر</label>
+        <input name="password" type="password" required>
+      </div>
+      <button class="btn btn-primary" type="submit">دخول</button>
+    </form>
+    <p class="muted" style="text-align:center; margin-top:14px;">
+      ليس لديك حساب؟ <a href="{{ url_for('register') }}">إنشاء حساب</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

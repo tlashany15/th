@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="topbar">
+  <div class="brand"><div class="logo">🐥</div><div>فريق التحصين</div></div>
+  <div class="user">
+    {% if current_user %}
+      <span>{{ current_user.full_name }}</span>
+      {% if current_user.role == 'admin' %}<a href="{{ url_for('admin_panel') }}">لوحة المسؤول</a>{% endif %}
+      <a href="{{ url_for('logout') }}">خروج</a>
+    {% endif %}
+  </div>
+</div>
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+{% endblock %}

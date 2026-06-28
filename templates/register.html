@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <div class="logo-big">🐥</div>
+    <h1>إنشاء حساب</h1>
+    <p class="sub">انضم لفريق التحصين</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post">
+      <div class="field"><label>الاسم الكامل</label><input name="full_name" required></div>
+      <div class="field"><label>اسم المستخدم</label><input name="username" required></div>
+      <div class="field"><label>كلمة السر</label><input name="password" type="password" required></div>
+      <button class="btn btn-primary" type="submit">إنشاء الحساب</button>
+    </form>
+    <p class="muted" style="text-align:center; margin-top:14px;">
+      <a href="{{ url_for('login') }}">عودة لتسجيل الدخول</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
