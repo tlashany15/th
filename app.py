@@ -1,13 +1,10 @@
 """
 تطبيق فريق تحصين الكتاكيت
-Flask + SQLite — يعمل من المتصفح على الموبايل والكمبيوتر
-تشغيل:
-    pip install -r requirements.txt
-    python app.py
-الافتراضي: مسؤول admin / كلمة السر admin123
+Flask + PostgreSQL — يعمل على Vercel
 """
 import os
-import sqlite3
+import psycopg2
+import psycopg2.extras
 from datetime import date, datetime, timedelta
 from functools import wraps
 
@@ -15,19 +12,18 @@ from flask import (Flask, g, redirect, render_template, request, session,
                    url_for, flash, jsonify)
 from werkzeug.security import check_password_hash, generate_password_hash
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data.db")
-
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 
 # ---------- قاعدة البيانات ----------
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn.autocommit = False
+        g.db = conn
     return g.db
 
 
@@ -39,44 +35,44 @@ def close_db(_):
 
 
 def init_db():
-    db = sqlite3.connect(DB_PATH)
-    db.executescript("""
+    """يُستدعى مرة واحدة لإنشاء الجداول"""
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             full_name TEXT NOT NULL,
             password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'worker',  -- 'admin' or 'worker'
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            role TEXT NOT NULL DEFAULT 'worker',
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
         CREATE TABLE IF NOT EXISTS attendance (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            day TEXT NOT NULL,  -- YYYY-MM-DD
-            checked_in_at TEXT NOT NULL DEFAULT (datetime('now')),
-            UNIQUE(user_id, day),
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day DATE NOT NULL,
+            checked_in_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            UNIQUE(user_id, day)
         );
         CREATE TABLE IF NOT EXISTS vaccinations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            day TEXT NOT NULL,
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day DATE NOT NULL,
             count INTEGER NOT NULL CHECK(count >= 0),
             note TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
     """)
-    db.commit()
     # admin افتراضي
-    cur = db.execute("SELECT 1 FROM users WHERE username='admin'")
+    cur.execute("SELECT 1 FROM users WHERE username='admin'")
     if not cur.fetchone():
-        db.execute(
-            "INSERT INTO users(username, full_name, password_hash, role) VALUES(?,?,?,?)",
+        cur.execute(
+            "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,%s)",
             ("admin", "المسؤول", generate_password_hash("admin123"), "admin"),
         )
-        db.commit()
-    db.close()
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 # ---------- مساعدات ----------
@@ -84,7 +80,12 @@ def current_user():
     uid = session.get("user_id")
     if not uid:
         return None
-    return get_db().execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM users WHERE id=%s", (uid,))
+    row = cur.fetchone()
+    cur.close()
+    return row
 
 
 def login_required(f):
@@ -123,7 +124,11 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        row = get_db().execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT * FROM users WHERE username=%s", (username,))
+        row = cur.fetchone()
+        cur.close()
         if row and check_password_hash(row["password_hash"], password):
             session["user_id"] = row["id"]
             return redirect(url_for("dashboard"))
@@ -146,16 +151,21 @@ def register():
         if not (username and full_name and password):
             flash("كل الحقول مطلوبة", "error")
         else:
+            db = get_db()
+            cur = db.cursor()
             try:
-                get_db().execute(
-                    "INSERT INTO users(username, full_name, password_hash, role) VALUES(?,?,?,'worker')",
+                cur.execute(
+                    "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,'worker')",
                     (username, full_name, generate_password_hash(password)),
                 )
-                get_db().commit()
+                db.commit()
                 flash("تم إنشاء الحساب، سجّل دخولك", "success")
                 return redirect(url_for("login"))
-            except sqlite3.IntegrityError:
+            except psycopg2.IntegrityError:
+                db.rollback()
                 flash("اسم المستخدم موجود بالفعل", "error")
+            finally:
+                cur.close()
     return render_template("register.html")
 
 
@@ -164,26 +174,29 @@ def register():
 def dashboard():
     u = current_user()
     db = get_db()
+    cur = db.cursor()
     today = date.today().isoformat()
-    checked_in = db.execute(
-        "SELECT 1 FROM attendance WHERE user_id=? AND day=?", (u["id"], today)
-    ).fetchone() is not None
-    my_total = db.execute(
-        "SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE user_id=? AND day=?",
-        (u["id"], today),
-    ).fetchone()["s"]
-    team_total = db.execute(
-        "SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=?", (today,)
-    ).fetchone()["s"]
-    present_count = db.execute(
-        "SELECT COUNT(*) AS c FROM attendance WHERE day=?", (today,)
-    ).fetchone()["c"]
-    recent = db.execute(
-        """SELECT v.*, u.full_name FROM vaccinations v
-           JOIN users u ON u.id=v.user_id
-           WHERE v.user_id=? ORDER BY v.created_at DESC LIMIT 5""",
-        (u["id"],),
-    ).fetchall()
+
+    cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (u["id"], today))
+    checked_in = cur.fetchone() is not None
+
+    cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE user_id=%s AND day=%s",
+                (u["id"], today))
+    my_total = cur.fetchone()["s"]
+
+    cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (today,))
+    team_total = cur.fetchone()["s"]
+
+    cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (today,))
+    present_count = cur.fetchone()["c"]
+
+    cur.execute("""SELECT v.*, u.full_name FROM vaccinations v
+                   JOIN users u ON u.id=v.user_id
+                   WHERE v.user_id=%s ORDER BY v.created_at DESC LIMIT 5""",
+                (u["id"],))
+    recent = cur.fetchall()
+    cur.close()
+
     return render_template(
         "dashboard.html",
         checked_in=checked_in,
@@ -199,14 +212,17 @@ def dashboard():
 def check_in():
     u = current_user()
     today = date.today().isoformat()
+    db = get_db()
+    cur = db.cursor()
     try:
-        get_db().execute(
-            "INSERT INTO attendance(user_id, day) VALUES(?,?)", (u["id"], today)
-        )
-        get_db().commit()
+        cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s)", (u["id"], today))
+        db.commit()
         flash("تم تسجيل حضورك اليوم ✓", "success")
-    except sqlite3.IntegrityError:
+    except psycopg2.IntegrityError:
+        db.rollback()
         flash("أنت مسجَّل حضورك بالفعل اليوم", "info")
+    finally:
+        cur.close()
     return redirect(url_for("dashboard"))
 
 
@@ -224,13 +240,15 @@ def add_vaccination():
     note = request.form.get("note", "").strip() or None
     today = date.today().isoformat()
     db = get_db()
-    db.execute(
-        "INSERT INTO vaccinations(user_id, day, count, note) VALUES(?,?,?,?)",
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO vaccinations(user_id, day, count, note) VALUES(%s,%s,%s,%s)",
         (u["id"], today, count, note),
     )
-    # تسجيل الحضور تلقائياً
-    db.execute("INSERT OR IGNORE INTO attendance(user_id, day) VALUES(?,?)", (u["id"], today))
+    cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s) ON CONFLICT DO NOTHING",
+                (u["id"], today))
     db.commit()
+    cur.close()
     flash(f"تم تسجيل {count} كتكوت ✓", "success")
     return redirect(url_for("dashboard"))
 
@@ -251,39 +269,35 @@ def admin_panel():
     prev_day = (day - timedelta(days=1)).isoformat()
     next_day = (day + timedelta(days=1)).isoformat()
     db = get_db()
+    cur = db.cursor()
 
-    workers = db.execute(
-        """
+    cur.execute("""
         SELECT u.id, u.full_name, u.username, u.role,
-               EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=?) AS present,
-               COALESCE((SELECT SUM(count) FROM vaccinations v WHERE v.user_id=u.id AND v.day=?),0) AS total
-        FROM users u ORDER BY u.role='admin' DESC, u.full_name
-        """,
-        (day_s, day_s),
-    ).fetchall()
+               EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present,
+               COALESCE((SELECT SUM(count) FROM vaccinations v WHERE v.user_id=u.id AND v.day=%s),0) AS total
+        FROM users u ORDER BY (u.role='admin') DESC, u.full_name
+    """, (day_s, day_s))
+    workers = cur.fetchall()
 
-    day_total = db.execute(
-        "SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=?", (day_s,)
-    ).fetchone()["s"]
-    present_count = db.execute(
-        "SELECT COUNT(*) AS c FROM attendance WHERE day=?", (day_s,)
-    ).fetchone()["c"]
-    entries = db.execute(
-        """SELECT v.*, u.full_name FROM vaccinations v
-           JOIN users u ON u.id=v.user_id WHERE v.day=?
-           ORDER BY v.created_at DESC""",
-        (day_s,),
-    ).fetchall()
+    cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
+    day_total = cur.fetchone()["s"]
 
-    # شريط آخر 14 يوم
+    cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
+    present_count = cur.fetchone()["c"]
+
+    cur.execute("""SELECT v.*, u.full_name FROM vaccinations v
+                   JOIN users u ON u.id=v.user_id WHERE v.day=%s
+                   ORDER BY v.created_at DESC""", (day_s,))
+    entries = cur.fetchall()
+
     days_bar = []
     for i in range(13, -1, -1):
         d = (day - timedelta(days=i)).isoformat()
-        s = db.execute(
-            "SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=?", (d,)
-        ).fetchone()["s"]
+        cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (d,))
+        s = cur.fetchone()["s"]
         days_bar.append({"day": d, "total": s, "active": d == day_s})
 
+    cur.close()
     return render_template(
         "admin.html",
         workers=workers, entries=entries,
@@ -307,15 +321,17 @@ def admin_add_for_worker():
         return redirect(url_for("admin_panel", day=day.isoformat()))
     note = request.form.get("note", "").strip() or None
     db = get_db()
-    db.execute(
-        "INSERT INTO vaccinations(user_id, day, count, note) VALUES(?,?,?,?)",
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO vaccinations(user_id, day, count, note) VALUES(%s,%s,%s,%s)",
         (user_id, day.isoformat(), count, note),
     )
-    db.execute(
-        "INSERT OR IGNORE INTO attendance(user_id, day) VALUES(?,?)",
+    cur.execute(
+        "INSERT INTO attendance(user_id, day) VALUES(%s,%s) ON CONFLICT DO NOTHING",
         (user_id, day.isoformat()),
     )
     db.commit()
+    cur.close()
     flash("تمت الإضافة ✓", "success")
     return redirect(url_for("admin_panel", day=day.isoformat()))
 
@@ -326,14 +342,15 @@ def admin_mark_attendance():
     day = _parse_day(request.form.get("day")).isoformat()
     user_id = int(request.form.get("user_id"))
     db = get_db()
-    exists = db.execute(
-        "SELECT 1 FROM attendance WHERE user_id=? AND day=?", (user_id, day)
-    ).fetchone()
+    cur = db.cursor()
+    cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (user_id, day))
+    exists = cur.fetchone()
     if exists:
-        db.execute("DELETE FROM attendance WHERE user_id=? AND day=?", (user_id, day))
+        cur.execute("DELETE FROM attendance WHERE user_id=%s AND day=%s", (user_id, day))
     else:
-        db.execute("INSERT INTO attendance(user_id, day) VALUES(?,?)", (user_id, day))
+        cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s)", (user_id, day))
     db.commit()
+    cur.close()
     return redirect(url_for("admin_panel", day=day))
 
 
@@ -341,8 +358,11 @@ def admin_mark_attendance():
 @admin_required
 def admin_delete_entry(entry_id):
     day = _parse_day(request.form.get("day")).isoformat()
-    get_db().execute("DELETE FROM vaccinations WHERE id=?", (entry_id,))
-    get_db().commit()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM vaccinations WHERE id=%s", (entry_id,))
+    db.commit()
+    cur.close()
     flash("تم الحذف", "info")
     return redirect(url_for("admin_panel", day=day))
 
@@ -351,6 +371,7 @@ def admin_delete_entry(entry_id):
 @admin_required
 def admin_users():
     db = get_db()
+    cur = db.cursor()
     if request.method == "POST":
         action = request.form.get("action")
         if action == "create":
@@ -362,31 +383,50 @@ def admin_users():
                 flash("كل الحقول مطلوبة", "error")
             else:
                 try:
-                    db.execute(
-                        "INSERT INTO users(username, full_name, password_hash, role) VALUES(?,?,?,?)",
+                    cur.execute(
+                        "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,%s)",
                         (username, full_name, generate_password_hash(password), role),
                     )
                     db.commit()
                     flash("تم إضافة المستخدم ✓", "success")
-                except sqlite3.IntegrityError:
+                except psycopg2.IntegrityError:
+                    db.rollback()
                     flash("اسم المستخدم موجود", "error")
         elif action == "delete":
             uid = int(request.form.get("user_id"))
-            if uid != current_user()["id"]:
-                db.execute("DELETE FROM users WHERE id=?", (uid,))
+            u = current_user()
+            if uid != u["id"]:
+                cur.execute("DELETE FROM users WHERE id=%s", (uid,))
                 db.commit()
                 flash("تم حذف المستخدم", "info")
         elif action == "reset_pw":
             uid = int(request.form.get("user_id"))
             new_pw = request.form.get("password", "")
             if new_pw:
-                db.execute("UPDATE users SET password_hash=? WHERE id=?",
-                           (generate_password_hash(new_pw), uid))
+                cur.execute("UPDATE users SET password_hash=%s WHERE id=%s",
+                            (generate_password_hash(new_pw), uid))
                 db.commit()
                 flash("تم تغيير كلمة السر", "success")
+        cur.close()
         return redirect(url_for("admin_users"))
-    users = db.execute("SELECT * FROM users ORDER BY role='admin' DESC, full_name").fetchall()
+
+    cur.execute("SELECT * FROM users ORDER BY (role='admin') DESC, full_name")
+    users = cur.fetchall()
+    cur.close()
     return render_template("admin_users.html", users=users)
+
+
+@app.route("/init-db")
+def init_db_route():
+    """Route مؤقت لإنشاء الجداول — احذفه بعد أول تشغيل"""
+    secret = request.args.get("secret", "")
+    if secret != os.environ.get("INIT_SECRET", ""):
+        return "غير مسموح", 403
+    try:
+        init_db()
+        return "تم إنشاء قاعدة البيانات ✓", 200
+    except Exception as e:
+        return f"خطأ: {e}", 500
 
 
 if __name__ == "__main__":
