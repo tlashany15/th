@@ -1,54 +1,112 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<div class="date-badge hero-badge" style="margin-bottom:16px;">
-  <div class="day-name">📋 سجل التحصين</div>
-  <div class="day-full">مقسوم نصفين شهريين • الجمعة إجازة</div>
-</div>
+<!-- ===== HERO ===== -->
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        سجل التحصين
+      </span>
+      <h1 class="hero-h1">كل يوم بتفاصيله</h1>
+      <p class="hero-sub">مقسوم على فترات نصف الشهر • الجمعة إجازة 🌙</p>
+    </div>
+  </div>
+
+  {% set tot_all = 0 %}{% set days_done = 0 %}
+  {% for p in periods %}{% for d in p.days %}{% if d.has_data %}{% set tot_all = tot_all + d.total %}{% set days_done = days_done + 1 %}{% endif %}{% endfor %}{% endfor %}
+  <div class="kpi-grid">
+    <div class="kpi kpi-gold">
+      <div class="kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l7.5 7.5 10.5-15"/></svg></div>
+      <div class="kpi-v" data-count="{{ tot_all }}">0</div>
+      <div class="kpi-l">إجمالي مسجَّل</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25"/></svg></div>
+      <div class="kpi-v" data-count="{{ days_done }}">0</div>
+      <div class="kpi-l">أيام مغلقة</div>
+    </div>
+    <div class="kpi kpi-green">
+      <div class="kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg></div>
+      <div class="kpi-v" data-count="{{ periods|length }}">0</div>
+      <div class="kpi-l">فترات</div>
+    </div>
+  </div>
+</section>
 
 {% for p in periods %}
-<div class="card">
-  <div class="section-title">{{ p.label }}</div>
-  <div class="list">
+<div class="card period-card">
+  <div class="period-head">
+    <div class="period-stripe"></div>
+    <div class="period-label">{{ p.label }}</div>
+  </div>
+
+  <!-- نقاط ملخّصة (heat dots) -->
+  <div class="heat-row">
     {% for d in p.days %}
-    <div class="day-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}">
-      <div class="day-row-head">
-        <div class="day-row-title">
-          <span class="day-num">{{ d.day_num }}</span>
-          <span class="day-weekday">{{ d.weekday }}</span>
-          {% if d.holiday %}
-            <span class="badge badge-gold pop">🌙 إجازة</span>
-          {% elif d.has_data %}
-            <span class="badge badge-green pop">✓ مغلق</span>
+      <span class="heat
+        {% if d.holiday %}heat-h{% elif d.has_data %}heat-d{% else %}heat-e{% endif %}"
+        title="{{ d.day_num }} {{ d.weekday }}"></span>
+    {% endfor %}
+  </div>
+
+  <!-- تفاصيل الأيام -->
+  <div class="tl">
+    {% for d in p.days %}
+    <div class="tl-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}">
+      <div class="tl-date">
+        <div class="tl-num">{{ d.day_num }}</div>
+        <div class="tl-wd">{{ d.weekday }}</div>
+      </div>
+      <div class="tl-bar"></div>
+      <div class="tl-body">
+        {% if d.holiday %}
+          <div class="tl-tag tl-tag-gold">🌙 إجازة</div>
+        {% elif d.has_data %}
+          <div class="tl-row-top">
+            <div class="tl-total">
+              <div class="tl-tnum">{{ d.total }}</div>
+              <div class="tl-tlab">كتكوت</div>
+            </div>
+            <span class="badge badge-green sm">✓ مغلق</span>
+          </div>
+          {% if d.names %}
+          <div class="tl-meta">
+            <span class="mini-chip">👥 {{ d.names|length }} عامل</span>
+          </div>
+          <div class="tl-names">
+            {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}
+          </div>
           {% endif %}
-        </div>
-        {% if not d.holiday %}
-        <div class="day-row-total">
-          <div class="big-num">{{ d.total }}</div>
-          <div class="muted small">كتكوت</div>
-        </div>
+        {% else %}
+          <div class="tl-empty">— لم يُسجَّل —</div>
         {% endif %}
       </div>
-
-      {% if d.has_data %}
-        <div class="day-row-meta">
-          <span class="chip chip-blue">👥 {{ d.names|length }} عامل</span>
-          <span class="chip chip-gold">🐤 إجمالي: {{ d.total }}</span>
-        </div>
-        {% if d.names %}
-        <div class="day-names">
-          {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}
-        </div>
-        {% endif %}
-      {% elif not d.holiday %}
-        <div class="muted small" style="margin-top:6px;">— لم يُسجَّل —</div>
-      {% endif %}
     </div>
     {% endfor %}
   </div>
 </div>
 {% else %}
-<div class="card"><p class="muted" style="text-align:center;padding:20px 0;">لا توجد بيانات</p></div>
+<div class="card"><div class="empty">لا توجد بيانات بعد</div></div>
 {% endfor %}
 
+<script>
+  (function(){
+    var els = document.querySelectorAll('.kpi-v[data-count]');
+    els.forEach(function(el){
+      var target = parseInt(el.dataset.count || '0', 10);
+      if (!target) { el.textContent = '0'; return; }
+      var dur = 900, start = performance.now();
+      function tick(t){
+        var p = Math.min(1, (t - start) / dur);
+        var e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * e).toLocaleString('ar-EG');
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  })();
+</script>
 {% endblock %}

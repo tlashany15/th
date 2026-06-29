@@ -1,119 +1,221 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<!-- DATE NAV -->
-<div class="card glow-card">
-  <div class="section-title mb-0" style="margin-bottom:14px;">🛡️ لوحة المسؤول</div>
-
-  <div class="daynav">
-    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=prev_day) }}">‹</a>
+<!-- ===== HERO ===== -->
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
     <div>
-      <div class="daynav-label">اليوم المحدد</div>
-      <div class="daynav-date">{{ day }}</div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        لوحة المسؤول
+      </span>
+      <h1 class="hero-h1">أهلاً يا {{ current_user.full_name.split(' ')[0] }}</h1>
+      <p class="hero-sub">تحكّم في يوم الفريق، تابع التحصين، واقفل اليوم بضغطة.</p>
     </div>
-    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=next_day) }}">›</a>
+    <div class="hero-date">
+      <div class="hero-date-d">{{ day[8:] }}</div>
+      <div class="hero-date-m">{{ day[5:7] }}/{{ day[:4] }}</div>
+    </div>
   </div>
 
-  <div class="daybar" style="margin-top:12px;">
+  <!-- KPI tiles -->
+  <div class="kpi-grid">
+    <div class="kpi kpi-gold">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/></svg>
+      </div>
+      <div class="kpi-v" data-count="{{ day_total }}">0</div>
+      <div class="kpi-l">إجمالي اليوم</div>
+    </div>
+    <div class="kpi kpi-green">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      </div>
+      <div class="kpi-v" data-count="{{ present_count }}">0</div>
+      <div class="kpi-l">الحاضرون</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+      </div>
+      <div class="kpi-v" data-count="{{ workers|length }}">0</div>
+      <div class="kpi-l">الفريق</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DAY NAV ===== -->
+<div class="card">
+  <div class="daynav">
+    <a class="nav-arr" href="{{ url_for('admin_panel', day=prev_day) }}" aria-label="السابق">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+    </a>
+    <div class="daynav-mid">
+      <div class="daynav-label">اليوم المحدّد</div>
+      <div class="daynav-date">{{ day }}</div>
+    </div>
+    <a class="nav-arr" href="{{ url_for('admin_panel', day=next_day) }}" aria-label="التالي">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+  </div>
+
+  <!-- مخطط أعمدة لآخر 14 يوم -->
+  {% set max_total = (days_bar|map(attribute='total')|max) or 1 %}
+  <div class="daybar-pro">
     {% for d in days_bar %}
-    <a class="day {% if d.active %}active{% endif %}" href="{{ url_for('admin_panel', day=d.day) }}">
-      <div class="d">{{ d.day[5:] }}</div>
-      <div class="t">{{ d.total }}</div>
+    {% set h = (d.total * 100 / max_total) if max_total > 0 else 0 %}
+    <a class="dbp {% if d.active %}is-active{% endif %} {% if d.total > 0 %}has-data{% endif %}"
+       href="{{ url_for('admin_panel', day=d.day) }}">
+      <div class="dbp-bar"><span style="height: {{ h|round(0) }}%"></span></div>
+      <div class="dbp-d">{{ d.day[8:] }}</div>
+      <div class="dbp-t">{{ d.total }}</div>
     </a>
     {% endfor %}
   </div>
-
-  <div class="stats" style="margin-top:14px;">
-    <div class="stat"><div class="v">{{ present_count }}</div><div class="l">الحاضرون</div></div>
-    <div class="stat"><div class="v">{{ workers|length }}</div><div class="l">الفريق</div></div>
-    <div class="stat"><div class="v">{{ day_total }}</div><div class="l">إجمالي اليوم</div></div>
-  </div>
 </div>
 
-<!-- WORKERS LIST -->
+<!-- ===== WORKERS ===== -->
 <div class="card">
-  <div class="section-title">👥 العمال المحصِّنون اليوم</div>
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">عمال اليوم</div>
+        <div class="sec-h-s">{{ workers|selectattr('present')|list|length }} حاضر من {{ workers|length }}</div>
+      </div>
+    </div>
+  </div>
 
   {% set present_workers = workers|selectattr('present')|list %}
   {% if present_workers %}
-    {% for w in present_workers %}
-    <div class="worker-card pop-in" style="animation-delay: {{ loop.index0 * 40 }}ms;">
-      <div class="between">
-        <div class="worker-row">
-          <div class="avatar">{{ w.full_name[0] }}</div>
-          <div>
-            <div class="worker-name">
+    <div class="wlist">
+      {% for w in present_workers %}
+      <div class="wcard stagger-in" style="--i:{{ loop.index0 }};">
+        <div class="wcard-l">
+          <div class="wavatar wavatar-{{ (w.id % 5) }}">{{ w.full_name[0] }}</div>
+          <div class="wcard-info">
+            <div class="wcard-name">
               {{ w.full_name }}
-              {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+              {% if w.role == 'admin' %}<span class="badge badge-gold sm">مسؤول</span>{% endif %}
             </div>
-            <div class="worker-meta">@{{ w.username }}</div>
+            <div class="wcard-meta">@{{ w.username }}</div>
           </div>
         </div>
-        {% if not day_closed %}
-        <form method="post" action="{{ url_for('admin_mark_attendance') }}" onsubmit="return confirm('حذف {{ w.full_name }} من قائمة اليوم؟')">
-          <input type="hidden" name="day" value="{{ day }}">
-          <input type="hidden" name="user_id" value="{{ w.id }}">
-          <button class="btn btn-danger btn-sm">✕ حذف</button>
-        </form>
-        {% endif %}
+        <div class="wcard-r">
+          {% if not day_closed %}
+          <form method="post" action="{{ url_for('admin_mark_attendance') }}" onsubmit="return confirm('حذف {{ w.full_name }}؟');">
+            <input type="hidden" name="day" value="{{ day }}">
+            <input type="hidden" name="user_id" value="{{ w.id }}">
+            <button class="icon-btn icon-btn-danger" aria-label="حذف">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+            </button>
+          </form>
+          {% endif %}
+        </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   {% else %}
-    <p class="muted" style="text-align:center;padding:20px 0;">لا يوجد عمال مسجَّلون اليوم</p>
+    <div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.99a3.75 3.75 0 10-5.196 5.196 3.75 3.75 0 005.196-5.196z"/></svg>
+      <div>لا يوجد عمال مسجَّلون اليوم</div>
+    </div>
   {% endif %}
 
-  <!-- إضافة عامل لقائمة اليوم -->
+  <!-- إضافة عامل -->
   {% if not day_closed %}
-  {% set absent_workers = workers|rejectattr('present')|list %}
-  {% if absent_workers %}
-  <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-    <div class="muted" style="font-size:13px;margin-bottom:8px;">➕ إضافة عامل للقائمة:</div>
-    {% for w in absent_workers %}
-    <form method="post" action="{{ url_for('admin_mark_attendance') }}" style="margin-bottom:6px;">
-      <input type="hidden" name="day" value="{{ day }}">
-      <input type="hidden" name="user_id" value="{{ w.id }}">
-      <div class="between worker-card subtle">
-        <div class="worker-row">
-          <div class="avatar avatar-muted">{{ w.full_name[0] }}</div>
-          <div class="worker-name" style="font-size:14px;">{{ w.full_name }}
-            {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
-          </div>
-        </div>
-        <button class="btn btn-ghost btn-sm">+ إضافة</button>
+    {% set absent_workers = workers|rejectattr('present')|list %}
+    {% if absent_workers %}
+    <div class="add-wrap">
+      <div class="add-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        إضافة عامل للقائمة
       </div>
-    </form>
-    {% endfor %}
-  </div>
-  {% endif %}
+      <div class="absent-list">
+        {% for w in absent_workers %}
+        <form method="post" action="{{ url_for('admin_mark_attendance') }}">
+          <input type="hidden" name="day" value="{{ day }}">
+          <input type="hidden" name="user_id" value="{{ w.id }}">
+          <button class="absent-row" type="submit">
+            <div class="wavatar wavatar-muted">{{ w.full_name[0] }}</div>
+            <div class="absent-name">{{ w.full_name }}</div>
+            <span class="add-plus">+</span>
+          </button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   {% endif %}
 </div>
 
-<!-- إجمالي + إغلاق -->
-<div class="card">
-  <div class="section-title">🐤 إجمالي التحصين وإغلاق اليوم</div>
+<!-- ===== CLOSE DAY ===== -->
+<div class="card close-card">
   {% if day_closed %}
-    <div class="closed-banner shine" style="margin-bottom:10px;">
+    <div class="closed-hero">
+      <div class="closed-hero-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
       <div>
-        <div class="closed-title">✓ اليوم مغلق</div>
-        <div class="closed-sub">إجمالي اليوم: <strong>{{ day_total }}</strong> كتكوت — تم تنزيله في السجل</div>
+        <div class="closed-hero-t">اليوم مغلق</div>
+        <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت — تم تسجيله في السجل</div>
       </div>
     </div>
     <form method="post" action="{{ url_for('admin_reopen_day') }}">
       <input type="hidden" name="day" value="{{ day }}">
-      <button class="btn btn-ghost">↻ إعادة فتح اليوم</button>
+      <button class="btn btn-ghost">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+        إعادة فتح اليوم
+      </button>
     </form>
   {% else %}
-    <form method="post" action="{{ url_for('admin_close_day') }}" onsubmit="return confirm('قفل اليوم وتسجيل الإجمالي في السجل؟')">
-      <input type="hidden" name="day" value="{{ day }}">
-      <label class="field-label">إجمالي عدد التحصين اليوم</label>
-      <div class="field-wrap">
-        <span class="field-icon">🐤</span>
-        <input name="total_count" type="number" min="0" required placeholder="مثال: 1500" class="field-input">
+    <div class="sec-head">
+      <div class="sec-h-l">
+        <div class="sec-h-ico sec-h-ico-gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+        </div>
+        <div>
+          <div class="sec-h-t">إغلاق اليوم</div>
+          <div class="sec-h-s">سجّل الإجمالي وأنزل اليوم في السجل</div>
+        </div>
       </div>
-      <button class="btn btn-primary btn-lg ripple" style="width:100%;margin-top:12px;">🔒 إغلاق اليوم وتسجيل الإجمالي</button>
+    </div>
+    <form method="post" action="{{ url_for('admin_close_day') }}" onsubmit="return confirm('قفل اليوم وتسجيل الإجمالي؟');">
+      <input type="hidden" name="day" value="{{ day }}">
+      <div class="field">
+        <label>إجمالي عدد التحصين</label>
+        <div class="big-input">
+          <span class="bi-suffix">🐤</span>
+          <input name="total_count" type="number" min="0" required placeholder="مثال: 1500">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg" style="margin-top:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+        إغلاق اليوم وتسجيل الإجمالي
+      </button>
     </form>
   {% endif %}
 </div>
 
+<script>
+  // عدّاد للأرقام في الـ KPI
+  (function(){
+    var els = document.querySelectorAll('.kpi-v[data-count]');
+    els.forEach(function(el){
+      var target = parseInt(el.dataset.count || '0', 10);
+      if (!target) { el.textContent = '0'; return; }
+      var dur = 900, start = performance.now();
+      function tick(t){
+        var p = Math.min(1, (t - start) / dur);
+        var e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * e).toLocaleString('ar-EG');
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  })();
+</script>
 {% endblock %}
