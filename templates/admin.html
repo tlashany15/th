@@ -6,16 +6,12 @@
   <div class="section-title mb-0" style="margin-bottom:14px;">لوحة المسؤول</div>
 
   <div class="daynav">
-    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=prev_day) }}">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-    </a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=prev_day) }}">‹</a>
     <div>
       <div class="daynav-label">اليوم المحدد</div>
       <div class="daynav-date">{{ day }}</div>
     </div>
-    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=next_day) }}">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-    </a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=next_day) }}">›</a>
   </div>
 
   <div class="daybar" style="margin-top:12px;">
@@ -28,107 +24,86 @@
   </div>
 
   <div class="stats" style="margin-top:14px;">
-    <div class="stat"><div class="v">{{ day_total }}</div><div class="l">إجمالي اليوم</div></div>
-    <div class="stat"><div class="v">{{ present_count }}</div><div class="l">الحاضرون</div></div>
-    <div class="stat"><div class="v">{{ workers|length }}</div><div class="l">الفريق</div></div>
-  </div>
-
-  <!-- CLOSE / REOPEN DAY -->
-  <div style="margin-top:14px;">
-    {% if day_closed %}
-      <div class="closed-banner" style="margin-bottom:10px;">
-        <div class="closed-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-        </div>
-        <div>
-          <div class="closed-title">اليوم مغلق</div>
-          <div class="closed-sub">العمال يشاهدون ملخص اليوم الآن</div>
-        </div>
-      </div>
-      <form method="post" action="{{ url_for('admin_reopen_day') }}">
-        <input type="hidden" name="day" value="{{ day }}">
-        <button class="btn btn-ghost">إعادة فتح اليوم</button>
-      </form>
-    {% else %}
-      <form method="post" action="{{ url_for('admin_close_day') }}" onsubmit="return confirm('قفل اليوم؟ هيبقا العمال يشوفوا الملخص فقط.')">
-        <input type="hidden" name="day" value="{{ day }}">
-        <button class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-          إغلاق اليوم
-        </button>
-      </form>
-    {% endif %}
+    <div class="stat"><div class="v">{{ present_count }}</div><div class="l">الحاضرون اليوم</div></div>
+    <div class="stat"><div class="v">{{ workers|length }}</div><div class="l">إجمالي الفريق</div></div>
   </div>
 </div>
 
-<!-- WORKERS -->
+<!-- WORKERS LIST -->
 <div class="card">
-  <div class="section-title">الفريق</div>
-  {% for w in workers %}
-  <div class="worker-card">
-    <div class="between">
-      <div>
-        <div class="worker-name">
-          {{ w.full_name }}
-          {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+  <div class="section-title">العمال المحصِّنون اليوم</div>
+
+  {% set present_workers = workers|selectattr('present')|list %}
+  {% if present_workers %}
+    {% for w in present_workers %}
+    <div class="worker-card">
+      <div class="between">
+        <div>
+          <div class="worker-name">
+            {{ w.full_name }}
+            {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+          </div>
+          <div class="worker-meta">@{{ w.username }}</div>
         </div>
-        <div class="worker-meta">@{{ w.username }} • محصّن: <strong style="color:var(--accent2)">{{ w.total }}</strong></div>
+        {% if not day_closed %}
+        <form method="post" action="{{ url_for('admin_mark_attendance') }}" onsubmit="return confirm('حذف {{ w.full_name }} من قائمة اليوم؟')">
+          <input type="hidden" name="day" value="{{ day }}">
+          <input type="hidden" name="user_id" value="{{ w.id }}">
+          <button class="btn btn-danger btn-sm">حذف</button>
+        </form>
+        {% endif %}
       </div>
-      <form method="post" action="{{ url_for('admin_mark_attendance') }}">
-        <input type="hidden" name="day" value="{{ day }}">
-        <input type="hidden" name="user_id" value="{{ w.id }}">
-        <button class="btn btn-sm {% if w.present %}btn-success{% else %}btn-ghost{% endif %}">
-          {% if w.present %}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-            حاضر
-          {% else %}
-            غائب
-          {% endif %}
-        </button>
-      </form>
     </div>
-    <form method="post" action="{{ url_for('admin_add_for_worker') }}" class="row" style="margin-top:10px;">
+    {% endfor %}
+  {% else %}
+    <p class="muted" style="text-align:center;padding:20px 0;">لا يوجد عمال مسجَّلون اليوم</p>
+  {% endif %}
+
+  <!-- إضافة عامل لقائمة اليوم -->
+  {% if not day_closed %}
+  {% set absent_workers = workers|rejectattr('present')|list %}
+  {% if absent_workers %}
+  <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+    <div class="muted" style="font-size:13px;margin-bottom:8px;">إضافة عامل للقائمة:</div>
+    {% for w in absent_workers %}
+    <form method="post" action="{{ url_for('admin_mark_attendance') }}" style="margin-bottom:6px;">
       <input type="hidden" name="day" value="{{ day }}">
       <input type="hidden" name="user_id" value="{{ w.id }}">
-      <input name="count" type="number" min="1" placeholder="عدد الكتاكيت"
-        style="flex:1;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border);font-size:14px;font-family:inherit;outline:none;">
-      <input name="note" placeholder="ملاحظة"
-        style="flex:1;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border);font-size:14px;font-family:inherit;outline:none;">
-      <button class="btn btn-primary btn-sm">إضافة</button>
+      <div class="between">
+        <div class="worker-name" style="font-size:14px;">{{ w.full_name }}
+          {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+        </div>
+        <button class="btn btn-ghost btn-sm">+ إضافة</button>
+      </div>
     </form>
+    {% endfor %}
   </div>
-  {% endfor %}
+  {% endif %}
+  {% endif %}
 </div>
 
-<!-- LOG -->
+<!-- إجمالي + إغلاق -->
 <div class="card">
-  <div class="section-title">سجل اليوم</div>
-  {% if entries %}
-  <div style="overflow-x:auto;">
-    <table>
-      <thead>
-        <tr><th>الاسم</th><th>العدد</th><th>ملاحظة</th><th>الوقت</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for e in entries %}
-        <tr>
-          <td>{{ e.full_name }}</td>
-          <td><strong style="color:var(--accent2)">{{ e.count }}</strong></td>
-          <td class="muted">{{ e.note or '—' }}</td>
-          <td class="muted">{{ e.created_at|string|truncate(16,True,'',0) }}</td>
-          <td>
-            <form method="post" action="{{ url_for('admin_delete_entry', entry_id=e.id) }}" onsubmit="return confirm('حذف؟')">
-              <input type="hidden" name="day" value="{{ day }}">
-              <button class="btn btn-danger btn-sm">حذف</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <div class="section-title">إجمالي التحصين وإغلاق اليوم</div>
+  {% if day_closed %}
+    <div class="closed-banner" style="margin-bottom:10px;">
+      <div>
+        <div class="closed-title">اليوم مغلق ✓</div>
+        <div class="closed-sub">إجمالي اليوم: <strong>{{ day_total }}</strong> كتكوت — تم تنزيله في السجل</div>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('admin_reopen_day') }}">
+      <input type="hidden" name="day" value="{{ day }}">
+      <button class="btn btn-ghost">إعادة فتح اليوم</button>
+    </form>
   {% else %}
-    <p class="muted" style="text-align:center;padding:20px 0;">لا توجد سجلات لهذا اليوم</p>
+    <form method="post" action="{{ url_for('admin_close_day') }}" onsubmit="return confirm('قفل اليوم وتسجيل الإجمالي في السجل؟')">
+      <input type="hidden" name="day" value="{{ day }}">
+      <label class="muted" style="display:block;font-size:13px;margin-bottom:6px;">إجمالي عدد التحصين اليوم:</label>
+      <input name="total_count" type="number" min="0" required placeholder="مثال: 1500"
+        style="width:100%;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border);font-size:15px;font-family:inherit;outline:none;margin-bottom:10px;">
+      <button class="btn btn-primary" style="width:100%;">إغلاق اليوم وتسجيل الإجمالي</button>
+    </form>
   {% endif %}
 </div>
 
