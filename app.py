@@ -65,8 +65,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS day_closures (
             day DATE PRIMARY KEY,
             closed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-            closed_at TIMESTAMP NOT NULL DEFAULT NOW()
+            closed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            total_count INTEGER NOT NULL DEFAULT 0
         );
+        ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0;
     """)
     # admin افتراضي
     cur.execute("SELECT 1 FROM users WHERE username='admin'")
@@ -266,23 +268,54 @@ def check_in():
 @app.route("/history")
 @login_required
 def history():
-    """سجل أيام التحصين مع الإجماليات وأسماء العمال المحصِّنين"""
+    """سجل التحصين مقسوم نصفين شهريين (1-15 و 16-آخر الشهر)، الجمعة إجازة"""
+    import calendar
     db = get_db()
     cur = db.cursor()
     cur.execute("""
-        SELECT v.day,
-               COALESCE(SUM(v.count),0) AS total,
-               ARRAY_AGG(DISTINCT u.full_name) AS names
-        FROM vaccinations v
-        JOIN users u ON u.id = v.user_id
-        GROUP BY v.day
-        ORDER BY v.day DESC
+        SELECT c.day, c.total_count,
+               COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
+                        FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names
+        FROM day_closures c
+        LEFT JOIN attendance a ON a.day = c.day
+        LEFT JOIN users u ON u.id = a.user_id
+        GROUP BY c.day, c.total_count
     """)
-    rows = cur.fetchall()
+    by_day = {r["day"]: {"total": r["total_count"], "names": list(r["names"] or [])}
+              for r in cur.fetchall()}
     cur.close()
-    days = [{"day": r["day"].isoformat(), "total": r["total"],
-             "names": [n for n in (r["names"] or []) if n]} for r in rows]
-    return render_template("history.html", days=days)
+
+    # determine months to show: any month that has a closure, plus current month
+    months = set((d.year, d.month) for d in by_day.keys())
+    today = date.today()
+    months.add((today.year, today.month))
+    periods = []  # list of {label, days: [{date, weekday_name, holiday, total, names, has_data}]}
+    AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
+    AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+                 "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+    for (y, m) in sorted(months, reverse=True):
+        last_day = calendar.monthrange(y, m)[1]
+        for half, (start, end) in enumerate([(1, 15), (16, last_day)], start=1):
+            days_list = []
+            for dnum in range(start, end + 1):
+                d = date(y, m, dnum)
+                wd = d.weekday()  # Mon=0 .. Sun=6 ; Friday=4
+                is_friday = (wd == 4)
+                rec = by_day.get(d)
+                days_list.append({
+                    "date": d.isoformat(),
+                    "day_num": dnum,
+                    "weekday": AR_DAYS[wd],
+                    "holiday": is_friday,
+                    "total": rec["total"] if rec else 0,
+                    "names": rec["names"] if rec else [],
+                    "has_data": rec is not None,
+                })
+            periods.append({
+                "label": f"{AR_MONTHS[m-1]} {y} — {'النصف الأول (1-15)' if half==1 else f'النصف الثاني (16-{last_day})'}",
+                "days": days_list,
+            })
+    return render_template("history.html", periods=periods)
 
 
 # ---------- المسؤول ----------
@@ -347,11 +380,20 @@ def admin_panel():
 def admin_close_day():
     u = current_user()
     day = _parse_day(request.form.get("day")).isoformat()
+    try:
+        total = int(request.form.get("total_count", "0"))
+        if total < 0:
+            raise ValueError
+    except ValueError:
+        flash("ادخل عدد إجمالي صحيح", "error")
+        return redirect(url_for("admin_panel", day=day))
     db = get_db()
     cur = db.cursor()
     cur.execute(
-        "INSERT INTO day_closures(day, closed_by) VALUES(%s,%s) ON CONFLICT (day) DO NOTHING",
-        (day, u["id"]),
+        """INSERT INTO day_closures(day, closed_by, total_count)
+           VALUES(%s,%s,%s)
+           ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count, closed_by = EXCLUDED.closed_by""",
+        (day, u["id"], total),
     )
     db.commit()
     cur.close()
