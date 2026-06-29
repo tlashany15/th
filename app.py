@@ -17,6 +17,21 @@ app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
+_SCHEMA_READY = False
+def _ensure_schema():
+    global _SCHEMA_READY
+    if _SCHEMA_READY: return
+    try:
+        init_db()
+        _SCHEMA_READY = True
+    except Exception as e:
+        print("init_db error:", e)
+
+@app.before_request
+def _boot():
+    _ensure_schema()
+
+
 
 # ---------- قاعدة البيانات ----------
 def get_db():
@@ -98,8 +113,11 @@ def current_user():
 def is_day_closed(day_s):
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT 1 FROM day_closures WHERE day=%s", (day_s,))
-    closed = cur.fetchone() is not None
+    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    _row = cur.fetchone()
+    closed = _row is not None
+    if closed:
+        day_total = _row["total_count"]
     cur.close()
     return closed
 
@@ -362,8 +380,11 @@ def admin_panel():
         s = cur.fetchone()["s"]
         days_bar.append({"day": d, "total": s, "active": d == day_s})
 
-    cur.execute("SELECT 1 FROM day_closures WHERE day=%s", (day_s,))
-    closed = cur.fetchone() is not None
+    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    _row = cur.fetchone()
+    closed = _row is not None
+    if closed:
+        day_total = _row["total_count"]
 
     cur.close()
     return render_template(
@@ -389,6 +410,7 @@ def admin_close_day():
         return redirect(url_for("admin_panel", day=day))
     db = get_db()
     cur = db.cursor()
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0")
     cur.execute(
         """INSERT INTO day_closures(day, closed_by, total_count)
            VALUES(%s,%s,%s)
