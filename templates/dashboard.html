@@ -26,10 +26,6 @@
 
   <div class="stats" style="margin-top:16px;">
     <div class="stat">
-      <div class="v">{{ my_total }}</div>
-      <div class="l">عدّي اليوم</div>
-    </div>
-    <div class="stat">
       <div class="v">{{ team_total }}</div>
       <div class="l">إجمالي الفريق</div>
     </div>
@@ -68,7 +64,6 @@
         <div class="list-item">
           <div>
             <div class="list-item-main">{{ p.full_name }}</div>
-            <div class="list-item-sub">{{ p.total }} كتكوت</div>
           </div>
           <span class="badge badge-green">✓ حاضر</span>
         </div>
@@ -93,41 +88,10 @@
       </button>
     </form>
   </div>
-  {% endif %}
-
-  <!-- ADD VACCINATION -->
+  {% else %}
   <div class="card">
-    <div class="section-title">إضافة كتاكيت محصّنة</div>
-    <form method="post" action="{{ url_for('add_vaccination') }}">
-      <div class="field">
-        <label>العدد</label>
-        <input name="count" type="number" min="1" inputmode="numeric" required placeholder="مثال: 250">
-      </div>
-      <div class="field">
-        <label>ملاحظة (اختياري)</label>
-        <input name="note" placeholder="مثال: عنبر رقم 3">
-      </div>
-      <button class="btn btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        إضافة
-      </button>
-    </form>
-  </div>
-
-  {% if recent %}
-  <div class="card">
-    <div class="section-title">آخر إضافاتي</div>
-    <div class="list">
-      {% for r in recent %}
-      <div class="list-item">
-        <div>
-          <div class="list-item-main">{{ r.count }} كتكوت</div>
-          <div class="list-item-sub">{{ r.day }}{% if r.note %} • {{ r.note }}{% endif %}</div>
-        </div>
-        <span class="badge badge-green">✓ مسجّل</span>
-      </div>
-      {% endfor %}
-    </div>
+    <div class="section-title">تم تسجيل حضورك ✓</div>
+    <p class="muted" style="font-size:13px;">بإمكانك متابعة سجل التحصين من تبويب "السجل" بالأسفل</p>
   </div>
   {% endif %}
 

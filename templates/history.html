@@ -1,0 +1,45 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<div class="date-badge" style="margin-bottom:16px;">
+  <div class="day-name">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px;display:inline-block;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-6"/></svg>
+    سجل التحصين
+  </div>
+  <div class="day-full">كل أيام التحصين</div>
+</div>
+
+{% if days %}
+  {% for d in days %}
+  <div class="card">
+    <div class="between" style="margin-bottom:10px;">
+      <div>
+        <div class="list-item-main">{{ d.day }}</div>
+        <div class="list-item-sub">{{ d.names|length }} عامل محصِّن</div>
+      </div>
+      <div class="big-number" style="margin:0;font-size:28px;">
+        {{ d.total }}
+        <span class="big-number-sub" style="font-size:11px;">كتكوت</span>
+      </div>
+    </div>
+    {% if d.names %}
+    <div class="list">
+      {% for n in d.names %}
+      <div class="list-item">
+        <div class="list-item-main">{{ n }}</div>
+        <span class="badge badge-green">✓</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted" style="text-align:center;padding:10px 0;font-size:13px;">لا يوجد محصِّنون مسجَّلون</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card">
+    <p class="muted" style="text-align:center;padding:20px 0;">لا توجد أيام تحصين بعد</p>
+  </div>
+{% endif %}
+
+{% endblock %}
