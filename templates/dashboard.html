@@ -1,138 +1,174 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<!-- DATE HEADER -->
-<div class="date-badge pop-in" style="margin-bottom:16px;">
-  <div class="day-name">
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px;display:inline-block;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-    اليوم
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="grid-overlay"></span>
   </div>
-  <div class="day-full">{{ today }}</div>
-</div>
 
-<!-- GREETING + STATUS -->
-<div class="card pop-in">
-  <div class="between">
-    <div>
-      <div class="muted" style="font-size:12px;margin-bottom:4px;">مرحباً</div>
-      <div class="greeting-name">{{ current_user.full_name }}</div>
+  <div class="hero-top">
+    <div class="hero-date">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75"/></svg>
+      <span>{{ today }}</span>
     </div>
     {% if checked_in %}
-      <div class="status-pill present"><div class="dot"></div> حاضر اليوم</div>
+      <div class="status-pill present"><span class="dot"></span> حاضر</div>
     {% else %}
-      <div class="status-pill absent"><div class="dot"></div> لم تسجّل بعد</div>
+      <div class="status-pill absent"><span class="dot"></span> لم تسجّل</div>
     {% endif %}
   </div>
 
-  <div class="stats" style="margin-top:16px;grid-template-columns:repeat(2,1fr);">
-    <div class="stat">
-      <div class="v" data-count="{{ team_total }}">0</div>
-      <div class="l">إجمالي الفريق</div>
+  <div class="hero-greet">
+    <div class="hero-hello">مرحباً 👋</div>
+    <div class="hero-name">{{ current_user.full_name }}</div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hstat">
+      <div class="hstat-icon green">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 0115 0v.75H4.5v-.75z"/></svg>
+      </div>
+      <div>
+        <div class="hstat-v" data-countup="{{ present_count }}">0</div>
+        <div class="hstat-l">حاضرون</div>
+      </div>
     </div>
-    <div class="stat">
-      <div class="v" data-count="{{ present_count }}">0</div>
-      <div class="l">الحاضرون</div>
+    <div class="hstat-divider"></div>
+    <div class="hstat">
+      <div class="hstat-icon gold">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+      </div>
+      <div>
+        <div class="hstat-v" data-countup="{{ team_total }}">0</div>
+        <div class="hstat-l">إجمالي اليوم</div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
 {% if day_closed %}
-  <!-- ====== ملخص اليوم (بعد إغلاق المسؤول) ====== -->
-  <div class="card closed-banner pop-in">
-    <div class="closed-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+
+  <!-- DAY CLOSED BANNER -->
+  <div class="closed-card stagger" style="--i:0">
+    <div class="closed-glow"></div>
+    <div class="closed-icon-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 21h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 006.75 21z"/></svg>
     </div>
-    <div>
+    <div class="closed-body">
       <div class="closed-title">تم إغلاق اليوم</div>
-      <div class="closed-sub">المسؤول أقفل اليوم — ده ملخص شغل النهارده</div>
+      <div class="closed-sub">ده ملخص شغل النهارده بعد ما المسؤول أقفل اليوم</div>
     </div>
   </div>
 
-  <div class="card pop-in">
-    <div class="section-title">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
-      إجمالي اليوم
+  <!-- BIG TOTAL -->
+  <div class="total-card stagger" style="--i:1">
+    <div class="total-card-glow"></div>
+    <div class="total-label">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+      إجمالي التحصين
     </div>
-    <div class="big-number" data-count="{{ team_total }}">0</div>
-    <div class="big-number-sub">كتكوت محصّن</div>
+    <div class="total-number">
+      <span class="bignum" data-countup="{{ team_total }}">0</span>
+      <span class="bignum-unit">كتكوت</span>
+    </div>
+    <div class="total-foot">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
+      تم إنجازه بواسطة {{ present_list|length }} عامل
+    </div>
   </div>
 
-  <div class="card pop-in">
-    <div class="section-title">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-      العمال الحاضرون ({{ present_list|length }})
+  <!-- WORKERS LIST WITH COUNTS -->
+  <section class="section stagger" style="--i:2">
+    <div class="section-head">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        المحصّنون
+      </h3>
+      <span class="count-chip">{{ present_list|length }}</span>
     </div>
+
     {% if present_list %}
-      <div class="list stagger">
+      <div class="worker-list">
         {% for p in present_list %}
-        <div class="list-item worker-row" style="--i:{{ loop.index0 }}">
-          <div class="row" style="gap:12px;">
-            <div class="avatar">{{ p.full_name[:1] }}</div>
-            <div>
-              <div class="list-item-main">{{ p.full_name }}</div>
-              <div class="list-item-sub">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:11px;height:11px;display:inline-block;vertical-align:-1px;color:var(--accent2)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span style="color:var(--accent2);font-weight:800;">{{ p.total }}</span> كتكوت محصّن
-              </div>
+        <div class="worker-row stagger" style="--i:{{ loop.index0 + 3 }}">
+          <div class="avatar" data-i="{{ loop.index0 }}">
+            {{ p.full_name[:1] }}
+          </div>
+          <div class="worker-info">
+            <div class="worker-name">{{ p.full_name }}</div>
+            <div class="worker-sub">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              تم تسجيل الحضور
             </div>
           </div>
-          <span class="badge badge-green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" style="width:10px;height:10px"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-            حاضر
-          </span>
+          <div class="worker-count">
+            <span class="worker-count-v" data-countup="{{ p.vaccinated_count or 0 }}">0</span>
+            <span class="worker-count-l">كتكوت</span>
+          </div>
         </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="muted" style="text-align:center;padding:14px 0;">لا أحد سجّل حضوره</p>
+      <div class="empty">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+        <p>لا أحد سجّل حضوره اليوم</p>
+      </div>
     {% endif %}
-  </div>
+  </section>
 
 {% else %}
 
-  <!-- CHECK IN -->
   {% if not checked_in %}
-  <div class="card pop-in">
-    <div class="section-title">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
-      تسجيل الحضور
+  <div class="action-card stagger" style="--i:1">
+    <div class="action-head">
+      <div class="action-title">تسجيل الحضور</div>
+      <div class="action-sub">سجّل حضورك اليوم بضغطة واحدة</div>
     </div>
-    <p class="muted" style="margin-bottom:14px;font-size:13px;">سجّل حضورك اليوم بضغطة واحدة</p>
     <form method="post" action="{{ url_for('check_in') }}">
-      <button class="btn btn-success">
+      <button class="btn btn-success btn-lg">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
         أحضر نفسي
       </button>
     </form>
   </div>
   {% else %}
-  <div class="card pop-in">
-    <div class="section-title">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px;color:var(--green)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      تم تسجيل حضورك
+  <div class="action-card success stagger" style="--i:1">
+    <div class="success-ring">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
     </div>
-    <p class="muted" style="font-size:13px;">بإمكانك متابعة سجل التحصين من تبويب "السجل" بالأسفل</p>
+    <div class="action-head" style="text-align:center;">
+      <div class="action-title">تم تسجيل حضورك</div>
+      <div class="action-sub">تابع سجل التحصين من تبويب «السجل» بالأسفل</div>
+    </div>
   </div>
   {% endif %}
 
 {% endif %}
 
 <script>
-  // Count-up animation for numbers
   (function(){
-    const els = document.querySelectorAll('[data-count]');
-    els.forEach(el => {
-      const target = parseInt(el.dataset.count, 10) || 0;
-      if (target === 0) { el.textContent = '0'; return; }
-      const dur = 900, start = performance.now();
+    function ease(t){ return 1 - Math.pow(1 - t, 3); }
+    function run(el){
+      var target = parseInt(el.getAttribute('data-countup')||'0', 10);
+      if (!target || target < 1) { el.textContent = target; return; }
+      var dur = Math.min(1200, 400 + target * 25);
+      var start = performance.now();
       function tick(now){
-        const p = Math.min(1, (now - start) / dur);
-        const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.round(target * eased).toLocaleString('ar-EG');
+        var p = Math.min(1, (now - start) / dur);
+        el.textContent = Math.round(ease(p) * target).toLocaleString('ar-EG');
         if (p < 1) requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
-    });
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ run(e.target); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.4 });
+    document.querySelectorAll('[data-countup]').forEach(function(el){ io.observe(el); });
   })();
 </script>
 
