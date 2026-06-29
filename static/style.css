@@ -344,3 +344,60 @@ table tr:hover td { background: rgba(255,255,255,.02); }
 .mt-8 { margin-top: 8px; }
 .mt-12 { margin-top: 12px; }
 .mb-0 { margin-bottom: 0 !important; }
+
+/* ===== منع النسخ والتحديد على كل التطبيق ===== */
+.no-copy, .no-copy * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.no-copy input, .no-copy textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+
+/* ===== Topbar (مركّز بدون أيقونات جانبية) ===== */
+.topbar { justify-content: center; }
+.brand { gap: 10px; }
+.brand-icon {
+  background: transparent;
+  box-shadow: none;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+}
+
+/* ===== Closed-day banner ===== */
+.closed-banner {
+  display: flex; align-items: center; gap: 14px;
+  border: 1px solid rgba(245,166,35,.35);
+  background: linear-gradient(160deg, rgba(245,166,35,.10), rgba(239,68,68,.06));
+}
+.closed-icon {
+  width: 44px; height: 44px; border-radius: 14px; flex: 0 0 44px;
+  background: linear-gradient(135deg, var(--accent), #ef4444);
+  display: grid; place-items: center; color: #1a0800;
+  box-shadow: 0 6px 20px rgba(245,166,35,.35);
+}
+.closed-icon svg { width: 22px; height: 22px; }
+.closed-title { font-weight: 800; font-size: 16px; }
+.closed-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ===== Big number summary ===== */
+.big-number {
+  font-size: 56px; font-weight: 900; color: var(--accent2);
+  text-align: center; line-height: 1; padding: 10px 0 6px;
+  letter-spacing: -1px;
+}
+.big-number-sub {
+  display: block; font-size: 13px; font-weight: 700;
+  color: var(--muted); margin-top: 8px; letter-spacing: .3px;
+}
+
+/* ===== Container bottom-safe ===== */
+.container { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
