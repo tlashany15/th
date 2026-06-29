@@ -214,7 +214,11 @@ def dashboard():
     db = get_db()
     cur = db.cursor()
     today = date.today().isoformat()
-    closed = is_day_closed(today)
+
+    # اقرأ سطر الإغلاق مع الإجمالي اللي دخّله المسؤول
+    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (today,))
+    _closure = cur.fetchone()
+    closed = _closure is not None
 
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (u["id"], today))
     checked_in = cur.fetchone() is not None
@@ -223,8 +227,12 @@ def dashboard():
                 (u["id"], today))
     my_total = cur.fetchone()["s"]
 
-    cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (today,))
-    team_total = cur.fetchone()["s"]
+    # لو اليوم مقفول → استخدم الإجمالي اللي قفل عليه المسؤول، غير كده استخدم المجموع الحي
+    if closed:
+        team_total = _closure["total_count"]
+    else:
+        cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (today,))
+        team_total = cur.fetchone()["s"]
 
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (today,))
     present_count = cur.fetchone()["c"]
