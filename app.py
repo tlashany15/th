@@ -263,34 +263,26 @@ def check_in():
     return redirect(url_for("dashboard"))
 
 
-@app.route("/add-vaccination", methods=["POST"])
+@app.route("/history")
 @login_required
-def add_vaccination():
-    u = current_user()
-    today = date.today().isoformat()
-    if is_day_closed(today):
-        flash("اليوم مغلق — لا يمكن إضافة تحصينات جديدة", "error")
-        return redirect(url_for("dashboard"))
-    try:
-        count = int(request.form.get("count", "0"))
-        if count <= 0:
-            raise ValueError
-    except ValueError:
-        flash("أدخل عدد صحيح أكبر من صفر", "error")
-        return redirect(url_for("dashboard"))
-    note = request.form.get("note", "").strip() or None
+def history():
+    """سجل أيام التحصين مع الإجماليات وأسماء العمال المحصِّنين"""
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        "INSERT INTO vaccinations(user_id, day, count, note) VALUES(%s,%s,%s,%s)",
-        (u["id"], today, count, note),
-    )
-    cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-                (u["id"], today))
-    db.commit()
+    cur.execute("""
+        SELECT v.day,
+               COALESCE(SUM(v.count),0) AS total,
+               ARRAY_AGG(DISTINCT u.full_name) AS names
+        FROM vaccinations v
+        JOIN users u ON u.id = v.user_id
+        GROUP BY v.day
+        ORDER BY v.day DESC
+    """)
+    rows = cur.fetchall()
     cur.close()
-    flash(f"تم تسجيل {count} كتكوت ✓", "success")
-    return redirect(url_for("dashboard"))
+    days = [{"day": r["day"].isoformat(), "total": r["total"],
+             "names": [n for n in (r["names"] or []) if n]} for r in rows]
+    return render_template("history.html", days=days)
 
 
 # ---------- المسؤول ----------
