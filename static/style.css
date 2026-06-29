@@ -603,3 +603,73 @@ body::before {
 
 /* Smooth scroll */
 html { scroll-behavior: smooth; }
+
+/* ============ UI POLISH v3 ============ */
+.flash svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Spring-style entrance for cards (overrides v1 fadeUp) */
+.card {
+  animation: springUp .55s cubic-bezier(.22,1.4,.36,1) both;
+}
+.card:nth-of-type(1){ animation-delay: .02s; }
+.card:nth-of-type(2){ animation-delay: .09s; }
+.card:nth-of-type(3){ animation-delay: .16s; }
+.card:nth-of-type(4){ animation-delay: .23s; }
+.card:nth-of-type(5){ animation-delay: .30s; }
+@keyframes springUp {
+  0%   { opacity: 0; transform: translateY(22px) scale(.97); }
+  60%  { opacity: 1; transform: translateY(-3px) scale(1.005); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Staggered list reveal */
+.stagger .list-item {
+  opacity: 0;
+  animation: slideInRight .5s cubic-bezier(.22,1.4,.36,1) forwards;
+  animation-delay: calc(.08s * var(--i, 0) + .15s);
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Big number with subtle pulse */
+.big-number {
+  background: linear-gradient(135deg, var(--accent2), #ef4444);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(245,166,35,.35));
+  animation: bnPop .6s cubic-bezier(.22,1.6,.36,1) both;
+}
+@keyframes bnPop {
+  0%   { opacity: 0; transform: scale(.6); }
+  70%  { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Closed-icon gentle float */
+.closed-icon { animation: floatY 3s ease-in-out infinite; }
+@keyframes floatY {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-4px); }
+}
+
+/* Status dot stronger glow */
+.status-pill.present .dot {
+  box-shadow: 0 0 0 0 rgba(0,214,143,.55);
+  animation: ringPulse 1.6s ease-out infinite;
+}
+@keyframes ringPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,214,143,.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(0,214,143,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,214,143,0); }
+}
+
+/* Button press feedback */
+.btn { transition: transform .12s cubic-bezier(.22,1.6,.36,1), filter .2s, box-shadow .2s; }
+.btn:active { transform: scale(.96); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .big-number, .closed-icon, .stagger .list-item, .pop-in { animation: none !important; }
+}
