@@ -1,8 +1,8 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<div class="date-badge" style="margin-bottom:16px;">
-  <div class="day-name">سجل التحصين</div>
+<div class="date-badge hero-badge" style="margin-bottom:16px;">
+  <div class="day-name">📋 سجل التحصين</div>
   <div class="day-full">مقسوم نصفين شهريين • الجمعة إجازة</div>
 </div>
 
@@ -11,34 +11,38 @@
   <div class="section-title">{{ p.label }}</div>
   <div class="list">
     {% for d in p.days %}
-    <div class="list-item" style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
-      <div style="min-width:0;flex:1;">
-        <div class="list-item-main">
-          يوم {{ d.day_num }} — {{ d.weekday }}
+    <div class="day-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}">
+      <div class="day-row-head">
+        <div class="day-row-title">
+          <span class="day-num">{{ d.day_num }}</span>
+          <span class="day-weekday">{{ d.weekday }}</span>
           {% if d.holiday %}
-            <span class="badge badge-gold" style="margin-right:6px;">إجازة</span>
+            <span class="badge badge-gold pop">🌙 إجازة</span>
           {% elif d.has_data %}
-            <span class="badge badge-green" style="margin-right:6px;">✓ مغلق</span>
+            <span class="badge badge-green pop">✓ مغلق</span>
           {% endif %}
         </div>
-        <div class="list-item-sub muted" style="font-size:12px;">{{ d.date }}</div>
-        {% if d.has_data and d.names %}
-          <div style="margin-top:6px;font-size:13px;">
-            <span class="muted">المحصِّنون:</span>
-            {% for n in d.names %}<span class="badge badge-green" style="margin:2px;">{{ n }}</span>{% endfor %}
-          </div>
-        {% elif not d.holiday and not d.has_data %}
-          <div class="muted" style="font-size:12px;margin-top:4px;">لم يُسجَّل</div>
+        {% if not d.holiday %}
+        <div class="day-row-total">
+          <div class="big-num">{{ d.total }}</div>
+          <div class="muted small">كتكوت</div>
+        </div>
         {% endif %}
       </div>
-      <div style="text-align:left;min-width:80px;">
-        {% if d.holiday %}
-          <span class="muted">—</span>
-        {% else %}
-          <div style="font-size:22px;font-weight:700;color:var(--accent2);">{{ d.total }}</div>
-          <div class="muted" style="font-size:11px;">كتكوت</div>
+
+      {% if d.has_data %}
+        <div class="day-row-meta">
+          <span class="chip chip-blue">👥 {{ d.names|length }} عامل</span>
+          <span class="chip chip-gold">🐤 إجمالي: {{ d.total }}</span>
+        </div>
+        {% if d.names %}
+        <div class="day-names">
+          {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}
+        </div>
         {% endif %}
-      </div>
+      {% elif not d.holiday %}
+        <div class="muted small" style="margin-top:6px;">— لم يُسجَّل —</div>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

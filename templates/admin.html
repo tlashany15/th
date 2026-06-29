@@ -2,8 +2,8 @@
 {% block content %}
 
 <!-- DATE NAV -->
-<div class="card">
-  <div class="section-title mb-0" style="margin-bottom:14px;">لوحة المسؤول</div>
+<div class="card glow-card">
+  <div class="section-title mb-0" style="margin-bottom:14px;">🛡️ لوحة المسؤول</div>
 
   <div class="daynav">
     <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_panel', day=prev_day) }}">‹</a>
@@ -24,32 +24,36 @@
   </div>
 
   <div class="stats" style="margin-top:14px;">
-    <div class="stat"><div class="v">{{ present_count }}</div><div class="l">الحاضرون اليوم</div></div>
-    <div class="stat"><div class="v">{{ workers|length }}</div><div class="l">إجمالي الفريق</div></div>
+    <div class="stat"><div class="v">{{ present_count }}</div><div class="l">الحاضرون</div></div>
+    <div class="stat"><div class="v">{{ workers|length }}</div><div class="l">الفريق</div></div>
+    <div class="stat"><div class="v">{{ day_total }}</div><div class="l">إجمالي اليوم</div></div>
   </div>
 </div>
 
 <!-- WORKERS LIST -->
 <div class="card">
-  <div class="section-title">العمال المحصِّنون اليوم</div>
+  <div class="section-title">👥 العمال المحصِّنون اليوم</div>
 
   {% set present_workers = workers|selectattr('present')|list %}
   {% if present_workers %}
     {% for w in present_workers %}
-    <div class="worker-card">
+    <div class="worker-card pop-in" style="animation-delay: {{ loop.index0 * 40 }}ms;">
       <div class="between">
-        <div>
-          <div class="worker-name">
-            {{ w.full_name }}
-            {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+        <div class="worker-row">
+          <div class="avatar">{{ w.full_name[0] }}</div>
+          <div>
+            <div class="worker-name">
+              {{ w.full_name }}
+              {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+            </div>
+            <div class="worker-meta">@{{ w.username }}</div>
           </div>
-          <div class="worker-meta">@{{ w.username }}</div>
         </div>
         {% if not day_closed %}
         <form method="post" action="{{ url_for('admin_mark_attendance') }}" onsubmit="return confirm('حذف {{ w.full_name }} من قائمة اليوم؟')">
           <input type="hidden" name="day" value="{{ day }}">
           <input type="hidden" name="user_id" value="{{ w.id }}">
-          <button class="btn btn-danger btn-sm">حذف</button>
+          <button class="btn btn-danger btn-sm">✕ حذف</button>
         </form>
         {% endif %}
       </div>
@@ -64,14 +68,17 @@
   {% set absent_workers = workers|rejectattr('present')|list %}
   {% if absent_workers %}
   <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-    <div class="muted" style="font-size:13px;margin-bottom:8px;">إضافة عامل للقائمة:</div>
+    <div class="muted" style="font-size:13px;margin-bottom:8px;">➕ إضافة عامل للقائمة:</div>
     {% for w in absent_workers %}
     <form method="post" action="{{ url_for('admin_mark_attendance') }}" style="margin-bottom:6px;">
       <input type="hidden" name="day" value="{{ day }}">
       <input type="hidden" name="user_id" value="{{ w.id }}">
-      <div class="between">
-        <div class="worker-name" style="font-size:14px;">{{ w.full_name }}
-          {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+      <div class="between worker-card subtle">
+        <div class="worker-row">
+          <div class="avatar avatar-muted">{{ w.full_name[0] }}</div>
+          <div class="worker-name" style="font-size:14px;">{{ w.full_name }}
+            {% if w.role == 'admin' %}<span class="badge badge-gold" style="margin-right:6px;">مسؤول</span>{% endif %}
+          </div>
         </div>
         <button class="btn btn-ghost btn-sm">+ إضافة</button>
       </div>
@@ -84,25 +91,27 @@
 
 <!-- إجمالي + إغلاق -->
 <div class="card">
-  <div class="section-title">إجمالي التحصين وإغلاق اليوم</div>
+  <div class="section-title">🐤 إجمالي التحصين وإغلاق اليوم</div>
   {% if day_closed %}
-    <div class="closed-banner" style="margin-bottom:10px;">
+    <div class="closed-banner shine" style="margin-bottom:10px;">
       <div>
-        <div class="closed-title">اليوم مغلق ✓</div>
+        <div class="closed-title">✓ اليوم مغلق</div>
         <div class="closed-sub">إجمالي اليوم: <strong>{{ day_total }}</strong> كتكوت — تم تنزيله في السجل</div>
       </div>
     </div>
     <form method="post" action="{{ url_for('admin_reopen_day') }}">
       <input type="hidden" name="day" value="{{ day }}">
-      <button class="btn btn-ghost">إعادة فتح اليوم</button>
+      <button class="btn btn-ghost">↻ إعادة فتح اليوم</button>
     </form>
   {% else %}
     <form method="post" action="{{ url_for('admin_close_day') }}" onsubmit="return confirm('قفل اليوم وتسجيل الإجمالي في السجل؟')">
       <input type="hidden" name="day" value="{{ day }}">
-      <label class="muted" style="display:block;font-size:13px;margin-bottom:6px;">إجمالي عدد التحصين اليوم:</label>
-      <input name="total_count" type="number" min="0" required placeholder="مثال: 1500"
-        style="width:100%;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border);font-size:15px;font-family:inherit;outline:none;margin-bottom:10px;">
-      <button class="btn btn-primary" style="width:100%;">إغلاق اليوم وتسجيل الإجمالي</button>
+      <label class="field-label">إجمالي عدد التحصين اليوم</label>
+      <div class="field-wrap">
+        <span class="field-icon">🐤</span>
+        <input name="total_count" type="number" min="0" required placeholder="مثال: 1500" class="field-input">
+      </div>
+      <button class="btn btn-primary btn-lg ripple" style="width:100%;margin-top:12px;">🔒 إغلاق اليوم وتسجيل الإجمالي</button>
     </form>
   {% endif %}
 </div>
