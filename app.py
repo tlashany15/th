@@ -62,6 +62,11 @@ def init_db():
             note TEXT,
             created_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
+        CREATE TABLE IF NOT EXISTS day_closures (
+            day DATE PRIMARY KEY,
+            closed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            closed_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
     """)
     # admin افتراضي
     cur.execute("SELECT 1 FROM users WHERE username='admin'")
@@ -86,6 +91,15 @@ def current_user():
     row = cur.fetchone()
     cur.close()
     return row
+
+
+def is_day_closed(day_s):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT 1 FROM day_closures WHERE day=%s", (day_s,))
+    closed = cur.fetchone() is not None
+    cur.close()
+    return closed
 
 
 def login_required(f):
@@ -173,9 +187,14 @@ def register():
 @login_required
 def dashboard():
     u = current_user()
+    # المسؤول له صفحته الخاصة فقط
+    if u["role"] == "admin":
+        return redirect(url_for("admin_panel"))
+
     db = get_db()
     cur = db.cursor()
     today = date.today().isoformat()
+    closed = is_day_closed(today)
 
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (u["id"], today))
     checked_in = cur.fetchone() is not None
@@ -189,6 +208,19 @@ def dashboard():
 
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (today,))
     present_count = cur.fetchone()["c"]
+
+    # في حالة إغلاق اليوم نعرض ملخص: الحاضرون + كل عامل وعدده
+    present_list = []
+    if closed:
+        cur.execute("""
+            SELECT u.full_name,
+                   COALESCE((SELECT SUM(count) FROM vaccinations v
+                             WHERE v.user_id=u.id AND v.day=%s),0) AS total
+            FROM attendance a JOIN users u ON u.id=a.user_id
+            WHERE a.day=%s
+            ORDER BY total DESC, u.full_name
+        """, (today, today))
+        present_list = cur.fetchall()
 
     cur.execute("""SELECT v.*, u.full_name FROM vaccinations v
                    JOIN users u ON u.id=v.user_id
@@ -204,6 +236,8 @@ def dashboard():
         team_total=team_total,
         present_count=present_count,
         recent=recent,
+        day_closed=closed,
+        present_list=present_list,
     )
 
 
@@ -212,6 +246,9 @@ def dashboard():
 def check_in():
     u = current_user()
     today = date.today().isoformat()
+    if is_day_closed(today):
+        flash("اليوم مغلق من المسؤول — لا يمكن تسجيل حضور جديد", "error")
+        return redirect(url_for("dashboard"))
     db = get_db()
     cur = db.cursor()
     try:
@@ -230,6 +267,10 @@ def check_in():
 @login_required
 def add_vaccination():
     u = current_user()
+    today = date.today().isoformat()
+    if is_day_closed(today):
+        flash("اليوم مغلق — لا يمكن إضافة تحصينات جديدة", "error")
+        return redirect(url_for("dashboard"))
     try:
         count = int(request.form.get("count", "0"))
         if count <= 0:
@@ -238,7 +279,6 @@ def add_vaccination():
         flash("أدخل عدد صحيح أكبر من صفر", "error")
         return redirect(url_for("dashboard"))
     note = request.form.get("note", "").strip() or None
-    today = date.today().isoformat()
     db = get_db()
     cur = db.cursor()
     cur.execute(
@@ -297,14 +337,47 @@ def admin_panel():
         s = cur.fetchone()["s"]
         days_bar.append({"day": d, "total": s, "active": d == day_s})
 
+    cur.execute("SELECT 1 FROM day_closures WHERE day=%s", (day_s,))
+    closed = cur.fetchone() is not None
+
     cur.close()
     return render_template(
         "admin.html",
         workers=workers, entries=entries,
         day=day_s, prev_day=prev_day, next_day=next_day,
         day_total=day_total, present_count=present_count,
-        days_bar=days_bar,
+        days_bar=days_bar, day_closed=closed,
     )
+
+
+@app.route("/admin/close-day", methods=["POST"])
+@admin_required
+def admin_close_day():
+    u = current_user()
+    day = _parse_day(request.form.get("day")).isoformat()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO day_closures(day, closed_by) VALUES(%s,%s) ON CONFLICT (day) DO NOTHING",
+        (day, u["id"]),
+    )
+    db.commit()
+    cur.close()
+    flash("تم إغلاق اليوم — العمال هيشوفوا الملخص الآن", "success")
+    return redirect(url_for("admin_panel", day=day))
+
+
+@app.route("/admin/reopen-day", methods=["POST"])
+@admin_required
+def admin_reopen_day():
+    day = _parse_day(request.form.get("day")).isoformat()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM day_closures WHERE day=%s", (day,))
+    db.commit()
+    cur.close()
+    flash("تم إعادة فتح اليوم", "info")
+    return redirect(url_for("admin_panel", day=day))
 
 
 @app.route("/admin/add-for-worker", methods=["POST"])
