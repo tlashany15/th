@@ -29,6 +29,26 @@
   </div>
 
   <ul class="chats-list">
+    <!-- المجموعة الجماعية -->
+    <li class="chats-group-li">
+      <a class="chat-row chat-row-group" href="{{ url_for('group_room') }}" data-name="{{ group.name|lower }} مجموعة">
+        <div class="ch-avatar-wrap">
+          {% if group.avatar %}<img class="ch-avatar" src="{{ group.avatar }}" alt="">
+          {% else %}<div class="ch-avatar ch-avatar-group">👥</div>{% endif %}
+        </div>
+        <div class="ch-mid">
+          <div class="ch-top">
+            <span class="ch-name">{{ group.name }} <span class="ch-tag">جماعي</span></span>
+            {% if group.last_time %}<span class="ch-time" data-time="{{ group.last_time }}"></span>{% endif %}
+          </div>
+          <div class="ch-bot">
+            <span class="ch-preview">{{ group.last_text }}</span>
+            {% if group.unread %}<span class="ch-badge">{{ group.unread }}</span>{% endif %}
+          </div>
+        </div>
+      </a>
+    </li>
+
     {% for c in contacts %}
     <li>
       <a class="chat-row" href="{{ url_for('chat_room', other_id=c.id) }}" data-name="{{ c.full_name|lower }}">
@@ -60,7 +80,6 @@
   document.getElementById('avatarFile').addEventListener('change', function(){
     document.getElementById('avatarForm').submit();
   });
-  // البحث
   var s = document.getElementById('chatsSearch');
   s && s.addEventListener('input', function(){
     var q = s.value.trim().toLowerCase();
@@ -68,7 +87,6 @@
       r.parentElement.style.display = (!q || (r.dataset.name||'').indexOf(q) !== -1) ? '' : 'none';
     });
   });
-  // وقت نسبي
   function relTime(iso){
     var d = new Date(iso); if (isNaN(d)) return '';
     var diff = (Date.now() - d.getTime())/1000;

@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}">
+
+  <!-- HEADER -->
+  <header class="wa-head">
+    <a class="wa-back" href="{{ url_for('chats_list') }}" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+    <label class="wa-head-avatar wa-head-avatar-group {% if is_admin %}is-clickable{% endif %}" title="{% if is_admin %}تغيير صورة المجموعة{% endif %}">
+      {% if group.avatar %}<img src="{{ group.avatar }}" alt="">
+      {% else %}<div class="wa-head-fb">👥</div>{% endif %}
+      {% if is_admin %}
+        <form id="grpAvatarForm" method="post" action="{{ url_for('group_avatar') }}" enctype="multipart/form-data" style="display:none">
+          <input type="file" name="file" id="grpAvatarFile" accept="image/*">
+        </form>
+        <span class="wa-head-edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+        </span>
+      {% endif %}
+    </label>
+    <div class="wa-head-info">
+      <div class="wa-head-name">{{ group.name }}</div>
+      <div class="wa-head-status">{{ group.members }} عضو</div>
+    </div>
+    {% if is_admin %}
+    <button type="button" class="wa-head-action" id="renameBtn" aria-label="تعديل الاسم">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487zM19.5 18.75h-15"/></svg>
+    </button>
+    {% endif %}
+  </header>
+
+  <!-- PINNED -->
+  <div class="wa-pinned" id="pinned" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 12V4a1 1 0 011-1h-10a1 1 0 011 1v8l-3 3v1h14v-1l-3-3zM12 17v4"/></svg>
+    <div class="wa-pinned-body" id="pinnedBody"></div>
+  </div>
+
+  <!-- MESSAGES -->
+  <main class="wa-msgs" id="msgs"></main>
+
+  <!-- AUDIO REC -->
+  <div class="wa-rec-bar" id="recBar" hidden>
+    <button class="wa-rec-cancel" id="recCancel" aria-label="إلغاء">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="wa-rec-mid">
+      <span class="wa-rec-dot"></span>
+      <span id="recTime">0:00</span>
+      <span class="wa-rec-hint">جاري التسجيل…</span>
+    </div>
+    <button class="wa-rec-send" id="recSend" aria-label="إرسال">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+  <!-- COMPOSER -->
+  <form class="wa-composer" id="composer" autocomplete="off">
+    <label class="wa-attach" aria-label="صورة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+      <input id="imgInput" type="file" accept="image/*" hidden>
+    </label>
+    <input id="textInput" type="text" placeholder="اكتب رسالة" autocomplete="off">
+    <button type="button" class="wa-mic" id="micBtn" aria-label="رسالة صوتية">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
+    </button>
+    <button type="submit" class="wa-send" id="sendBtn" aria-label="إرسال" hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </form>
+</div>
+
+<!-- modal rename -->
+{% if is_admin %}
+<div class="modal-root" id="renameModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-title">تغيير اسم المجموعة</div>
+    <form method="post" action="{{ url_for('group_rename') }}" style="margin-top:10px;">
+      <input class="modal-input" type="text" name="name" maxlength="60" value="{{ group.name }}" required>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
+<script>
+(function(){
+  var wrap = document.querySelector('.wa-wrap');
+  var ME_ID = parseInt(wrap.dataset.meId, 10);
+  var IS_ADMIN = wrap.dataset.isAdmin === '1';
+  var msgsEl = document.getElementById('msgs');
+  var textInput = document.getElementById('textInput');
+  var imgInput = document.getElementById('imgInput');
+  var micBtn = document.getElementById('micBtn');
+  var sendBtn = document.getElementById('sendBtn');
+  var composer = document.getElementById('composer');
+  var pinnedEl = document.getElementById('pinned');
+  var pinnedBody = document.getElementById('pinnedBody');
+
+  var lastId = 0;
+  var lastDayKey = '';
+
+  function avatarHTML(m){
+    if (m.sender_avatar) return '<img class="wa-av" src="'+m.sender_avatar+'" alt="">';
+    var ch = m.sender_name ? m.sender_name.charAt(0) : '?';
+    return '<div class="wa-av wa-av-fb" style="background:hsl('+((m.sender_id||0)*47%360)+',60%,45%)">'+ChatHelpers.escape(ch)+'</div>';
+  }
+
+  function bubbleHTML(m){
+    if (m.deleted) {
+      return '<div class="wa-msg wa-them" data-id="'+m.id+'">'+
+               '<div class="wa-bubble wa-deleted">رسالة محذوفة</div>'+
+             '</div>';
+    }
+    if (m.kind === 'attendance') {
+      return '<div class="wa-sys" data-id="'+m.id+'">'+
+               '<div class="wa-sys-card">'+
+                 '<div class="wa-sys-ic">📋</div>'+
+                 '<pre class="wa-sys-body">'+ChatHelpers.escape(m.body||'')+'</pre>'+
+               '</div></div>';
+    }
+    if (m.kind === 'system') {
+      return '<div class="wa-sys" data-id="'+m.id+'"><span class="wa-sys-pill">'+ChatHelpers.escape(m.body||'')+'</span></div>';
+    }
+    var side = m.mine ? 'me' : 'them';
+    var canDel = (m.mine || IS_ADMIN);
+    var inner = '';
+    if (m.kind === 'image') {
+      inner = '<img class="wa-img" src="'+m.body+'" alt="">';
+    } else if (m.kind === 'audio') {
+      inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
+    } else {
+      inner = '<div class="wa-text">'+ChatHelpers.escape(m.body).replace(/\n/g,'<br>')+'</div>';
+    }
+    var senderLine = (!m.mine) ? '<div class="wa-sender" style="color:hsl('+((m.sender_id||0)*47%360)+',70%,70%)">'+ChatHelpers.escape(m.sender_name)+(m.sender_role==='admin'?' <span class="wa-adm">مسؤول</span>':'')+'</div>' : '';
+    var delBtn = canDel ? '<button class="wa-del" data-id="'+m.id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>' : '';
+    var avatar = (!m.mine) ? '<div class="wa-msg-av">'+avatarHTML(m)+'</div>' : '';
+    return '<div class="wa-msg wa-'+side+' wa-has-av" data-id="'+m.id+'">'+
+             avatar +
+             '<div class="wa-bubble">'+ senderLine + inner +
+               '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span></div>'+
+             '</div>'+
+             delBtn +
+           '</div>';
+  }
+
+  function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
+
+  function appendMessages(list){
+    if (!list.length) return;
+    var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 80;
+    var html = '';
+    list.forEach(function(m){
+      var dk = ChatHelpers.dayKey(m.created_at);
+      if (dk !== lastDayKey){
+        html += '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>';
+        lastDayKey = dk;
+      }
+      html += bubbleHTML(m);
+      lastId = Math.max(lastId, m.id);
+    });
+    msgsEl.insertAdjacentHTML('beforeend', html);
+    ChatHelpers.bindAudio(msgsEl);
+    bindDelete();
+    if (atBottom) scrollBottom();
+  }
+
+  function bindDelete(){
+    msgsEl.querySelectorAll('.wa-del:not([data-bound])').forEach(function(b){
+      b.dataset.bound = '1';
+      b.addEventListener('click', function(){
+        if (!confirm('حذف الرسالة؟')) return;
+        var id = b.dataset.id;
+        fetch('/group/delete/'+id, {method:'POST'}).then(function(r){
+          if (r.ok) {
+            var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]');
+            if (el) el.outerHTML = '<div class="wa-msg wa-them" data-id="'+id+'"><div class="wa-bubble wa-deleted">رسالة محذوفة</div></div>';
+          }
+        });
+      });
+    });
+  }
+
+  function renderPinned(p){
+    if (!p) { pinnedEl.hidden = true; return; }
+    pinnedEl.hidden = false;
+    var label = (p.kind === 'attendance') ? '📋 قائمة حضور مثبّتة' : 'مثبّت';
+    pinnedBody.innerHTML = '<div class="wa-pin-label">'+label+'</div><pre>'+ChatHelpers.escape(p.body||'')+'</pre>';
+  }
+
+  function poll(){
+    fetch('/group/messages?after=' + lastId)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        appendMessages(d.messages || []);
+        renderPinned(d.pinned);
+      }).catch(function(){});
+  }
+  poll();
+  setInterval(poll, 3000);
+
+  textInput.addEventListener('input', function(){
+    var hasText = textInput.value.trim().length > 0;
+    sendBtn.hidden = !hasText;
+    micBtn.hidden = hasText;
+  });
+  composer.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = textInput.value.trim();
+    if (!v) return;
+    var fd = new FormData();
+    fd.append('kind','text'); fd.append('body', v);
+    textInput.value = ''; sendBtn.hidden = true; micBtn.hidden = false;
+    fetch('/group/send', {method:'POST', body:fd}).then(poll);
+  });
+
+  imgInput.addEventListener('change', function(){
+    var f = imgInput.files[0]; if (!f) return;
+    var fd = new FormData();
+    fd.append('kind','image'); fd.append('file', f);
+    fetch('/group/send', {method:'POST', body:fd}).then(poll);
+    imgInput.value = '';
+  });
+
+  ChatHelpers.attachRecorder({
+    micBtn: micBtn, composer: composer,
+    onSend: function(blob, mime){
+      var fd = new FormData();
+      fd.append('kind','audio');
+      var ext = mime.indexOf('mp4') !== -1 ? 'm4a' : 'webm';
+      fd.append('file', blob, 'voice.'+ext);
+      fetch('/group/send', {method:'POST', body:fd})
+        .then(function(r){ return r.json(); })
+        .then(function(){ poll(); })
+        .catch(function(){ alert('فشل إرسال الرسالة الصوتية'); });
+    }
+  });
+
+  // avatar + rename للمسؤول
+  var avFile = document.getElementById('grpAvatarFile');
+  if (avFile) {
+    document.querySelector('.wa-head-avatar-group').addEventListener('click', function(){ avFile.click(); });
+    avFile.addEventListener('change', function(){ document.getElementById('grpAvatarForm').submit(); });
+  }
+  var renameBtn = document.getElementById('renameBtn');
+  var renameModal = document.getElementById('renameModal');
+  if (renameBtn && renameModal) {
+    renameBtn.addEventListener('click', function(){ renameModal.classList.add('is-open'); renameModal.setAttribute('aria-hidden','false'); });
+    renameModal.querySelectorAll('[data-close]').forEach(function(el){
+      el.addEventListener('click', function(){ renameModal.classList.remove('is-open'); renameModal.setAttribute('aria-hidden','true'); });
+    });
+  }
+})();
+</script>
+
+{% endblock %}

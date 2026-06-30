@@ -192,6 +192,38 @@
   {% endif %}
 </div>
 
+<!-- ===== تحضير الغد (إعلان في الجروب) ===== -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">تحضير عمال بكره</div>
+        <div class="sec-h-s">اختر الأسماء وانشرها في الدردشة الجماعية (تتثبّت تلقائيًا)</div>
+      </div>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('admin_announce_tomorrow') }}">
+    <input type="hidden" name="day" value="{{ tomorrow }}">
+    <div class="tomorrow-grid">
+      {% for w in all_workers %}
+      <label class="tom-chk">
+        <input type="checkbox" name="user_ids" value="{{ w.id }}">
+        <span class="tom-name">{{ w.full_name }}</span>
+      </label>
+      {% else %}
+      <div class="empty"><div>لا يوجد عمال مسجلين</div></div>
+      {% endfor %}
+    </div>
+    <button class="btn btn-primary btn-lg" type="submit" style="margin-top:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      نشر قائمة حضور {{ tomorrow }} في الجروب
+    </button>
+  </form>
+</div>
+
 <!-- ===== MODAL (مخصّص بدل confirm()) ===== -->
 <div class="modal-root" id="modalRoot" aria-hidden="true">
   <div class="modal-backdrop" data-close></div>

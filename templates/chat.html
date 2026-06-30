@@ -19,9 +19,7 @@
   </header>
 
   <!-- MESSAGES -->
-  <main class="wa-msgs" id="msgs">
-    <div class="wa-day-sep"><span>اليوم</span></div>
-  </main>
+  <main class="wa-msgs" id="msgs"></main>
 
   <!-- AUDIO RECORDING UI -->
   <div class="wa-rec-bar" id="recBar" hidden>
@@ -31,6 +29,7 @@
     <div class="wa-rec-mid">
       <span class="wa-rec-dot"></span>
       <span id="recTime">0:00</span>
+      <span class="wa-rec-hint">جاري التسجيل…</span>
     </div>
     <button class="wa-rec-send" id="recSend" aria-label="إرسال">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
@@ -40,7 +39,7 @@
   <!-- COMPOSER -->
   <form class="wa-composer" id="composer" autocomplete="off">
     <label class="wa-attach" aria-label="صورة">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"/></svg>
       <input id="imgInput" type="file" accept="image/*" hidden>
     </label>
     <input id="textInput" type="text" placeholder="اكتب رسالة" autocomplete="off">
@@ -53,6 +52,7 @@
   </form>
 </div>
 
+<script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
 <script>
 (function(){
   var wrap = document.querySelector('.wa-wrap');
@@ -67,12 +67,7 @@
   var statusEl = document.getElementById('otherStatus');
 
   var lastId = 0;
-
-  function fmtTime(iso){
-    var d = new Date(iso);
-    return d.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
-  }
-  function escape(s){ var div=document.createElement('div'); div.textContent=s||''; return div.innerHTML; }
+  var lastDayKey = '';
 
   function bubbleHTML(m){
     var side = m.mine ? 'me' : 'them';
@@ -85,13 +80,13 @@
     if (m.kind === 'image') {
       inner = '<img class="wa-img" src="'+m.body+'" alt="">';
     } else if (m.kind === 'audio') {
-      inner = '<audio class="wa-audio" controls preload="metadata" src="'+m.body+'"></audio>';
+      inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
     } else {
-      inner = '<div class="wa-text">'+escape(m.body).replace(/\n/g,'<br>')+'</div>';
+      inner = '<div class="wa-text">'+ChatHelpers.escape(m.body).replace(/\n/g,'<br>')+'</div>';
     }
     return '<div class="wa-msg wa-'+side+'" data-id="'+m.id+'">'+
              '<div class="wa-bubble">'+inner+
-               '<div class="wa-meta"><span class="wa-t">'+fmtTime(m.created_at)+'</span>'+ticks+'</div>'+
+               '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span>'+ticks+'</div>'+
              '</div>'+
            '</div>';
   }
@@ -102,8 +97,17 @@
     if (!list.length) return;
     var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 80;
     var html = '';
-    list.forEach(function(m){ html += bubbleHTML(m); lastId = Math.max(lastId, m.id); });
+    list.forEach(function(m){
+      var dk = ChatHelpers.dayKey(m.created_at);
+      if (dk !== lastDayKey){
+        html += '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>';
+        lastDayKey = dk;
+      }
+      html += bubbleHTML(m);
+      lastId = Math.max(lastId, m.id);
+    });
     msgsEl.insertAdjacentHTML('beforeend', html);
+    ChatHelpers.bindAudio(msgsEl);
     if (atBottom) scrollBottom();
   }
 
@@ -113,8 +117,6 @@
       .then(function(d){
         appendMessages(d.messages || []);
         statusEl.textContent = d.other_online ? 'متصل الآن' : 'غير متصل';
-        // علّم رسايلي القديمة كمقروءة لو الطرف التاني فتح
-        // (السيرفر بيعلّم لما يطلب رسايل، فهنحدث الـ ticks بإعادة ضخ بسيطة)
         if (d.other_online) {
           document.querySelectorAll('.wa-me .wa-ticks').forEach(function(t){ t.classList.add('read'); });
         }
@@ -123,7 +125,6 @@
   poll();
   setInterval(poll, 2500);
 
-  // إرسال نص
   textInput.addEventListener('input', function(){
     var hasText = textInput.value.trim().length > 0;
     sendBtn.hidden = !hasText;
@@ -139,7 +140,6 @@
     fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
   });
 
-  // إرسال صورة
   imgInput.addEventListener('change', function(){
     var f = imgInput.files[0]; if (!f) return;
     var fd = new FormData();
@@ -148,50 +148,20 @@
     imgInput.value = '';
   });
 
-  // ====== تسجيل صوتي زي واتساب ======
-  var recBar = document.getElementById('recBar');
-  var recTime = document.getElementById('recTime');
-  var recCancel = document.getElementById('recCancel');
-  var recSend = document.getElementById('recSend');
-  var mediaRec=null, chunks=[], stream=null, startTs=0, tickId=null, cancelled=false;
-
-  function fmtSec(s){ var m=Math.floor(s/60), x=s%60; return m+':'+(x<10?'0':'')+x; }
-
-  function startRec(){
-    if (!navigator.mediaDevices || !window.MediaRecorder) { alert('المتصفح ما يدعمش التسجيل'); return; }
-    navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-      stream = s; chunks = []; cancelled = false;
-      var mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
-                : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
-      mediaRec = new MediaRecorder(s, mime ? {mimeType:mime} : undefined);
-      mediaRec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
-      mediaRec.onstop = function(){
-        s.getTracks().forEach(function(t){ t.stop(); });
-        if (cancelled || !chunks.length) return;
-        var blob = new Blob(chunks, {type: mediaRec.mimeType || 'audio/webm'});
-        var fd = new FormData();
-        fd.append('kind','audio');
-        fd.append('file', blob, 'voice.webm');
-        fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
-      };
-      mediaRec.start();
-      startTs = Date.now();
-      recBar.hidden = false; composer.style.display = 'none';
-      tickId = setInterval(function(){
-        recTime.textContent = fmtSec(Math.floor((Date.now()-startTs)/1000));
-      }, 250);
-    }).catch(function(){ alert('فعّل صلاحية الميكروفون'); });
-  }
-  function stopRec(send){
-    cancelled = !send;
-    if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
-    clearInterval(tickId);
-    recBar.hidden = true; composer.style.display = '';
-    recTime.textContent = '0:00';
-  }
-  micBtn.addEventListener('click', startRec);
-  recCancel.addEventListener('click', function(){ stopRec(false); });
-  recSend.addEventListener('click', function(){ stopRec(true); });
+  // تسجيل صوتي
+  ChatHelpers.attachRecorder({
+    micBtn: micBtn, composer: composer,
+    onSend: function(blob, mime){
+      var fd = new FormData();
+      fd.append('kind','audio');
+      var ext = mime.indexOf('mp4') !== -1 ? 'm4a' : 'webm';
+      fd.append('file', blob, 'voice.'+ext);
+      fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd})
+        .then(function(r){ return r.json(); })
+        .then(function(){ poll(); })
+        .catch(function(){ alert('فشل إرسال الرسالة الصوتية'); });
+    }
+  });
 })();
 </script>
 
