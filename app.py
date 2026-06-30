@@ -657,7 +657,8 @@ def chats_list():
             "unread": r["unread"] or 0,
         })
     # رتّب: اللي عنده آخر رسالة أولاً
-    contacts.sort(key=lambda c: (c["last_time"] is None, -(c["last_time"].timestamp() if c["last_time"] else 0)))
+    # last_time is an ISO string (from row_to_json); strings sort lexicographically.
+    contacts.sort(key=lambda c: c["last_time"] or "", reverse=True)
     return render_template("chats.html", contacts=contacts)
 
 
