@@ -6,7 +6,7 @@ import os
 import base64
 import psycopg2
 import psycopg2.extras
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
 from flask import (Flask, g, redirect, render_template, request, session,
@@ -15,7 +15,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
-app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 6MB upload cap
+# رفعنا الحد عشان الصوت ميتقطعش
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
@@ -57,13 +58,13 @@ def init_db():
             full_name TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'worker',
-            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
         CREATE TABLE IF NOT EXISTS attendance (
             id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             day DATE NOT NULL,
-            checked_in_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            checked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             UNIQUE(user_id, day)
         );
         CREATE TABLE IF NOT EXISTS vaccinations (
@@ -72,34 +73,69 @@ def init_db():
             day DATE NOT NULL,
             count INTEGER NOT NULL CHECK(count >= 0),
             note TEXT,
-            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
         CREATE TABLE IF NOT EXISTS day_closures (
             day DATE PRIMARY KEY,
             closed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-            closed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            closed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             total_count INTEGER NOT NULL DEFAULT 0
         );
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0;
 
-        -- صور البروفايل + آخر ظهور (للحالة أونلاين)
         ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;
 
-        -- جدول رسايل الشات
+        -- جدول رسايل الشات الفردي
         CREATE TABLE IF NOT EXISTS chat_messages (
             id SERIAL PRIMARY KEY,
             sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             kind TEXT NOT NULL DEFAULT 'text',
             body TEXT,
-            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-            read_at TIMESTAMP
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            read_at TIMESTAMPTZ
         );
         CREATE INDEX IF NOT EXISTS idx_chat_pair_a ON chat_messages(sender_id, receiver_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_chat_pair_b ON chat_messages(receiver_id, sender_id, created_at);
+
+        -- نخلي عمود الوقت timestamptz (لو قديم بدون tz)
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='chat_messages' AND column_name='created_at' AND data_type='timestamp without time zone') THEN
+                ALTER TABLE chat_messages ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC';
+                ALTER TABLE chat_messages ALTER COLUMN read_at TYPE TIMESTAMPTZ USING read_at AT TIME ZONE 'UTC';
+            END IF;
+        EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+        -- جدول إعدادات المجموعة
+        CREATE TABLE IF NOT EXISTS group_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            name TEXT NOT NULL DEFAULT 'دردشة العمال',
+            avatar TEXT,
+            CHECK (id = 1)
+        );
+        INSERT INTO group_settings (id, name) VALUES (1, 'دردشة العمال') ON CONFLICT DO NOTHING;
+
+        -- جدول رسايل المجموعة
+        CREATE TABLE IF NOT EXISTS group_messages (
+            id SERIAL PRIMARY KEY,
+            sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            kind TEXT NOT NULL DEFAULT 'text',
+            body TEXT,
+            pinned BOOLEAN NOT NULL DEFAULT FALSE,
+            deleted BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_group_created ON group_messages(created_at DESC);
+
+        -- آخر قراءة لكل مستخدم للمجموعة
+        CREATE TABLE IF NOT EXISTS group_reads (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            last_read_id INTEGER NOT NULL DEFAULT 0,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
     """)
-    # admin افتراضي
     cur.execute("SELECT 1 FROM users WHERE username='admin'")
     if not cur.fetchone():
         cur.execute(
@@ -127,7 +163,6 @@ def current_user():
 @app.before_request
 def _boot():
     _ensure_schema()
-    # تحديث آخر ظهور للمستخدم الحالي (للحالة أونلاين)
     uid = session.get("user_id")
     if uid:
         try:
@@ -138,6 +173,15 @@ def _boot():
             cur.close()
         except Exception:
             pass
+
+
+def _iso_utc(dt):
+    """ترجع ISO بنهاية Z عشان المتصفح يفهمها UTC ويعرضها بتوقيت الجهاز"""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def is_day_closed(day_s):
@@ -184,16 +228,14 @@ def inject_user():
     return {"current_user": current_user(), "today": date.today().isoformat()}
 
 
-# ---------- مسارات ----------
+# ---------- مسارات أساسية ----------
 @app.route("/")
 def index():
-    # شاشة البداية تظهر في كل مرة يفتح فيها أحد التطبيق
     return redirect(url_for("splash"))
 
 
 @app.route("/welcome")
 def splash():
-    # دائماً تظهر شاشة البداية
     next_url = url_for("dashboard") if session.get("user_id") else url_for("login")
     return render_template("splash.html", next_url=next_url)
 
@@ -268,7 +310,6 @@ def dashboard():
                 (u["id"], today))
     my_total = cur.fetchone()["s"]
 
-    # ✅ لمّا اليوم مقفول: الإجمالي اللي بيظهر هو ال total_count اللي المسؤول دخّله
     if closed:
         team_total = closure_total
     else:
@@ -278,14 +319,12 @@ def dashboard():
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (today,))
     present_count = cur.fetchone()["c"]
 
-    # ملخص الحضور (أسماء فقط — من غير أرقام جنب كل عامل)
     present_list = []
     if closed:
         cur.execute("""
             SELECT u.id, u.full_name, u.avatar
             FROM attendance a JOIN users u ON u.id=a.user_id
-            WHERE a.day=%s
-            ORDER BY u.full_name
+            WHERE a.day=%s ORDER BY u.full_name
         """, (today,))
         present_list = cur.fetchall()
 
@@ -333,7 +372,6 @@ def check_in():
 @app.route("/history")
 @login_required
 def history():
-    """سجل التحصين مقسوم نصفين شهريين (1-15 و 16-آخر الشهر)، الجمعة إجازة"""
     import calendar
     db = get_db()
     cur = db.cursor()
@@ -432,13 +470,19 @@ def admin_panel():
     if closed:
         day_total = _row["total_count"]
 
+    # عمال متاحين لإضافتهم في تحضير الغد (للزر الجديد)
+    cur.execute("SELECT id, full_name FROM users WHERE role='worker' ORDER BY full_name")
+    all_workers = cur.fetchall()
+
     cur.close()
+    tomorrow = (day + timedelta(days=1)).isoformat()
     return render_template(
         "admin.html",
         workers=workers, entries=entries,
         day=day_s, prev_day=prev_day, next_day=next_day,
         day_total=day_total, present_count=present_count,
         days_bar=days_bar, day_closed=closed,
+        all_workers=all_workers, tomorrow=tomorrow,
     )
 
 
@@ -542,6 +586,32 @@ def admin_delete_entry(entry_id):
     return redirect(url_for("admin_panel", day=day))
 
 
+# ---- إعلان تحضير الغد (يُنشر في الجروب ويُثبّت) ----
+@app.route("/admin/announce-tomorrow", methods=["POST"])
+@admin_required
+def admin_announce_tomorrow():
+    u = current_user()
+    day = request.form.get("day") or (date.today() + timedelta(days=1)).isoformat()
+    ids = request.form.getlist("user_ids")
+    if not ids:
+        flash("اختر عامل واحد على الأقل", "error")
+        return redirect(url_for("admin_panel"))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT full_name FROM users WHERE id = ANY(%s) ORDER BY full_name",
+                ([int(x) for x in ids],))
+    names = [r["full_name"] for r in cur.fetchall()]
+    # نلغي تثبيت أي إعلان حضور سابق
+    cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
+    body = "📋 حضور يوم " + day + "\n• " + "\n• ".join(names)
+    cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
+                   VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body))
+    db.commit()
+    cur.close()
+    flash("تم نشر قائمة حضور الغد في الدردشة الجماعية 📌", "success")
+    return redirect(url_for("admin_panel"))
+
+
 @app.route("/admin/users", methods=["GET", "POST"])
 @admin_required
 def admin_users():
@@ -595,15 +665,16 @@ def admin_users():
 # ====================== الشات (Chat) =========================
 # ============================================================
 
-ONLINE_WINDOW_SECONDS = 60  # متصل = آخر ظهور خلال 60 ثانية
+ONLINE_WINDOW_SECONDS = 60
 
 
 def _is_online(last_seen):
     if not last_seen:
         return False
-    return (datetime.utcnow() - last_seen).total_seconds() <= ONLINE_WINDOW_SECONDS \
-        if last_seen.tzinfo is None else \
-        (datetime.now(last_seen.tzinfo) - last_seen).total_seconds() <= ONLINE_WINDOW_SECONDS
+    now = datetime.now(timezone.utc)
+    if last_seen.tzinfo is None:
+        last_seen = last_seen.replace(tzinfo=timezone.utc)
+    return (now - last_seen).total_seconds() <= ONLINE_WINDOW_SECONDS
 
 
 def _msg_preview(m):
@@ -613,8 +684,26 @@ def _msg_preview(m):
         return "📷 صورة"
     if m["kind"] == "audio":
         return "🎤 رسالة صوتية"
+    if m["kind"] == "attendance":
+        return "📋 قائمة حضور"
+    if m["kind"] == "system":
+        return (m.get("body") or "")[:60]
     body = m.get("body") or ""
     return body if len(body) <= 40 else body[:40] + "…"
+
+
+def _get_group_settings():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM group_settings WHERE id=1")
+    row = cur.fetchone()
+    if not row:
+        cur.execute("INSERT INTO group_settings(id,name) VALUES(1,'دردشة العمال') ON CONFLICT DO NOTHING")
+        db.commit()
+        cur.execute("SELECT * FROM group_settings WHERE id=1")
+        row = cur.fetchone()
+    cur.close()
+    return row
 
 
 @app.route("/chats")
@@ -623,6 +712,8 @@ def chats_list():
     u = current_user()
     db = get_db()
     cur = db.cursor()
+
+    # المحادثات الفردية
     cur.execute("""
         SELECT u.id, u.full_name, u.username, u.avatar, u.last_seen,
           (SELECT row_to_json(t) FROM (
@@ -639,7 +730,6 @@ def chats_list():
         ORDER BY u.full_name
     """, (u["id"], u["id"], u["id"], u["id"]))
     rows = cur.fetchall()
-    cur.close()
 
     contacts = []
     for r in rows:
@@ -656,10 +746,29 @@ def chats_list():
             "last_time": last_time,
             "unread": r["unread"] or 0,
         })
-    # رتّب: اللي عنده آخر رسالة أولاً
-    # last_time is an ISO string (from row_to_json); strings sort lexicographically.
     contacts.sort(key=lambda c: c["last_time"] or "", reverse=True)
-    return render_template("chats.html", contacts=contacts)
+
+    # بيانات المجموعة
+    gs = _get_group_settings()
+    cur.execute("""SELECT id, sender_id, kind, body, created_at FROM group_messages
+                   WHERE deleted=FALSE ORDER BY created_at DESC LIMIT 1""")
+    g_last = cur.fetchone()
+    cur.execute("SELECT last_read_id FROM group_reads WHERE user_id=%s", (u["id"],))
+    gr = cur.fetchone()
+    last_read_id = gr["last_read_id"] if gr else 0
+    cur.execute("SELECT COUNT(*) AS c FROM group_messages WHERE id > %s AND deleted=FALSE AND sender_id <> %s",
+                (last_read_id, u["id"]))
+    g_unread = cur.fetchone()["c"]
+    cur.close()
+
+    group = {
+        "name": gs["name"],
+        "avatar": gs["avatar"],
+        "last_text": _msg_preview(g_last) if g_last else "ابدأ الكلام مع الفريق",
+        "last_time": _iso_utc(g_last["created_at"]) if g_last else None,
+        "unread": g_unread,
+    }
+    return render_template("chats.html", contacts=contacts, group=group)
 
 
 @app.route("/chat/<int:other_id>")
@@ -676,7 +785,6 @@ def chat_room(other_id):
         cur.close()
         flash("المستخدم غير موجود", "error")
         return redirect(url_for("chats_list"))
-    # علّم رسايله المقروءة
     cur.execute("""UPDATE chat_messages SET read_at = NOW()
                    WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL""",
                 (other_id, u["id"]))
@@ -711,12 +819,10 @@ def chat_messages_api(other_id):
         ORDER BY id ASC LIMIT 200
     """, (u["id"], other_id, other_id, u["id"], after))
     rows = cur.fetchall()
-    # علّم الجديد من الطرف الآخر كمقروء
     cur.execute("""UPDATE chat_messages SET read_at = NOW()
                    WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL""",
                 (other_id, u["id"]))
     db.commit()
-    # حالة الطرف التاني
     cur.execute("SELECT last_seen FROM users WHERE id=%s", (other_id,))
     other_row = cur.fetchone()
     cur.close()
@@ -727,7 +833,7 @@ def chat_messages_api(other_id):
             "sender_id": r["sender_id"],
             "kind": r["kind"],
             "body": r["body"],
-            "created_at": r["created_at"].isoformat(),
+            "created_at": _iso_utc(r["created_at"]),
             "mine": r["sender_id"] == u["id"],
             "read": r["read_at"] is not None,
         })
@@ -757,7 +863,7 @@ def chat_send(other_id):
         if not f:
             return jsonify({"ok": False, "error": "no_file"}), 400
         data = f.read()
-        if len(data) > 5 * 1024 * 1024:
+        if len(data) > 8 * 1024 * 1024:
             return jsonify({"ok": False, "error": "too_large"}), 413
         mime = f.mimetype or ("image/jpeg" if kind == "image" else "audio/webm")
         body = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
@@ -772,7 +878,180 @@ def chat_send(other_id):
     row = cur.fetchone()
     db.commit()
     cur.close()
-    return jsonify({"ok": True, "id": row["id"], "created_at": row["created_at"].isoformat()})
+    return jsonify({"ok": True, "id": row["id"], "created_at": _iso_utc(row["created_at"])})
+
+
+# ====================== الجروب الجماعي ======================
+
+@app.route("/group")
+@login_required
+def group_room():
+    u = current_user()
+    gs = _get_group_settings()
+    # حدّث آخر قراءة
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT COALESCE(MAX(id),0) AS m FROM group_messages")
+    max_id = cur.fetchone()["m"]
+    cur.execute("""INSERT INTO group_reads(user_id, last_read_id) VALUES(%s,%s)
+                   ON CONFLICT (user_id) DO UPDATE SET last_read_id=EXCLUDED.last_read_id, updated_at=NOW()""",
+                (u["id"], max_id))
+    db.commit()
+    # عدد الأعضاء
+    cur.execute("SELECT COUNT(*) AS c FROM users")
+    members = cur.fetchone()["c"]
+    cur.close()
+    is_admin = (u["role"] == "admin")
+    return render_template("group.html", group={
+        "name": gs["name"], "avatar": gs["avatar"], "members": members
+    }, is_admin=is_admin)
+
+
+@app.route("/group/messages")
+@login_required
+def group_messages_api():
+    u = current_user()
+    after = request.args.get("after", "0")
+    try:
+        after = int(after)
+    except ValueError:
+        after = 0
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT m.id, m.sender_id, m.kind, m.body, m.pinned, m.deleted, m.created_at,
+               u.full_name AS sender_name, u.avatar AS sender_avatar, u.role AS sender_role
+        FROM group_messages m
+        LEFT JOIN users u ON u.id = m.sender_id
+        WHERE m.id > %s
+        ORDER BY m.id ASC LIMIT 300
+    """, (after,))
+    rows = cur.fetchall()
+    # المثبّت
+    cur.execute("""SELECT id, body, kind FROM group_messages
+                   WHERE pinned=TRUE AND deleted=FALSE
+                   ORDER BY created_at DESC LIMIT 1""")
+    pinned = cur.fetchone()
+    # حدّث آخر قراءة لأكبر id
+    if rows:
+        cur.execute("""INSERT INTO group_reads(user_id, last_read_id) VALUES(%s,%s)
+                       ON CONFLICT (user_id) DO UPDATE SET last_read_id=GREATEST(group_reads.last_read_id, EXCLUDED.last_read_id), updated_at=NOW()""",
+                    (u["id"], rows[-1]["id"]))
+        db.commit()
+    cur.close()
+    msgs = []
+    for r in rows:
+        msgs.append({
+            "id": r["id"],
+            "sender_id": r["sender_id"],
+            "sender_name": r["sender_name"] or "محذوف",
+            "sender_avatar": r["sender_avatar"],
+            "sender_role": r["sender_role"] or "",
+            "kind": r["kind"],
+            "body": r["body"],
+            "pinned": r["pinned"],
+            "deleted": r["deleted"],
+            "created_at": _iso_utc(r["created_at"]),
+            "mine": r["sender_id"] == u["id"],
+        })
+    return jsonify({
+        "messages": msgs,
+        "pinned": ({"id": pinned["id"], "body": pinned["body"], "kind": pinned["kind"]} if pinned else None),
+    })
+
+
+@app.route("/group/send", methods=["POST"])
+@login_required
+def group_send():
+    u = current_user()
+    kind = request.form.get("kind", "text")
+    body = None
+    if kind == "text":
+        text = (request.form.get("body") or "").strip()
+        if not text:
+            return jsonify({"ok": False, "error": "empty"}), 400
+        if len(text) > 4000:
+            text = text[:4000]
+        body = text
+    elif kind in ("image", "audio"):
+        f = request.files.get("file")
+        if not f:
+            return jsonify({"ok": False, "error": "no_file"}), 400
+        data = f.read()
+        if len(data) > 8 * 1024 * 1024:
+            return jsonify({"ok": False, "error": "too_large"}), 413
+        mime = f.mimetype or ("image/jpeg" if kind == "image" else "audio/webm")
+        body = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
+    else:
+        return jsonify({"ok": False, "error": "bad_kind"}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""INSERT INTO group_messages(sender_id, kind, body)
+                   VALUES (%s, %s, %s) RETURNING id, created_at""",
+                (u["id"], kind, body))
+    row = cur.fetchone()
+    db.commit()
+    cur.close()
+    return jsonify({"ok": True, "id": row["id"], "created_at": _iso_utc(row["created_at"])})
+
+
+@app.route("/group/delete/<int:msg_id>", methods=["POST"])
+@login_required
+def group_delete_msg(msg_id):
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT sender_id FROM group_messages WHERE id=%s", (msg_id,))
+    r = cur.fetchone()
+    if not r:
+        cur.close()
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if u["role"] != "admin" and r["sender_id"] != u["id"]:
+        cur.close()
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    cur.execute("UPDATE group_messages SET deleted=TRUE, body=NULL, pinned=FALSE WHERE id=%s", (msg_id,))
+    db.commit()
+    cur.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/group/avatar", methods=["POST"])
+@admin_required
+def group_avatar():
+    f = request.files.get("file")
+    if not f:
+        flash("اختر صورة", "error")
+        return redirect(url_for("group_room"))
+    data = f.read()
+    if len(data) > 3 * 1024 * 1024:
+        flash("الصورة كبيرة (الحد 3 ميجا)", "error")
+        return redirect(url_for("group_room"))
+    mime = f.mimetype or "image/jpeg"
+    data_url = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE group_settings SET avatar=%s WHERE id=1", (data_url,))
+    db.commit()
+    cur.close()
+    flash("تم تحديث صورة المجموعة ✓", "success")
+    return redirect(url_for("group_room"))
+
+
+@app.route("/group/rename", methods=["POST"])
+@admin_required
+def group_rename():
+    name = (request.form.get("name") or "").strip()
+    if not name:
+        flash("ادخل اسم", "error")
+        return redirect(url_for("group_room"))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE group_settings SET name=%s WHERE id=1", (name[:60],))
+    db.commit()
+    cur.close()
+    flash("تم تحديث اسم المجموعة ✓", "success")
+    return redirect(url_for("group_room"))
 
 
 @app.route("/me/avatar", methods=["POST"])
@@ -801,12 +1080,11 @@ def update_avatar():
 @app.route("/me/ping", methods=["POST"])
 @login_required
 def ping():
-    return jsonify({"ok": True, "ts": datetime.utcnow().isoformat()})
+    return jsonify({"ok": True, "ts": datetime.now(timezone.utc).isoformat()})
 
 
 @app.route("/init-db")
 def init_db_route():
-    """Route مؤقت لإنشاء الجداول — احذفه بعد أول تشغيل"""
     secret = request.args.get("secret", "")
     if secret != os.environ.get("INIT_SECRET", ""):
         return "غير مسموح", 403
