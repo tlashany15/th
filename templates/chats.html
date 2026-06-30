@@ -40,7 +40,7 @@
         <div class="ch-mid">
           <div class="ch-top">
             <span class="ch-name">{{ c.full_name }}</span>
-            {% if c.last_time %}<span class="ch-time" data-time="{{ c.last_time.isoformat() }}"></span>{% endif %}
+            {% if c.last_time %}<span class="ch-time" data-time="{{ c.last_time }}"></span>{% endif %}
           </div>
           <div class="ch-bot">
             <span class="ch-preview">{{ c.last_text }}</span>
