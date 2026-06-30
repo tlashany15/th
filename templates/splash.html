@@ -1,79 +1,46 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="v2-splash">
-  <div class="v2-splash-bg" aria-hidden="true">
-    <span class="v2-orb v2-orb-a"></span>
-    <span class="v2-orb v2-orb-b"></span>
-    <span class="v2-orb v2-orb-c"></span>
-    <span class="v2-splash-noise"></span>
+<div class="splash-simple">
+  <div class="splash-bg" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
   </div>
 
-  <header class="v2-splash-top">
-    <div class="v2-splash-mark">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="vshield" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-            <stop stop-color="#ffd27a"/><stop offset=".6" stop-color="#f5a623"/><stop offset="1" stop-color="#ef4444"/>
-          </linearGradient>
-        </defs>
-        <path d="M12 2.2l8.2 3v6.5c0 4.7-3.4 8.9-8.2 10.1-4.8-1.2-8.2-5.4-8.2-10.1V5.2l8.2-3z" fill="url(#vshield)"/>
-        <path d="M8.6 12.4l2.6 2.6L16 9.4" stroke="#1a0800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>فريق التحصين</span>
+  <div class="ssp-logo">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="splashShield" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#ffd27a"/><stop offset=".6" stop-color="#f5a623"/><stop offset="1" stop-color="#ef4444"/>
+        </linearGradient>
+      </defs>
+      <path d="M12 2.2l8.2 3v6.5c0 4.7-3.4 8.9-8.2 10.1-4.8-1.2-8.2-5.4-8.2-10.1V5.2l8.2-3z" fill="url(#splashShield)"/>
+      <path d="M8.6 12.4l2.6 2.6L16 9.4" stroke="#1a0800" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <h1 class="ssp-title">فريق تحصين الكتاكيت</h1>
+  <p class="ssp-tag">إدارة يومك بأبسط وأسرع طريقة 🐤</p>
+
+  <div class="ssp-divider"></div>
+
+  <div class="ssp-points">
+    <div class="ssp-point" style="--d:.45s">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      تسجيل حضور بضغطة واحدة كل صباح
     </div>
-    <a href="{{ url_for('login') }}" class="v2-splash-skip">تخطّي</a>
-  </header>
-
-  <main class="v2-splash-main">
-    <span class="v2-splash-eyebrow">منصة الحقل · 2025</span>
-
-    <h1 class="v2-splash-title">
-      <span class="v2-display">إدارة يومك</span>
-      <span class="v2-display v2-gold-italic">بدِقّة الفريق المحترف.</span>
-    </h1>
-
-    <p class="v2-splash-tag">
-      تسجيل حضور فوري، عدّاد تحصين لحظي، وسجلّ كامل لكل يوم —
-      كل ده في تطبيق واحد مصمّم للعمل الميداني.
-    </p>
-
-    <div class="v2-splash-features">
-      <div class="v2-sf" style="--d:.05s">
-        <span class="v2-sf-n">01</span>
-        <div>
-          <div class="v2-sf-t">حضور بضغطة</div>
-          <div class="v2-sf-s">سجّل حضورك صباحاً في ثوانٍ.</div>
-        </div>
-      </div>
-      <div class="v2-sf" style="--d:.15s">
-        <span class="v2-sf-n">02</span>
-        <div>
-          <div class="v2-sf-t">إجمالي لحظي</div>
-          <div class="v2-sf-s">شوف شغل الفريق وأنت في الميدان.</div>
-        </div>
-      </div>
-      <div class="v2-sf" style="--d:.25s">
-        <span class="v2-sf-n">03</span>
-        <div>
-          <div class="v2-sf-t">سجل مُنظَّم</div>
-          <div class="v2-sf-s">مقسوم على فترات نصف الشهر.</div>
-        </div>
-      </div>
+    <div class="ssp-point" style="--d:.55s">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      متابعة إجمالي التحصين لحظياً
     </div>
+    <div class="ssp-point" style="--d:.65s">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      سجل كامل مقسوم على كل نصف شهر
+    </div>
+  </div>
 
-    <a href="{{ url_for('login') }}" class="v2-splash-cta">
-      <span>ابدأ الآن</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
-    </a>
-  </main>
-
-  <footer class="v2-splash-foot">
-    <span>© فريق تحصين الكتاكيت</span>
-    <span>صُنع بإتقان 🐤</span>
-  </footer>
+  <a href="{{ url_for('login') }}" class="ssp-cta">
+    <span>ابدأ الآن</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+  </a>
 </div>
-
-<script>
-  try { localStorage.setItem('splash_seen', String(Date.now())); } catch(e){}
-</script>
 {% endblock %}

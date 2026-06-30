@@ -1,120 +1,126 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<!-- ============ HERO ============ -->
-<section class="v2-hero">
-  <div class="v2-hero-aurora" aria-hidden="true"></div>
-  <div class="v2-hero-grain" aria-hidden="true"></div>
-
-  <div class="v2-hero-top">
-    <span class="v2-eyebrow">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25"/></svg>
-      <span>{{ today }}</span>
-    </span>
-    {% if checked_in %}
-      <span class="v2-pill v2-pill-on"><i></i>حاضر</span>
-    {% else %}
-      <span class="v2-pill v2-pill-off"><i></i>لم تسجّل</span>
-    {% endif %}
+<!-- ===== HERO ===== -->
+<section class="hero-worker">
+  <div class="hero-mesh"></div>
+  <div class="hw-row">
+    <div>
+      <div class="hw-greet">مرحباً 👋</div>
+      <h1 class="hw-name">{{ current_user.full_name }}</h1>
+      {% if checked_in %}
+        <div class="hw-status is-present"><span class="dot"></span> سجّلت حضورك اليوم</div>
+      {% else %}
+        <div class="hw-status is-absent"><span class="dot"></span> لم تسجّل حضورك بعد</div>
+      {% endif %}
+    </div>
+    <div class="hw-date">
+      <div class="hw-date-d">{{ today[8:] }}</div>
+      <div class="hw-date-m">{{ today[5:7] }}/{{ today[:4] }}</div>
+    </div>
   </div>
 
-  <h1 class="v2-hello">
-    مرحباً،
-    <span class="v2-name">{{ current_user.full_name }}</span>
-  </h1>
-  <p class="v2-hello-sub">يوم جديد من العمل المنظَّم. خلّيك مركّز.</p>
-
-  <div class="v2-hero-stats">
-    <div class="v2-hstat">
-      <div class="v2-hstat-num" data-countup="{{ present_count }}">0</div>
-      <div class="v2-hstat-lbl">الحاضرون</div>
+  <!-- KPI tiles -->
+  <div class="hw-kpi-grid">
+    <div class="kpi kpi-green">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      </div>
+      <div class="kpi-v" data-count="{{ present_count }}">0</div>
+      <div class="kpi-l">حاضرون</div>
     </div>
-    <div class="v2-hstat-sep"></div>
-    <div class="v2-hstat">
-      <div class="v2-hstat-num v2-gold" data-countup="{{ team_total }}">0</div>
-      <div class="v2-hstat-lbl">إجمالي اليوم</div>
+    <div class="kpi kpi-gold">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+      </div>
+      <div class="kpi-v" data-count="{{ team_total }}">0</div>
+      <div class="kpi-l">إجمالي اليوم</div>
     </div>
   </div>
 </section>
 
 {% if day_closed %}
 
-  <!-- ============ DAY CLOSED ============ -->
-  <div class="v2-closed v2-fade" style="--i:0">
-    <span class="v2-closed-tag">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 21h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 006.75 21z"/></svg>
-      تم إغلاق اليوم
-    </span>
-    <p class="v2-closed-note">ده ملخص شغل النهارده بعد ما المسؤول أقفل اليوم.</p>
-  </div>
-
-  <!-- ============ BIG TOTAL ============ -->
-  <div class="v2-total v2-fade" style="--i:1">
-    <div class="v2-total-label">إجمالي التحصين</div>
-    <div class="v2-total-num">
-      <span data-countup="{{ team_total }}">0</span>
-      <em>كتكوت</em>
+  <!-- ===== DAY CLOSED SUMMARY ===== -->
+  <div class="dayclosed-card stagger-in" style="--i:0">
+    <div class="dc-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 21h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 006.75 21z"/></svg>
     </div>
-    <div class="v2-total-foot">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22"/></svg>
-      تم إنجازه بواسطة <strong>{{ present_list|length }}</strong> عامل
+    <div class="dc-title">تم إغلاق اليوم</div>
+    <div class="dc-sub">ده ملخص شغل النهارده بعد ما المسؤول أقفل اليوم</div>
+    <div class="dc-total">
+      <span class="dc-num" data-countup="{{ team_total }}">0</span>
+      <span class="dc-num-unit">كتكوت</span>
+      <div class="dc-foot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
+        تم إنجازه بواسطة {{ present_list|length }} عامل
+      </div>
     </div>
   </div>
 
-  <!-- ============ WORKERS LIST ============ -->
-  <section class="v2-section v2-fade" style="--i:2">
-    <div class="v2-section-head">
-      <h3>المحصّنون</h3>
-      <span class="v2-chip">{{ present_list|length }}</span>
+  <!-- ===== WORKERS LIST WITH COUNTS ===== -->
+  <div class="card">
+    <div class="sec-head">
+      <div class="sec-h-l">
+        <div class="sec-h-ico sec-h-ico-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        </div>
+        <div>
+          <div class="sec-h-t">المحصّنون</div>
+          <div class="sec-h-s">{{ present_list|length }} عامل سجّل حضوره</div>
+        </div>
+      </div>
     </div>
 
     {% if present_list %}
-      <ol class="v2-list">
+      <div class="wlist">
         {% for p in present_list %}
-        <li class="v2-row v2-fade" style="--i:{{ loop.index0 + 3 }}">
-          <span class="v2-rank">{{ '%02d' % loop.index }}</span>
-          <div class="v2-row-main">
-            <div class="v2-row-name">{{ p.full_name }}</div>
-            <div class="v2-row-sub">تم تسجيل الحضور</div>
+        <div class="wcard stagger-in" style="--i:{{ loop.index0 + 1 }}">
+          <div class="wcard-l">
+            <div class="wavatar wavatar-{{ loop.index0 % 5 }}">{{ p.full_name[:1] }}</div>
+            <div class="wcard-info">
+              <div class="wcard-name">{{ p.full_name }}</div>
+              <div class="wcard-meta">تم تسجيل الحضور</div>
+            </div>
           </div>
-          <div class="v2-row-count">
-            <span data-countup="{{ p.vaccinated_count or 0 }}">0</span>
-            <em>كتكوت</em>
+          <div class="wcard-count">
+            <div class="wcard-count-v" data-countup="{{ p.total or 0 }}">0</div>
+            <div class="wcard-count-l">كتكوت</div>
           </div>
-        </li>
+        </div>
         {% endfor %}
-      </ol>
+      </div>
     {% else %}
-      <div class="v2-empty">
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
         <p>لا أحد سجّل حضوره اليوم</p>
       </div>
     {% endif %}
-  </section>
+  </div>
 
 {% else %}
 
   {% if not checked_in %}
-  <!-- ============ CHECK-IN CTA ============ -->
-  <div class="v2-action v2-fade" style="--i:1">
-    <div class="v2-action-copy">
-      <div class="v2-action-eyebrow">ابدأ يومك</div>
-      <h2 class="v2-action-title">سجّل حضورك</h2>
-      <p class="v2-action-sub">بضغطة واحدة، خلّي الفريق يعرف إنك جاهز.</p>
+  <div class="act-card stagger-in" style="--i:1">
+    <div class="act-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
     </div>
+    <div class="act-title">تسجيل الحضور</div>
+    <div class="act-sub">سجّل حضورك اليوم بضغطة واحدة</div>
     <form method="post" action="{{ url_for('check_in') }}">
-      <button class="v2-cta">
-        <span>أحضر نفسي</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+      <button class="btn btn-success btn-lg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        أحضر نفسي
       </button>
     </form>
   </div>
   {% else %}
-  <div class="v2-action v2-action-done v2-fade" style="--i:1">
-    <div class="v2-done-ring">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+  <div class="act-card is-done stagger-in" style="--i:1">
+    <div class="act-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
     </div>
-    <h2 class="v2-action-title">تم تسجيل حضورك</h2>
-    <p class="v2-action-sub">تابع سجل التحصين من تبويب «السجل» بالأسفل.</p>
+    <div class="act-title">تم تسجيل حضورك</div>
+    <div class="act-sub">تابع سجل التحصين من تبويب «السجل» بالأسفل</div>
   </div>
   {% endif %}
 
@@ -141,6 +147,20 @@
       });
     }, { threshold: 0.4 });
     document.querySelectorAll('[data-countup]').forEach(function(el){ io.observe(el); });
+
+    var kpis = document.querySelectorAll('.kpi-v[data-count]');
+    kpis.forEach(function(el){
+      var target = parseInt(el.dataset.count || '0', 10);
+      if (!target) { el.textContent = '0'; return; }
+      var dur = 900, start = performance.now();
+      function tick(t){
+        var p = Math.min(1, (t - start) / dur);
+        var e = ease(p);
+        el.textContent = Math.round(target * e).toLocaleString('ar-EG');
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
   })();
 </script>
 
