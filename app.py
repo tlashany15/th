@@ -3,6 +3,7 @@
 Flask + PostgreSQL — يعمل على Vercel
 """
 import os
+import base64
 import psycopg2
 import psycopg2.extras
 from datetime import date, datetime, timedelta
@@ -14,6 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
+app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024  # 6MB upload cap
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
@@ -26,11 +28,6 @@ def _ensure_schema():
         _SCHEMA_READY = True
     except Exception as e:
         print("init_db error:", e)
-
-@app.before_request
-def _boot():
-    _ensure_schema()
-
 
 
 # ---------- قاعدة البيانات ----------
@@ -84,6 +81,23 @@ def init_db():
             total_count INTEGER NOT NULL DEFAULT 0
         );
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0;
+
+        -- صور البروفايل + آخر ظهور (للحالة أونلاين)
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP;
+
+        -- جدول رسايل الشات
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id SERIAL PRIMARY KEY,
+            sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL DEFAULT 'text',
+            body TEXT,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            read_at TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_chat_pair_a ON chat_messages(sender_id, receiver_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_chat_pair_b ON chat_messages(receiver_id, sender_id, created_at);
     """)
     # admin افتراضي
     cur.execute("SELECT 1 FROM users WHERE username='admin'")
@@ -110,16 +124,39 @@ def current_user():
     return row
 
 
+@app.before_request
+def _boot():
+    _ensure_schema()
+    # تحديث آخر ظهور للمستخدم الحالي (للحالة أونلاين)
+    uid = session.get("user_id")
+    if uid:
+        try:
+            db = get_db()
+            cur = db.cursor()
+            cur.execute("UPDATE users SET last_seen = NOW() WHERE id = %s", (uid,))
+            db.commit()
+            cur.close()
+        except Exception:
+            pass
+
+
 def is_day_closed(day_s):
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
     closed = _row is not None
-    if closed:
-        day_total = _row["total_count"]
     cur.close()
     return closed
+
+
+def get_day_closure_total(day_s):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    _row = cur.fetchone()
+    cur.close()
+    return _row["total_count"] if _row else None
 
 
 def login_required(f):
@@ -150,21 +187,15 @@ def inject_user():
 # ---------- مسارات ----------
 @app.route("/")
 def index():
-    # شاشة البداية تظهر للزوار الجدد فقط (تُحفظ بكوكي)
-    if session.get("user_id"):
-        return redirect(url_for("dashboard"))
-    if request.cookies.get("splash_seen") == "1":
-        return redirect(url_for("login"))
+    # شاشة البداية تظهر في كل مرة يفتح فيها أحد التطبيق
     return redirect(url_for("splash"))
 
 
 @app.route("/welcome")
 def splash():
-    from flask import make_response
-    resp = make_response(render_template("splash.html"))
-    # تظهر مرة واحدة فقط
-    resp.set_cookie("splash_seen", "1", max_age=60*60*24*30, samesite="Lax")
-    return resp
+    # دائماً تظهر شاشة البداية
+    next_url = url_for("dashboard") if session.get("user_id") else url_for("login")
+    return render_template("splash.html", next_url=next_url)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -221,14 +252,14 @@ def register():
 @login_required
 def dashboard():
     u = current_user()
-    # المسؤول له صفحته الخاصة فقط
     if u["role"] == "admin":
         return redirect(url_for("admin_panel"))
 
     db = get_db()
     cur = db.cursor()
     today = date.today().isoformat()
-    closed = is_day_closed(today)
+    closure_total = get_day_closure_total(today)
+    closed = closure_total is not None
 
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (u["id"], today))
     checked_in = cur.fetchone() is not None
@@ -237,23 +268,25 @@ def dashboard():
                 (u["id"], today))
     my_total = cur.fetchone()["s"]
 
-    cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (today,))
-    team_total = cur.fetchone()["s"]
+    # ✅ لمّا اليوم مقفول: الإجمالي اللي بيظهر هو ال total_count اللي المسؤول دخّله
+    if closed:
+        team_total = closure_total
+    else:
+        cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (today,))
+        team_total = cur.fetchone()["s"]
 
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (today,))
     present_count = cur.fetchone()["c"]
 
-    # في حالة إغلاق اليوم نعرض ملخص: الحاضرون + كل عامل وعدده
+    # ملخص الحضور (أسماء فقط — من غير أرقام جنب كل عامل)
     present_list = []
     if closed:
         cur.execute("""
-            SELECT u.full_name,
-                   COALESCE((SELECT SUM(count) FROM vaccinations v
-                             WHERE v.user_id=u.id AND v.day=%s),0) AS total
+            SELECT u.id, u.full_name, u.avatar
             FROM attendance a JOIN users u ON u.id=a.user_id
             WHERE a.day=%s
-            ORDER BY total DESC, u.full_name
-        """, (today, today))
+            ORDER BY u.full_name
+        """, (today,))
         present_list = cur.fetchall()
 
     cur.execute("""SELECT v.*, u.full_name FROM vaccinations v
@@ -288,7 +321,7 @@ def check_in():
     try:
         cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s)", (u["id"], today))
         db.commit()
-        flash("تم تسجيل حضورك اليوم ✓", "success")
+        flash("تم تسجيل حضورك اليوم 💉", "success")
     except psycopg2.IntegrityError:
         db.rollback()
         flash("أنت مسجَّل حضورك بالفعل اليوم", "info")
@@ -317,11 +350,10 @@ def history():
               for r in cur.fetchall()}
     cur.close()
 
-    # determine months to show: any month that has a closure, plus current month
     months = set((d.year, d.month) for d in by_day.keys())
     today = date.today()
     months.add((today.year, today.month))
-    periods = []  # list of {label, days: [{date, weekday_name, holiday, total, names, has_data}]}
+    periods = []
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
     AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
                  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
@@ -331,7 +363,7 @@ def history():
             days_list = []
             for dnum in range(start, end + 1):
                 d = date(y, m, dnum)
-                wd = d.weekday()  # Mon=0 .. Sun=6 ; Friday=4
+                wd = d.weekday()
                 is_friday = (wd == 4)
                 rec = by_day.get(d)
                 days_list.append({
@@ -433,7 +465,7 @@ def admin_close_day():
     )
     db.commit()
     cur.close()
-    flash("تم إغلاق اليوم — العمال هيشوفوا الملخص الآن", "success")
+    flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
     return redirect(url_for("admin_panel", day=day))
 
 
@@ -475,7 +507,7 @@ def admin_add_for_worker():
     )
     db.commit()
     cur.close()
-    flash("تمت الإضافة ✓", "success")
+    flash("تمت الإضافة 💉", "success")
     return redirect(url_for("admin_panel", day=day.isoformat()))
 
 
@@ -531,7 +563,7 @@ def admin_users():
                         (username, full_name, generate_password_hash(password), role),
                     )
                     db.commit()
-                    flash("تم إضافة المستخدم ✓", "success")
+                    flash("تم إضافة المستخدم 💉", "success")
                 except psycopg2.IntegrityError:
                     db.rollback()
                     flash("اسم المستخدم موجود", "error")
@@ -559,6 +591,218 @@ def admin_users():
     return render_template("admin_users.html", users=users)
 
 
+# ============================================================
+# ====================== الشات (Chat) =========================
+# ============================================================
+
+ONLINE_WINDOW_SECONDS = 60  # متصل = آخر ظهور خلال 60 ثانية
+
+
+def _is_online(last_seen):
+    if not last_seen:
+        return False
+    return (datetime.utcnow() - last_seen).total_seconds() <= ONLINE_WINDOW_SECONDS \
+        if last_seen.tzinfo is None else \
+        (datetime.now(last_seen.tzinfo) - last_seen).total_seconds() <= ONLINE_WINDOW_SECONDS
+
+
+def _msg_preview(m):
+    if not m:
+        return ""
+    if m["kind"] == "image":
+        return "📷 صورة"
+    if m["kind"] == "audio":
+        return "🎤 رسالة صوتية"
+    body = m.get("body") or ""
+    return body if len(body) <= 40 else body[:40] + "…"
+
+
+@app.route("/chats")
+@login_required
+def chats_list():
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT u.id, u.full_name, u.username, u.avatar, u.last_seen,
+          (SELECT row_to_json(t) FROM (
+              SELECT id, sender_id, receiver_id, kind, body, created_at
+              FROM chat_messages
+              WHERE (sender_id=%s AND receiver_id=u.id)
+                 OR (sender_id=u.id AND receiver_id=%s)
+              ORDER BY created_at DESC LIMIT 1
+          ) t) AS last_msg,
+          (SELECT COUNT(*) FROM chat_messages
+             WHERE sender_id=u.id AND receiver_id=%s AND read_at IS NULL) AS unread
+        FROM users u
+        WHERE u.id <> %s
+        ORDER BY u.full_name
+    """, (u["id"], u["id"], u["id"], u["id"]))
+    rows = cur.fetchall()
+    cur.close()
+
+    contacts = []
+    for r in rows:
+        lm = r["last_msg"]
+        last_text = _msg_preview(lm) if lm else "اضغط لبدء المحادثة"
+        last_time = lm["created_at"] if lm else None
+        contacts.append({
+            "id": r["id"],
+            "full_name": r["full_name"],
+            "username": r["username"],
+            "avatar": r["avatar"],
+            "online": _is_online(r["last_seen"]),
+            "last_text": last_text,
+            "last_time": last_time,
+            "unread": r["unread"] or 0,
+        })
+    # رتّب: اللي عنده آخر رسالة أولاً
+    contacts.sort(key=lambda c: (c["last_time"] is None, -(c["last_time"].timestamp() if c["last_time"] else 0)))
+    return render_template("chats.html", contacts=contacts)
+
+
+@app.route("/chat/<int:other_id>")
+@login_required
+def chat_room(other_id):
+    u = current_user()
+    if other_id == u["id"]:
+        return redirect(url_for("chats_list"))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, full_name, username, avatar, last_seen FROM users WHERE id=%s", (other_id,))
+    other = cur.fetchone()
+    if not other:
+        cur.close()
+        flash("المستخدم غير موجود", "error")
+        return redirect(url_for("chats_list"))
+    # علّم رسايله المقروءة
+    cur.execute("""UPDATE chat_messages SET read_at = NOW()
+                   WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL""",
+                (other_id, u["id"]))
+    db.commit()
+    cur.close()
+    other_dict = {
+        "id": other["id"],
+        "full_name": other["full_name"],
+        "username": other["username"],
+        "avatar": other["avatar"],
+        "online": _is_online(other["last_seen"]),
+    }
+    return render_template("chat.html", other=other_dict)
+
+
+@app.route("/chat/<int:other_id>/messages")
+@login_required
+def chat_messages_api(other_id):
+    u = current_user()
+    after = request.args.get("after", "0")
+    try:
+        after = int(after)
+    except ValueError:
+        after = 0
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        SELECT id, sender_id, receiver_id, kind, body, created_at, read_at
+        FROM chat_messages
+        WHERE ((sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s))
+          AND id > %s
+        ORDER BY id ASC LIMIT 200
+    """, (u["id"], other_id, other_id, u["id"], after))
+    rows = cur.fetchall()
+    # علّم الجديد من الطرف الآخر كمقروء
+    cur.execute("""UPDATE chat_messages SET read_at = NOW()
+                   WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL""",
+                (other_id, u["id"]))
+    db.commit()
+    # حالة الطرف التاني
+    cur.execute("SELECT last_seen FROM users WHERE id=%s", (other_id,))
+    other_row = cur.fetchone()
+    cur.close()
+    msgs = []
+    for r in rows:
+        msgs.append({
+            "id": r["id"],
+            "sender_id": r["sender_id"],
+            "kind": r["kind"],
+            "body": r["body"],
+            "created_at": r["created_at"].isoformat(),
+            "mine": r["sender_id"] == u["id"],
+            "read": r["read_at"] is not None,
+        })
+    return jsonify({
+        "messages": msgs,
+        "other_online": _is_online(other_row["last_seen"]) if other_row else False,
+    })
+
+
+@app.route("/chat/<int:other_id>/send", methods=["POST"])
+@login_required
+def chat_send(other_id):
+    u = current_user()
+    if other_id == u["id"]:
+        return jsonify({"ok": False, "error": "self"}), 400
+    kind = request.form.get("kind", "text")
+    body = None
+    if kind == "text":
+        text = (request.form.get("body") or "").strip()
+        if not text:
+            return jsonify({"ok": False, "error": "empty"}), 400
+        if len(text) > 4000:
+            text = text[:4000]
+        body = text
+    elif kind in ("image", "audio"):
+        f = request.files.get("file")
+        if not f:
+            return jsonify({"ok": False, "error": "no_file"}), 400
+        data = f.read()
+        if len(data) > 5 * 1024 * 1024:
+            return jsonify({"ok": False, "error": "too_large"}), 413
+        mime = f.mimetype or ("image/jpeg" if kind == "image" else "audio/webm")
+        body = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
+    else:
+        return jsonify({"ok": False, "error": "bad_kind"}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body)
+                   VALUES (%s, %s, %s, %s) RETURNING id, created_at""",
+                (u["id"], other_id, kind, body))
+    row = cur.fetchone()
+    db.commit()
+    cur.close()
+    return jsonify({"ok": True, "id": row["id"], "created_at": row["created_at"].isoformat()})
+
+
+@app.route("/me/avatar", methods=["POST"])
+@login_required
+def update_avatar():
+    u = current_user()
+    f = request.files.get("file")
+    if not f:
+        flash("اختر صورة", "error")
+        return redirect(request.referrer or url_for("chats_list"))
+    data = f.read()
+    if len(data) > 2 * 1024 * 1024:
+        flash("الصورة كبيرة (الحد 2 ميجا)", "error")
+        return redirect(request.referrer or url_for("chats_list"))
+    mime = f.mimetype or "image/jpeg"
+    data_url = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE users SET avatar=%s WHERE id=%s", (data_url, u["id"]))
+    db.commit()
+    cur.close()
+    flash("تم تحديث صورتك ✓", "success")
+    return redirect(request.referrer or url_for("chats_list"))
+
+
+@app.route("/me/ping", methods=["POST"])
+@login_required
+def ping():
+    return jsonify({"ok": True, "ts": datetime.utcnow().isoformat()})
+
+
 @app.route("/init-db")
 def init_db_route():
     """Route مؤقت لإنشاء الجداول — احذفه بعد أول تشغيل"""
@@ -567,7 +811,7 @@ def init_db_route():
         return "غير مسموح", 403
     try:
         init_db()
-        return "تم إنشاء قاعدة البيانات ✓", 200
+        return "تم إنشاء قاعدة البيانات 💉", 200
     except Exception as e:
         return f"خطأ: {e}", 500
 
