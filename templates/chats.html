@@ -1,0 +1,87 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<div class="chats-page">
+  <!-- بطاقة بروفايلي + رفع صورة -->
+  <div class="me-card">
+    <label class="me-avatar-wrap" title="غيّر صورتك">
+      {% if current_user.avatar %}
+        <img src="{{ current_user.avatar }}" alt="">
+      {% else %}
+        <div class="me-avatar-fallback">{{ current_user.full_name[0] }}</div>
+      {% endif %}
+      <span class="me-avatar-edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.822 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
+      </span>
+      <form id="avatarForm" method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:none">
+        <input type="file" name="file" id="avatarFile" accept="image/*">
+      </form>
+    </label>
+    <div class="me-info">
+      <div class="me-name">{{ current_user.full_name }}</div>
+      <div class="me-sub">اضغط الصورة لتغييرها</div>
+    </div>
+  </div>
+
+  <div class="chats-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    <input id="chatsSearch" type="search" placeholder="ابحث عن عامل...">
+  </div>
+
+  <ul class="chats-list">
+    {% for c in contacts %}
+    <li>
+      <a class="chat-row" href="{{ url_for('chat_room', other_id=c.id) }}" data-name="{{ c.full_name|lower }}">
+        <div class="ch-avatar-wrap">
+          {% if c.avatar %}<img class="ch-avatar" src="{{ c.avatar }}" alt="">
+          {% else %}<div class="ch-avatar ch-avatar-fb">{{ c.full_name[0] }}</div>{% endif %}
+          {% if c.online %}<span class="ch-dot"></span>{% endif %}
+        </div>
+        <div class="ch-mid">
+          <div class="ch-top">
+            <span class="ch-name">{{ c.full_name }}</span>
+            {% if c.last_time %}<span class="ch-time" data-time="{{ c.last_time.isoformat() }}"></span>{% endif %}
+          </div>
+          <div class="ch-bot">
+            <span class="ch-preview">{{ c.last_text }}</span>
+            {% if c.unread %}<span class="ch-badge">{{ c.unread }}</span>{% endif %}
+          </div>
+        </div>
+      </a>
+    </li>
+    {% else %}
+    <li class="chats-empty">لا يوجد عمال آخرون</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<script>
+(function(){
+  document.getElementById('avatarFile').addEventListener('change', function(){
+    document.getElementById('avatarForm').submit();
+  });
+  // البحث
+  var s = document.getElementById('chatsSearch');
+  s && s.addEventListener('input', function(){
+    var q = s.value.trim().toLowerCase();
+    document.querySelectorAll('.chats-list .chat-row').forEach(function(r){
+      r.parentElement.style.display = (!q || (r.dataset.name||'').indexOf(q) !== -1) ? '' : 'none';
+    });
+  });
+  // وقت نسبي
+  function relTime(iso){
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var diff = (Date.now() - d.getTime())/1000;
+    if (diff < 60) return 'الآن';
+    if (diff < 3600) return Math.floor(diff/60) + ' د';
+    if (diff < 86400) return d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+    if (diff < 86400*7) return Math.floor(diff/86400) + ' ي';
+    return d.toLocaleDateString('ar-EG');
+  }
+  document.querySelectorAll('.ch-time[data-time]').forEach(function(el){
+    el.textContent = relTime(el.dataset.time);
+  });
+})();
+</script>
+
+{% endblock %}

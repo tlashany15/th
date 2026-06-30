@@ -42,7 +42,8 @@
   <!-- ============ DAY CLOSED ============ -->
   <div class="v2-closed v2-fade" style="--i:0">
     <span class="v2-closed-tag">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M6.75 21h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 006.75 21z"/></svg>
+      <!-- syringe -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
       تم إغلاق اليوم
     </span>
     <p class="v2-closed-note">ده ملخص شغل النهارده بعد ما المسؤول أقفل اليوم.</p>
@@ -56,15 +57,16 @@
       <em>كتكوت</em>
     </div>
     <div class="v2-total-foot">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22"/></svg>
+      <!-- syringe -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
       تم إنجازه بواسطة <strong>{{ present_list|length }}</strong> عامل
     </div>
   </div>
 
-  <!-- ============ WORKERS LIST ============ -->
+  <!-- ============ WORKERS LIST (أسماء فقط) ============ -->
   <section class="v2-section v2-fade" style="--i:2">
     <div class="v2-section-head">
-      <h3>المحصّنون</h3>
+      <h3>الحاضرون</h3>
       <span class="v2-chip">{{ present_list|length }}</span>
     </div>
 
@@ -77,10 +79,7 @@
             <div class="v2-row-name">{{ p.full_name }}</div>
             <div class="v2-row-sub">تم تسجيل الحضور</div>
           </div>
-          <div class="v2-row-count">
-            <span data-countup="{{ p.vaccinated_count or 0 }}">0</span>
-            <em>كتكوت</em>
-          </div>
+          {# لا أرقام جنب العمال — مش بنقسّم الإجمالي عليهم #}
         </li>
         {% endfor %}
       </ol>
@@ -111,7 +110,8 @@
   {% else %}
   <div class="v2-action v2-action-done v2-fade" style="--i:1">
     <div class="v2-done-ring">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      <!-- syringe -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
     </div>
     <h2 class="v2-action-title">تم تسجيل حضورك</h2>
     <p class="v2-action-sub">تابع سجل التحصين من تبويب «السجل» بالأسفل.</p>

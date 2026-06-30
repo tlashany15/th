@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="wa-wrap" data-other-id="{{ other.id }}" data-me-id="{{ current_user.id }}">
+
+  <!-- HEADER -->
+  <header class="wa-head">
+    <a class="wa-back" href="{{ url_for('chats_list') }}" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+    <div class="wa-head-avatar">
+      {% if other.avatar %}<img src="{{ other.avatar }}" alt="">
+      {% else %}<div class="wa-head-fb">{{ other.full_name[0] }}</div>{% endif %}
+    </div>
+    <div class="wa-head-info">
+      <div class="wa-head-name">{{ other.full_name }}</div>
+      <div class="wa-head-status" id="otherStatus">{% if other.online %}متصل الآن{% else %}غير متصل{% endif %}</div>
+    </div>
+  </header>
+
+  <!-- MESSAGES -->
+  <main class="wa-msgs" id="msgs">
+    <div class="wa-day-sep"><span>اليوم</span></div>
+  </main>
+
+  <!-- AUDIO RECORDING UI -->
+  <div class="wa-rec-bar" id="recBar" hidden>
+    <button class="wa-rec-cancel" id="recCancel" aria-label="إلغاء">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="wa-rec-mid">
+      <span class="wa-rec-dot"></span>
+      <span id="recTime">0:00</span>
+    </div>
+    <button class="wa-rec-send" id="recSend" aria-label="إرسال">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+  <!-- COMPOSER -->
+  <form class="wa-composer" id="composer" autocomplete="off">
+    <label class="wa-attach" aria-label="صورة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+      <input id="imgInput" type="file" accept="image/*" hidden>
+    </label>
+    <input id="textInput" type="text" placeholder="اكتب رسالة" autocomplete="off">
+    <button type="button" class="wa-mic" id="micBtn" aria-label="رسالة صوتية">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
+    </button>
+    <button type="submit" class="wa-send" id="sendBtn" aria-label="إرسال" hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </form>
+</div>
+
+<script>
+(function(){
+  var wrap = document.querySelector('.wa-wrap');
+  var OTHER_ID = parseInt(wrap.dataset.otherId, 10);
+  var ME_ID = parseInt(wrap.dataset.meId, 10);
+  var msgsEl = document.getElementById('msgs');
+  var textInput = document.getElementById('textInput');
+  var imgInput = document.getElementById('imgInput');
+  var micBtn = document.getElementById('micBtn');
+  var sendBtn = document.getElementById('sendBtn');
+  var composer = document.getElementById('composer');
+  var statusEl = document.getElementById('otherStatus');
+
+  var lastId = 0;
+
+  function fmtTime(iso){
+    var d = new Date(iso);
+    return d.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
+  }
+  function escape(s){ var div=document.createElement('div'); div.textContent=s||''; return div.innerHTML; }
+
+  function bubbleHTML(m){
+    var side = m.mine ? 'me' : 'them';
+    var ticks = m.mine
+      ? (m.read
+          ? '<svg class="wa-ticks read" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M2 13l4 4L14 7M10 13l4 4L22 7"/></svg>'
+          : '<svg class="wa-ticks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M2 13l4 4L14 7M10 13l4 4L22 7"/></svg>')
+      : '';
+    var inner = '';
+    if (m.kind === 'image') {
+      inner = '<img class="wa-img" src="'+m.body+'" alt="">';
+    } else if (m.kind === 'audio') {
+      inner = '<audio class="wa-audio" controls preload="metadata" src="'+m.body+'"></audio>';
+    } else {
+      inner = '<div class="wa-text">'+escape(m.body).replace(/\n/g,'<br>')+'</div>';
+    }
+    return '<div class="wa-msg wa-'+side+'" data-id="'+m.id+'">'+
+             '<div class="wa-bubble">'+inner+
+               '<div class="wa-meta"><span class="wa-t">'+fmtTime(m.created_at)+'</span>'+ticks+'</div>'+
+             '</div>'+
+           '</div>';
+  }
+
+  function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
+
+  function appendMessages(list){
+    if (!list.length) return;
+    var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 80;
+    var html = '';
+    list.forEach(function(m){ html += bubbleHTML(m); lastId = Math.max(lastId, m.id); });
+    msgsEl.insertAdjacentHTML('beforeend', html);
+    if (atBottom) scrollBottom();
+  }
+
+  function poll(){
+    fetch('/chat/' + OTHER_ID + '/messages?after=' + lastId, {headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        appendMessages(d.messages || []);
+        statusEl.textContent = d.other_online ? 'متصل الآن' : 'غير متصل';
+        // علّم رسايلي القديمة كمقروءة لو الطرف التاني فتح
+        // (السيرفر بيعلّم لما يطلب رسايل، فهنحدث الـ ticks بإعادة ضخ بسيطة)
+        if (d.other_online) {
+          document.querySelectorAll('.wa-me .wa-ticks').forEach(function(t){ t.classList.add('read'); });
+        }
+      }).catch(function(){});
+  }
+  poll();
+  setInterval(poll, 2500);
+
+  // إرسال نص
+  textInput.addEventListener('input', function(){
+    var hasText = textInput.value.trim().length > 0;
+    sendBtn.hidden = !hasText;
+    micBtn.hidden = hasText;
+  });
+  composer.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = textInput.value.trim();
+    if (!v) return;
+    var fd = new FormData();
+    fd.append('kind','text'); fd.append('body', v);
+    textInput.value = ''; sendBtn.hidden = true; micBtn.hidden = false;
+    fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
+  });
+
+  // إرسال صورة
+  imgInput.addEventListener('change', function(){
+    var f = imgInput.files[0]; if (!f) return;
+    var fd = new FormData();
+    fd.append('kind','image'); fd.append('file', f);
+    fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
+    imgInput.value = '';
+  });
+
+  // ====== تسجيل صوتي زي واتساب ======
+  var recBar = document.getElementById('recBar');
+  var recTime = document.getElementById('recTime');
+  var recCancel = document.getElementById('recCancel');
+  var recSend = document.getElementById('recSend');
+  var mediaRec=null, chunks=[], stream=null, startTs=0, tickId=null, cancelled=false;
+
+  function fmtSec(s){ var m=Math.floor(s/60), x=s%60; return m+':'+(x<10?'0':'')+x; }
+
+  function startRec(){
+    if (!navigator.mediaDevices || !window.MediaRecorder) { alert('المتصفح ما يدعمش التسجيل'); return; }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+      stream = s; chunks = []; cancelled = false;
+      var mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+      mediaRec = new MediaRecorder(s, mime ? {mimeType:mime} : undefined);
+      mediaRec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+      mediaRec.onstop = function(){
+        s.getTracks().forEach(function(t){ t.stop(); });
+        if (cancelled || !chunks.length) return;
+        var blob = new Blob(chunks, {type: mediaRec.mimeType || 'audio/webm'});
+        var fd = new FormData();
+        fd.append('kind','audio');
+        fd.append('file', blob, 'voice.webm');
+        fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
+      };
+      mediaRec.start();
+      startTs = Date.now();
+      recBar.hidden = false; composer.style.display = 'none';
+      tickId = setInterval(function(){
+        recTime.textContent = fmtSec(Math.floor((Date.now()-startTs)/1000));
+      }, 250);
+    }).catch(function(){ alert('فعّل صلاحية الميكروفون'); });
+  }
+  function stopRec(send){
+    cancelled = !send;
+    if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
+    clearInterval(tickId);
+    recBar.hidden = true; composer.style.display = '';
+    recTime.textContent = '0:00';
+  }
+  micBtn.addEventListener('click', startRec);
+  recCancel.addEventListener('click', function(){ stopRec(false); });
+  recSend.addEventListener('click', function(){ stopRec(true); });
+})();
+</script>
+
+{% endblock %}

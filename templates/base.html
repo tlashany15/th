@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
 </head>
 <body class="no-copy" oncopy="return false" oncut="return false" oncontextmenu="return false" ondragstart="return false" onselectstart="return false">
 {% block body %}{% endblock %}
@@ -38,6 +39,12 @@
         e.preventDefault(); return false;
       }
     });
+    // ping بسيط عشان نحدّث حالة "متصل" للمستخدم
+    if (document.body && !document.body.dataset.noPing) {
+      setInterval(function(){
+        try { fetch('/me/ping', { method:'POST', headers:{'X-Requested-With':'fetch'} }); } catch(e){}
+      }, 25000);
+    }
   })();
 </script>
 </body>
