@@ -1,0 +1,227 @@
+/* ============================================================
+   WhatsApp-like Chat (RTL)
+   ============================================================ */
+
+/* ===== Chats list page ===== */
+.chats-page { padding: 14px 14px 96px; max-width: 720px; margin: 0 auto; }
+
+.me-card {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+}
+.me-avatar-wrap {
+  position: relative; width: 64px; height: 64px; border-radius: 50%;
+  overflow: hidden; cursor: pointer; flex-shrink: 0;
+  background: var(--surface2);
+}
+.me-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.me-avatar-fallback {
+  width: 100%; height: 100%; display: grid; place-items: center;
+  font-weight: 800; font-size: 24px; color: #fff;
+  background: linear-gradient(135deg, var(--accent), #ef4444);
+}
+.me-avatar-edit {
+  position: absolute; inset: auto 0 0 0; height: 22px;
+  background: rgba(0,0,0,.55); display: grid; place-items: center;
+  color: #fff;
+}
+.me-avatar-edit svg { width: 14px; height: 14px; }
+.me-info .me-name { font-weight: 800; font-size: 16px; }
+.me-info .me-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.chats-search {
+  position: relative; margin-bottom: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 14px 10px 38px;
+}
+.chats-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); }
+.chats-search input {
+  width: 100%; background: transparent; border: 0; color: var(--text); font: inherit;
+  outline: none; direction: rtl;
+}
+
+.chats-list { list-style: none; padding: 0; margin: 0; }
+.chats-list li + li { border-top: 1px solid var(--border); }
+.chats-empty { padding: 30px; text-align: center; color: var(--muted); }
+
+.chat-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 8px; color: var(--text); text-decoration: none;
+  transition: background .15s;
+}
+.chat-row:hover { background: rgba(255,255,255,.03); }
+.ch-avatar-wrap { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+.ch-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: block; background: var(--surface2); }
+.ch-avatar-fb {
+  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 20px;
+  background: linear-gradient(135deg, #4f8ef7, #00d68f);
+}
+.ch-dot {
+  position: absolute; inset: auto 0 2px auto;
+  width: 13px; height: 13px; border-radius: 50%; background: #25d366;
+  border: 2px solid var(--bg);
+}
+.ch-mid { flex: 1; min-width: 0; }
+.ch-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ch-name { font-weight: 700; font-size: 15px; }
+.ch-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.ch-bot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.ch-preview {
+  color: var(--muted); font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.ch-badge {
+  background: #25d366; color: #04300f;
+  border-radius: 999px; min-width: 22px; height: 22px;
+  display: inline-grid; place-items: center; padding: 0 7px;
+  font-size: 12px; font-weight: 800;
+}
+
+/* ============================================================
+   Chat Room (WhatsApp clone)
+   ============================================================ */
+:root {
+  --wa-bg: #0b141a;
+  --wa-panel: #111b21;
+  --wa-head: #202c33;
+  --wa-bubble-me: #005c4b;
+  --wa-bubble-them: #202c33;
+  --wa-text: #e9edef;
+  --wa-muted: #8696a0;
+  --wa-green: #25d366;
+}
+
+.wa-wrap {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  background: var(--wa-bg);
+  color: var(--wa-text);
+  font-family: 'Cairo', sans-serif;
+}
+
+.wa-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--wa-head);
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+.wa-back { color: var(--wa-text); display: grid; place-items: center; width: 32px; height: 32px; }
+.wa-back svg { width: 22px; height: 22px; }
+.wa-head-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: var(--wa-bubble-them); flex-shrink: 0; }
+.wa-head-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.wa-head-fb {
+  width: 100%; height: 100%; display: grid; place-items: center;
+  color: #fff; font-weight: 800; font-size: 18px;
+  background: linear-gradient(135deg, #4f8ef7, #00d68f);
+}
+.wa-head-info { flex: 1; min-width: 0; }
+.wa-head-name { font-weight: 700; font-size: 16px; line-height: 1.2; }
+.wa-head-status { font-size: 12px; color: var(--wa-muted); margin-top: 2px; }
+
+.wa-msgs {
+  flex: 1; overflow-y: auto; padding: 12px 10px;
+  background-color: var(--wa-bg);
+  background-image:
+    radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    radial-gradient(rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 24px 24px, 36px 36px;
+  background-position: 0 0, 12px 18px;
+}
+
+.wa-day-sep { text-align: center; margin: 6px 0 14px; }
+.wa-day-sep span {
+  background: var(--wa-head); color: var(--wa-muted);
+  font-size: 12px; padding: 4px 12px; border-radius: 10px;
+}
+
+.wa-msg { display: flex; margin: 4px 0; }
+.wa-msg.wa-me { justify-content: flex-end; }
+.wa-msg.wa-them { justify-content: flex-start; }
+
+.wa-bubble {
+  max-width: 78%;
+  background: var(--wa-bubble-them);
+  border-radius: 10px;
+  padding: 6px 8px 18px;
+  position: relative;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,.13);
+  word-wrap: break-word;
+}
+.wa-msg.wa-me .wa-bubble { background: var(--wa-bubble-me); border-bottom-right-radius: 2px; }
+.wa-msg.wa-them .wa-bubble { border-bottom-left-radius: 2px; }
+
+.wa-text { font-size: 15px; line-height: 1.4; white-space: pre-wrap; padding: 2px 4px; }
+.wa-img { max-width: 100%; max-height: 320px; border-radius: 8px; display: block; }
+.wa-audio { width: 240px; max-width: 100%; display: block; }
+
+.wa-meta {
+  position: absolute; left: 8px; bottom: 4px;
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; color: rgba(233,237,239,.65);
+}
+.wa-msg.wa-me .wa-meta { left: auto; right: 8px; }
+.wa-ticks { width: 16px; height: 12px; color: rgba(233,237,239,.7); }
+.wa-ticks.read { color: #53bdeb; }
+
+/* COMPOSER */
+.wa-composer {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  background: var(--wa-head);
+}
+.wa-composer input[type="text"] {
+  flex: 1; min-width: 0;
+  background: var(--wa-bubble-them);
+  color: var(--wa-text);
+  border: 0; outline: none;
+  font: inherit; font-size: 15px;
+  padding: 10px 14px;
+  border-radius: 22px;
+  direction: rtl;
+}
+.wa-attach, .wa-mic, .wa-send {
+  flex-shrink: 0; width: 44px; height: 44px;
+  border: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--wa-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.wa-attach svg, .wa-mic svg, .wa-send svg { width: 22px; height: 22px; }
+.wa-send, .wa-mic {
+  background: var(--wa-green);
+  color: #0b141a;
+}
+.wa-send { background: var(--wa-green); color: #0b141a; }
+
+/* REC BAR */
+.wa-rec-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: var(--wa-head);
+}
+.wa-rec-cancel, .wa-rec-send {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 0; color: var(--wa-muted); background: transparent;
+  display: grid; place-items: center; cursor: pointer;
+}
+.wa-rec-send { background: var(--wa-green); color: #0b141a; }
+.wa-rec-cancel svg { width: 22px; height: 22px; }
+.wa-rec-send svg { width: 22px; height: 22px; }
+.wa-rec-mid {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  color: var(--wa-text); font-weight: 600;
+}
+.wa-rec-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #f43f5e;
+  animation: waRec 1s infinite;
+}
+@keyframes waRec { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* تخفي البوتم نتف لمّا تكون في الشات (الـ wa-wrap بياخد الشاشة كلها) */
+.wa-wrap ~ .bottom-nav { display: none; }
