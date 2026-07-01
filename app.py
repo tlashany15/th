@@ -18,7 +18,14 @@ app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 # رفعنا الحد عشان الصوت ميتقطعش
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+# لبعض مزودي PostgreSQL (Supabase / Neon / Render) لازم SSL
+if DATABASE_URL and "sslmode=" not in DATABASE_URL:
+    sep = "&" if "?" in DATABASE_URL else "?"
+    DATABASE_URL = f"{DATABASE_URL}{sep}sslmode=require"
+# Heroku-style postgres:// → postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 
 _SCHEMA_READY = False
 def _ensure_schema():
@@ -31,9 +38,32 @@ def _ensure_schema():
         print("init_db error:", e)
 
 
+import traceback
+
+@app.errorhandler(500)
+@app.errorhandler(Exception)
+def _handle_error(e):
+    # سجل الخطأ الحقيقي في اللوجز عشان يظهر في Vercel
+    tb = traceback.format_exc()
+    print("=== UNHANDLED ERROR ===\n", tb, flush=True)
+    # لو المستخدم أدمن أو DEBUG شغال، اعرض التفاصيل
+    show_debug = os.environ.get("SHOW_ERRORS", "").lower() in ("1", "true", "yes")
+    msg = str(e) if show_debug else "حصل خطأ داخلي في السيرفر. راجع سجلات Vercel."
+    return (
+        "<!doctype html><meta charset='utf-8'>"
+        "<div style='font-family:system-ui;padding:24px;max-width:720px;margin:auto;direction:rtl'>"
+        f"<h2>500 — خطأ داخلي</h2><p>{msg}</p>"
+        + (f"<pre style='background:#f4f4f4;padding:12px;overflow:auto;direction:ltr;text-align:left'>{tb}</pre>" if show_debug else "")
+        + "</div>",
+        500,
+    )
+
+
 # ---------- قاعدة البيانات ----------
 def get_db():
     if "db" not in g:
+        if not DATABASE_URL:
+            raise RuntimeError("DATABASE_URL environment variable is not set")
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         conn.autocommit = False
         g.db = conn
@@ -49,6 +79,8 @@ def close_db(_):
 
 def init_db():
     """يُستدعى مرة واحدة لإنشاء الجداول"""
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL environment variable is not set")
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
     cur.execute("""
