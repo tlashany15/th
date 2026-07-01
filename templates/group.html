@@ -20,10 +20,10 @@
         </span>
       {% endif %}
     </label>
-    <div class="wa-head-info">
+    <button type="button" class="wa-head-info wa-head-info-btn" id="openMembers" aria-label="عرض الأعضاء">
       <div class="wa-head-name">{{ group.name }}</div>
-      <div class="wa-head-status">{{ group.members }} عضو</div>
-    </div>
+      <div class="wa-head-status" id="grpStatus">{{ group.members }} عضو</div>
+    </button>
     {% if is_admin %}
     <button type="button" class="wa-head-action" id="renameBtn" aria-label="تعديل الاسم">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487zM19.5 18.75h-15"/></svg>
@@ -31,14 +31,9 @@
     {% endif %}
   </header>
 
-  <!-- PINNED -->
-  <div class="wa-pinned" id="pinned" hidden>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 12V4a1 1 0 011-1h-10a1 1 0 011 1v8l-3 3v1h14v-1l-3-3zM12 17v4"/></svg>
-    <div class="wa-pinned-body" id="pinnedBody"></div>
-  </div>
-
   <!-- MESSAGES -->
   <main class="wa-msgs" id="msgs"></main>
+
 
   <!-- AUDIO REC -->
   <div class="wa-rec-bar" id="recBar" hidden>
@@ -88,6 +83,24 @@
 </div>
 {% endif %}
 
+<!-- Members modal -->
+<div class="modal-root tg-members-modal" id="membersModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-members></div>
+  <div class="modal-card tg-members-card" role="dialog" aria-modal="true">
+    <div class="tg-members-head">
+      <div>
+        <div class="modal-title">{{ group.name }}</div>
+        <div class="tg-members-sub" id="membersSub">جاري التحميل…</div>
+      </div>
+      <button type="button" class="wa-head-action" data-close-members aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <ul class="tg-members-list" id="membersList"></ul>
+  </div>
+</div>
+
+
 <script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
 <script>
 (function(){
@@ -100,8 +113,7 @@
   var micBtn = document.getElementById('micBtn');
   var sendBtn = document.getElementById('sendBtn');
   var composer = document.getElementById('composer');
-  var pinnedEl = document.getElementById('pinned');
-  var pinnedBody = document.getElementById('pinnedBody');
+  var grpStatusEl = document.getElementById('grpStatus');
 
   var lastId = 0;
   var lastDayKey = '';
@@ -187,19 +199,11 @@
     });
   }
 
-  function renderPinned(p){
-    if (!p) { pinnedEl.hidden = true; return; }
-    pinnedEl.hidden = false;
-    var label = (p.kind === 'attendance') ? '📋 قائمة حضور مثبّتة' : 'مثبّت';
-    pinnedBody.innerHTML = '<div class="wa-pin-label">'+label+'</div><pre>'+ChatHelpers.escape(p.body||'')+'</pre>';
-  }
-
   function poll(){
     fetch('/group/messages?after=' + lastId)
       .then(function(r){ return r.json(); })
       .then(function(d){
         appendMessages(d.messages || []);
-        renderPinned(d.pinned);
       }).catch(function(){});
   }
   poll();
@@ -256,6 +260,75 @@
       el.addEventListener('click', function(){ renameModal.classList.remove('is-open'); renameModal.setAttribute('aria-hidden','true'); });
     });
   }
+
+  // ===== Members modal =====
+  var membersModal = document.getElementById('membersModal');
+  var membersList  = document.getElementById('membersList');
+  var membersSub   = document.getElementById('membersSub');
+  var openBtn      = document.getElementById('openMembers');
+
+  function fmtLastSeen(iso){
+    if (!iso) return 'غير متصل';
+    var d = new Date(iso); if (isNaN(d)) return 'غير متصل';
+    var diff = Math.floor((Date.now() - d.getTime())/1000);
+    if (diff < 60)      return 'آخر ظهور منذ لحظات';
+    if (diff < 3600)    return 'آخر ظهور منذ ' + Math.floor(diff/60) + ' د';
+    if (diff < 86400)   return 'آخر ظهور منذ ' + Math.floor(diff/3600) + ' س';
+    if (diff < 86400*7) return 'آخر ظهور منذ ' + Math.floor(diff/86400) + ' أيام';
+    return 'آخر ظهور ' + d.toLocaleDateString('ar-EG');
+  }
+  function memberRow(m){
+    var av = m.avatar
+      ? '<img class="tg-mem-av" src="'+m.avatar+'" alt="">'
+      : '<div class="tg-mem-av tg-mem-av-fb" style="background:hsl('+((m.id||0)*47%360)+',60%,45%)">'+ChatHelpers.escape((m.full_name||'?').charAt(0))+'</div>';
+    var status = m.online
+      ? '<span class="tg-mem-status is-online">متصل الآن</span>'
+      : '<span class="tg-mem-status">'+fmtLastSeen(m.last_seen)+'</span>';
+    var badge = (m.role === 'admin') ? '<span class="wa-adm">مسؤول</span>' : '';
+    var dot = m.online ? '<span class="tg-mem-dot"></span>' : '';
+    return '<li class="tg-mem-row">'+
+             '<div class="tg-mem-av-wrap">'+av+dot+'</div>'+
+             '<div class="tg-mem-info">'+
+               '<div class="tg-mem-name">'+ChatHelpers.escape(m.full_name||'')+' '+badge+'</div>'+
+               status+
+             '</div>'+
+           '</li>';
+  }
+  function loadMembers(){
+    membersList.innerHTML = '';
+    membersSub.textContent = 'جاري التحميل…';
+    fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+      var html = (d.members||[]).map(memberRow).join('');
+      membersList.innerHTML = html || '<li class="tg-mem-empty">لا يوجد أعضاء</li>';
+      membersSub.textContent = d.total + ' عضو • ' + d.online + ' متصل الآن';
+      if (grpStatusEl) grpStatusEl.textContent = d.total + ' عضو، ' + d.online + ' متصل';
+    }).catch(function(){
+      membersSub.textContent = 'تعذّر التحميل';
+    });
+  }
+  if (openBtn && membersModal){
+    openBtn.addEventListener('click', function(){
+      membersModal.classList.add('is-open');
+      membersModal.setAttribute('aria-hidden','false');
+      loadMembers();
+    });
+    membersModal.querySelectorAll('[data-close-members]').forEach(function(el){
+      el.addEventListener('click', function(){
+        membersModal.classList.remove('is-open');
+        membersModal.setAttribute('aria-hidden','true');
+      });
+    });
+  }
+  // Refresh status count periodically (silent)
+  setInterval(function(){
+    fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+      if (grpStatusEl) grpStatusEl.textContent = d.total + ' عضو، ' + d.online + ' متصل';
+    }).catch(function(){});
+  }, 15000);
+  // First load
+  fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+    if (grpStatusEl) grpStatusEl.textContent = d.total + ' عضو، ' + d.online + ' متصل';
+  }).catch(function(){});
 })();
 </script>
 

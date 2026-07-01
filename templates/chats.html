@@ -1,49 +1,48 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<div class="chats-page">
-  <!-- بطاقة بروفايلي + رفع صورة -->
-  <div class="me-card">
-    <label class="me-avatar-wrap" title="غيّر صورتك">
+<div class="tg-chats">
+
+  <!-- Telegram-style top header -->
+  <div class="tg-chats-head">
+    <label class="tg-me-av" title="غيّر صورتك">
       {% if current_user.avatar %}
         <img src="{{ current_user.avatar }}" alt="">
       {% else %}
-        <div class="me-avatar-fallback">{{ current_user.full_name[0] }}</div>
+        <div class="tg-me-av-fb">{{ current_user.full_name[0] }}</div>
       {% endif %}
-      <span class="me-avatar-edit">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.822 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
-      </span>
       <form id="avatarForm" method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:none">
         <input type="file" name="file" id="avatarFile" accept="image/*">
       </form>
     </label>
-    <div class="me-info">
-      <div class="me-name">{{ current_user.full_name }}</div>
-      <div class="me-sub">اضغط الصورة لتغييرها</div>
+    <div class="tg-head-title">
+      <div class="tg-head-name">الدردشات</div>
+      <div class="tg-head-sub">{{ current_user.full_name }}</div>
     </div>
   </div>
 
-  <div class="chats-search">
+  <!-- Search bar -->
+  <div class="tg-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-    <input id="chatsSearch" type="search" placeholder="ابحث عن عامل...">
+    <input id="chatsSearch" type="search" placeholder="بحث">
   </div>
 
-  <ul class="chats-list">
-    <!-- المجموعة الجماعية -->
-    <li class="chats-group-li">
-      <a class="chat-row chat-row-group" href="{{ url_for('group_room') }}" data-name="{{ group.name|lower }} مجموعة">
-        <div class="ch-avatar-wrap">
-          {% if group.avatar %}<img class="ch-avatar" src="{{ group.avatar }}" alt="">
-          {% else %}<div class="ch-avatar ch-avatar-group">👥</div>{% endif %}
+  <ul class="tg-list">
+    <!-- Group -->
+    <li>
+      <a class="tg-row" href="{{ url_for('group_room') }}" data-name="{{ group.name|lower }} مجموعة">
+        <div class="tg-av-wrap">
+          {% if group.avatar %}<img class="tg-av" src="{{ group.avatar }}" alt="">
+          {% else %}<div class="tg-av tg-av-group">👥</div>{% endif %}
         </div>
-        <div class="ch-mid">
-          <div class="ch-top">
-            <span class="ch-name">{{ group.name }} <span class="ch-tag">جماعي</span></span>
-            {% if group.last_time %}<span class="ch-time" data-time="{{ group.last_time }}"></span>{% endif %}
+        <div class="tg-mid">
+          <div class="tg-top">
+            <span class="tg-name">{{ group.name }}</span>
+            {% if group.last_time %}<span class="tg-time" data-time="{{ group.last_time }}"></span>{% endif %}
           </div>
-          <div class="ch-bot">
-            <span class="ch-preview">{{ group.last_text }}</span>
-            {% if group.unread %}<span class="ch-badge">{{ group.unread }}</span>{% endif %}
+          <div class="tg-bot">
+            <span class="tg-preview">{{ group.last_text }}</span>
+            {% if group.unread %}<span class="tg-badge">{{ group.unread }}</span>{% endif %}
           </div>
         </div>
       </a>
@@ -51,30 +50,28 @@
 
     {% for c in contacts %}
     <li>
-      <a class="chat-row" href="{{ url_for('chat_room', other_id=c.id) }}" data-name="{{ c.full_name|lower }}">
-        <div class="ch-avatar-wrap">
-          {% if c.avatar %}<img class="ch-avatar" src="{{ c.avatar }}" alt="">
-          {% else %}<div class="ch-avatar ch-avatar-fb">{{ c.full_name[0] }}</div>{% endif %}
-          {% if c.online %}<span class="ch-dot"></span>{% endif %}
+      <a class="tg-row" href="{{ url_for('chat_room', other_id=c.id) }}" data-name="{{ c.full_name|lower }}">
+        <div class="tg-av-wrap">
+          {% if c.avatar %}<img class="tg-av" src="{{ c.avatar }}" alt="">
+          {% else %}<div class="tg-av tg-av-fb" style="background:hsl({{ (c.id * 47) % 360 }},60%,45%)">{{ c.full_name[0] }}</div>{% endif %}
+          {% if c.online %}<span class="tg-online-dot"></span>{% endif %}
         </div>
-        <div class="ch-mid">
-          <div class="ch-top">
-            <span class="ch-name">{{ c.full_name }}</span>
+        <div class="tg-mid">
+          <div class="tg-top">
+            <span class="tg-name">{{ c.full_name }}</span>
             {% if c.last_time %}
-              <span class="ch-time" data-time="{{ c.last_time }}"></span>
-            {% elif c.last_seen and not c.online %}
-              <span class="ch-time" data-last-seen="{{ c.last_seen }}"></span>
+              <span class="tg-time" data-time="{{ c.last_time }}"></span>
             {% endif %}
           </div>
-          <div class="ch-bot">
-            <span class="ch-preview">{{ c.last_text }}</span>
-            {% if c.unread %}<span class="ch-badge">{{ c.unread }}</span>{% endif %}
+          <div class="tg-bot">
+            <span class="tg-preview">{{ c.last_text }}</span>
+            {% if c.unread %}<span class="tg-badge">{{ c.unread }}</span>{% endif %}
           </div>
         </div>
       </a>
     </li>
     {% else %}
-    <li class="chats-empty">لا يوجد عمال آخرون</li>
+    <li class="tg-empty">لا يوجد عمال آخرون</li>
     {% endfor %}
   </ul>
 </div>
@@ -87,7 +84,7 @@
   var s = document.getElementById('chatsSearch');
   s && s.addEventListener('input', function(){
     var q = s.value.trim().toLowerCase();
-    document.querySelectorAll('.chats-list .chat-row').forEach(function(r){
+    document.querySelectorAll('.tg-list .tg-row').forEach(function(r){
       r.parentElement.style.display = (!q || (r.dataset.name||'').indexOf(q) !== -1) ? '' : 'none';
     });
   });
@@ -100,20 +97,8 @@
     if (diff < 86400*7) return Math.floor(diff/86400) + ' ي';
     return d.toLocaleDateString('ar-EG');
   }
-  function lastSeenShort(iso){
-    var d = new Date(iso); if (isNaN(d)) return '';
-    var diff = (Date.now() - d.getTime())/1000;
-    if (diff < 60)      return 'الآن';
-    if (diff < 3600)    return 'منذ ' + Math.floor(diff/60) + ' د';
-    if (diff < 86400)   return 'منذ ' + Math.floor(diff/3600) + ' س';
-    if (diff < 86400*7) return 'منذ ' + Math.floor(diff/86400) + ' ي';
-    return d.toLocaleDateString('ar-EG');
-  }
-  document.querySelectorAll('.ch-time[data-time]').forEach(function(el){
+  document.querySelectorAll('.tg-time[data-time]').forEach(function(el){
     el.textContent = relTime(el.dataset.time);
-  });
-  document.querySelectorAll('.ch-time[data-last-seen]').forEach(function(el){
-    el.textContent = lastSeenShort(el.dataset.lastSeen);
   });
 })();
 </script>
