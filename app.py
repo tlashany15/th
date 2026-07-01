@@ -145,15 +145,49 @@ def init_db():
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     """)
-    cur.execute("SELECT 1 FROM users WHERE username='admin'")
-    if not cur.fetchone():
-        cur.execute(
-            "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,%s)",
-            ("admin", "المسؤول", generate_password_hash("admin123"), "admin"),
-        )
+    # نتأكد إن فيه مسؤول برقم "1"
+    cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
+    admin_row = cur.fetchone()
+    if not admin_row:
+        # نشوف لو فيه مستخدم قديم اسمه admin نحوّل رقمه لـ 1
+        cur.execute("SELECT id FROM users WHERE username='admin'")
+        legacy = cur.fetchone()
+        if legacy:
+            cur.execute("UPDATE users SET username='1', role='admin' WHERE id=%s", (legacy[0],))
+        else:
+            cur.execute(
+                "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,%s)",
+                ("1", "المسؤول", generate_password_hash("admin123"), "admin"),
+            )
+    else:
+        # لو المسؤول موجود لكن اسم المستخدم مش رقم — نخليه "1"
+        uname = (admin_row[1] or "").strip()
+        if not uname.isdigit():
+            # نتأكد إن "1" فاضية قبل ما نستخدمها
+            cur.execute("SELECT 1 FROM users WHERE username='1'")
+            if not cur.fetchone():
+                cur.execute("UPDATE users SET username='1' WHERE id=%s", (admin_row[0],))
     conn.commit()
     cur.close()
     conn.close()
+
+
+def _next_free_userid(cur):
+    """يرجّع أصغر رقم موجب مش مستخدم كـ username — عشان لو حد اتحذف يستخدم رقمه"""
+    cur.execute(
+        "SELECT username FROM users WHERE username ~ '^[0-9]+$'"
+    )
+    taken = set()
+    for r in cur.fetchall():
+        try:
+            v = r["username"] if isinstance(r, dict) or hasattr(r, "get") else r[0]
+            taken.add(int(v))
+        except (ValueError, TypeError):
+            pass
+    n = 1
+    while n in taken:
+        n += 1
+    return str(n)
 
 
 # ---------- مساعدات ----------
@@ -241,7 +275,22 @@ def admin_required(f):
 
 @app.context_processor
 def inject_user():
-    return {"current_user": current_user(), "today": date.today().isoformat()}
+    u = current_user()
+    sidebar_workers = []
+    if u:
+        try:
+            db = get_db()
+            cur = db.cursor()
+            # المسؤول يشوف الكل، العامل يشوف نفسه بس
+            if u["role"] == "admin":
+                cur.execute("SELECT id, full_name, username, role FROM users ORDER BY (role='admin') DESC, full_name")
+            else:
+                cur.execute("SELECT id, full_name, username, role FROM users WHERE id=%s", (u["id"],))
+            sidebar_workers = cur.fetchall()
+            cur.close()
+        except Exception:
+            sidebar_workers = []
+    return {"current_user": u, "today": date.today().isoformat(), "sidebar_workers": sidebar_workers}
 
 
 # ---------- مسارات أساسية ----------
@@ -259,17 +308,30 @@ def splash():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        identifier = request.form.get("identifier", "").strip() or request.form.get("username", "").strip()
         password = request.form.get("password", "")
         db = get_db()
         cur = db.cursor()
-        cur.execute("SELECT * FROM users WHERE username=%s", (username,))
-        row = cur.fetchone()
+        # نسمح بالدخول بالاسم الكامل أو برقم المستخدم (username)
+        # 1) لو رقم — نبحث في username
+        row = None
+        if identifier.isdigit():
+            cur.execute("SELECT * FROM users WHERE username=%s", (identifier,))
+            row = cur.fetchone()
+        # 2) لو مش رقم أو مش موجود — نبحث بالاسم الكامل (case-insensitive)
+        if not row:
+            cur.execute("SELECT * FROM users WHERE LOWER(TRIM(full_name))=LOWER(TRIM(%s)) ORDER BY id ASC LIMIT 1",
+                        (identifier,))
+            row = cur.fetchone()
+        # 3) fallback على username كنص
+        if not row:
+            cur.execute("SELECT * FROM users WHERE username=%s", (identifier,))
+            row = cur.fetchone()
         cur.close()
         if row and check_password_hash(row["password_hash"], password):
             session["user_id"] = row["id"]
             return redirect(url_for("dashboard"))
-        flash("اسم المستخدم أو كلمة السر غير صحيحة", "error")
+        flash("الاسم أو كلمة السر غير صحيحة", "error")
     return render_template("login.html")
 
 
@@ -282,25 +344,30 @@ def logout():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
         full_name = request.form.get("full_name", "").strip()
         password = request.form.get("password", "")
-        if not (username and full_name and password):
-            flash("كل الحقول مطلوبة", "error")
+        if not (full_name and password):
+            flash("الاسم وكلمة السر مطلوبين", "error")
         else:
             db = get_db()
             cur = db.cursor()
             try:
-                cur.execute(
-                    "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,'worker')",
-                    (username, full_name, generate_password_hash(password)),
-                )
-                db.commit()
-                flash("تم إنشاء الحساب، سجّل دخولك", "success")
-                return redirect(url_for("login"))
-            except psycopg2.IntegrityError:
-                db.rollback()
-                flash("اسم المستخدم موجود بالفعل", "error")
+                # نجيب أصغر رقم متاح (يعيد استخدام الأرقام المحذوفة)
+                for _ in range(20):
+                    new_uid = _next_free_userid(cur)
+                    try:
+                        cur.execute(
+                            "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,'worker')",
+                            (new_uid, full_name, generate_password_hash(password)),
+                        )
+                        db.commit()
+                        flash(f"تم إنشاء حسابك ✓ رقمك في الفريق: {new_uid} — سجّل دخولك بالاسم وكلمة السر", "success")
+                        return redirect(url_for("login"))
+                    except psycopg2.IntegrityError:
+                        # race condition (نادر) — نعيد المحاولة
+                        db.rollback()
+                        continue
+                flash("تعذر إنشاء الحساب — حاول مرة أخرى", "error")
             finally:
                 cur.close()
     return render_template("register.html")
@@ -446,6 +513,82 @@ def history():
     return render_template("history.html", periods=periods)
 
 
+# ---------- إحصائيات العامل الشهرية (نصيبه) ----------
+@app.route("/worker/<int:worker_id>/stats")
+@login_required
+def worker_stats(worker_id):
+    """يعرض أيام حضور العامل في الشهر الحالي + نصيبه (إجمالي اليوم / عدد الحاضرين)."""
+    import calendar as _cal
+    me = current_user()
+    if me["role"] != "admin" and me["id"] != worker_id:
+        flash("مش مسموحلك تشوف صفحة عامل تاني", "error")
+        return redirect(url_for("dashboard"))
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE id=%s", (worker_id,))
+    worker = cur.fetchone()
+    if not worker:
+        cur.close()
+        flash("العامل مش موجود", "error")
+        return redirect(url_for("dashboard"))
+
+    today = date.today()
+    y, m = today.year, today.month
+    last_day = _cal.monthrange(y, m)[1]
+    start_d = date(y, m, 1).isoformat()
+    end_d   = date(y, m, last_day).isoformat()
+
+    cur.execute("""
+        SELECT c.day, c.total_count,
+               (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day) AS attendees,
+               EXISTS(SELECT 1 FROM attendance a2 WHERE a2.day = c.day AND a2.user_id = %s) AS he_attended
+        FROM day_closures c
+        WHERE c.day BETWEEN %s AND %s
+        ORDER BY c.day ASC
+    """, (worker_id, start_d, end_d))
+    rows = cur.fetchall()
+    cur.close()
+
+    AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
+    AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+                 "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+    days_list = []
+    total_share = 0.0
+    total_month = 0
+    days_attended = 0
+    for r in rows:
+        d = r["day"]
+        tot = int(r["total_count"] or 0)
+        att = int(r["attendees"] or 0)
+        total_month += tot
+        share = 0.0
+        if r["he_attended"] and att > 0:
+            share = tot / att
+            total_share += share
+            days_attended += 1
+        days_list.append({
+            "date": d.isoformat() if hasattr(d, "isoformat") else str(d),
+            "weekday": AR_DAYS[d.weekday()] if hasattr(d, "weekday") else "",
+            "total": tot,
+            "attendees": att,
+            "attended": bool(r["he_attended"]),
+            "share": round(share, 2),
+        })
+
+    month_label = f"{AR_MONTHS[m-1]} {y}"
+    return render_template("worker_stats.html",
+                           worker=worker, days=days_list,
+                           total_share=round(total_share, 2),
+                           total_month=total_month,
+                           days_attended=days_attended,
+                           month_label=month_label,
+                           is_self=(me["id"] == worker_id))
+
+
+
+
+
 # ---------- المسؤول ----------
 def _parse_day(s):
     try:
@@ -533,10 +676,38 @@ def admin_close_day():
            ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count, closed_by = EXCLUDED.closed_by""",
         (day, u["id"], total),
     )
+    # ==== نحدّث رسالة تحضير اليوم المثبتة (لو موجودة) ونضيف الإجمالي — مرة واحدة فقط ====
+    try:
+        marker = f"[CLOSED:{day}]"
+        # ندوّر على أحدث رسالة كنوعها attendance و بتاعت نفس اليوم
+        cur.execute("""SELECT id, body FROM group_messages
+                       WHERE kind='attendance' AND deleted=FALSE AND body LIKE %s
+                       ORDER BY id DESC LIMIT 1""", (f"%حضور يوم {day}%",))
+        att = cur.fetchone()
+        cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day,))
+        present_c = int(cur.fetchone()["c"] or 0)
+        summary_line = f"\n\n✅ تم إغلاق اليوم\n• الإجمالي: {total:,} كتكوت\n• الحاضرون: {present_c}\n{marker}"
+        if att and marker not in (att["body"] or ""):
+            new_body = (att["body"] or "") + summary_line
+            cur.execute("UPDATE group_messages SET body=%s, pinned=TRUE WHERE id=%s",
+                        (new_body, att["id"]))
+        elif not att:
+            # ما فيش رسالة حضور لليوم ده — ننشر رسالة إغلاق مثبّتة (مرة واحدة)
+            cur.execute("""SELECT 1 FROM group_messages
+                           WHERE kind='attendance' AND body LIKE %s""", (f"%{marker}%",))
+            exists = cur.fetchone()
+            if not exists:
+                cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
+                body_new = f"📋 إغلاق يوم {day}{summary_line}"
+                cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
+                               VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body_new))
+    except Exception as _e:
+        print("update pinned attendance error:", _e)
     db.commit()
     cur.close()
     # ==== ملخص الفترة (نصف شهر) — تلقائي في الجروب ====
     try:
+        cur = db.cursor()
         import calendar as _cal
         y, m, dnum = [int(x) for x in day.split('-')]
         last_day = _cal.monthrange(y, m)[1]
@@ -574,6 +745,7 @@ def admin_close_day():
                             (y, m, half, period_total))
                 db.commit()
                 flash(f"تم نشر ملخص {half_lbl} في الجروب تلقائيًا 📊", "success")
+        cur.close()
     except Exception as _e:
         print("period summary error:", _e)
     flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
@@ -687,23 +859,23 @@ def admin_users():
     if request.method == "POST":
         action = request.form.get("action")
         if action == "create":
-            username = request.form.get("username", "").strip()
             full_name = request.form.get("full_name", "").strip()
             password = request.form.get("password", "")
             role = request.form.get("role", "worker")
-            if not (username and full_name and password):
-                flash("كل الحقول مطلوبة", "error")
+            if not (full_name and password):
+                flash("الاسم وكلمة السر مطلوبين", "error")
             else:
                 try:
+                    new_uid = _next_free_userid(cur)
                     cur.execute(
                         "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,%s)",
-                        (username, full_name, generate_password_hash(password), role),
+                        (new_uid, full_name, generate_password_hash(password), role),
                     )
                     db.commit()
-                    flash("تم إضافة المستخدم 💉", "success")
+                    flash(f"تم إضافة المستخدم برقم {new_uid} 💉", "success")
                 except psycopg2.IntegrityError:
                     db.rollback()
-                    flash("اسم المستخدم موجود", "error")
+                    flash("حصل تعارض في الرقم — حاول تاني", "error")
         elif action == "delete":
             uid = int(request.form.get("user_id"))
             u = current_user()
