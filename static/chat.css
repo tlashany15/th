@@ -268,46 +268,66 @@ body:has(.wa-wrap){
 }
 
 .wa-msg{
-  display:flex; max-width:100%; gap:6px; align-items:flex-end;
-  margin-top:2px;
+  display:flex; max-width:100%; gap:8px; align-items:flex-end;
+  margin-top:2px; padding: 0 6px;
 }
 .wa-msg + .wa-msg{ margin-top:1px; }
-.wa-me{ justify-content:flex-start; }
-.wa-them{ justify-content:flex-end; }
-.wa-msg-av{ width:30px; height:30px; flex:0 0 auto; }
-.wa-msg-av .wa-av{
-  width:30px; height:30px; border-radius:50%; object-fit:cover; display:block;
+/* RTL: me on right, them on left */
+.wa-me   { justify-content:flex-start; }
+.wa-them { justify-content:flex-end; flex-direction: row-reverse; }
+/* extra gap between groups from different senders */
+.wa-msg.wa-last + .wa-msg{ margin-top:8px; }
+
+/* Avatar slot next to "them" bubbles */
+.wa-msg-av{
+  width:32px; height:32px; flex:0 0 auto;
+  align-self:flex-end;
+  margin-bottom: 2px;
+}
+.wa-msg-av.wa-av-hidden{ visibility:hidden; }
+.wa-av{
+  width:32px; height:32px; border-radius:50%;
+  object-fit:cover; display:block;
+  background: var(--tg-surface-2);
+  box-shadow: 0 1px 2px rgba(0,0,0,.3);
 }
 .wa-av-fb{
-  width:30px; height:30px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  color:#fff; font-weight:800; font-size:13px;
+  color:#fff; font-weight:800; font-size:14px;
+  background:linear-gradient(135deg,#f59e0b,#ef4444);
 }
 
 .wa-bubble{
   position:relative;
-  max-width: min(78%, 520px);
-  padding: 7px 11px 20px;
+  max-width: min(76%, 520px);
+  padding: 6px 10px 4px;
+  padding-inline-end: 62px; /* room for time+ticks inline (Telegram style) */
   border-radius: var(--tg-radius);
   box-shadow: var(--tg-shadow);
   word-wrap:break-word; overflow-wrap:anywhere;
-  font-size: 14.5px; line-height:1.45;
+  font-size: 15px; line-height:1.4;
   animation: waPop .16s cubic-bezier(.2,.9,.3,1.1);
 }
 @keyframes waPop{
   from{ transform:translateY(4px) scale(.97); opacity:0; }
   to  { transform:none; opacity:1; }
 }
-/* Me (right side in RTL) — Telegram blue */
+/* Me — Telegram blue, tail on bottom-right (RTL: near your side) */
 .wa-me  .wa-bubble{
   background: var(--tg-mine);
   color:#f5f5f7;
+  border-top-right-radius: 6px;
+}
+.wa-me  .wa-bubble.wa-tail{
   border-bottom-right-radius: 4px;
 }
-/* Them (left side in RTL) */
+/* Them — surface, tail on bottom-left */
 .wa-them .wa-bubble{
   background: var(--tg-surface);
   color: var(--tg-text);
+  border-top-left-radius: 6px;
+}
+.wa-them .wa-bubble.wa-tail{
   border-bottom-left-radius: 4px;
 }
 .wa-bubble.wa-deleted{
@@ -330,8 +350,9 @@ body:has(.wa-wrap){
 
 .wa-img{
   display:block; max-width:100%; height:auto;
-  border-radius:10px; margin:-3px -3px 4px;
+  border-radius:10px; margin:-2px -6px 2px;
 }
+.wa-bubble:has(.wa-img){ padding-inline-end: 10px; padding-bottom: 22px; }
 
 /* مشغل صوت */
 .wa-audio2{
@@ -367,13 +388,17 @@ body:has(.wa-wrap){
 }
 .wa-a-time{ font-size:11px; color: rgba(255,255,255,.7); font-variant-numeric: tabular-nums; }
 
+/* Time + ticks — inline bottom-end of bubble, Telegram-like */
 .wa-meta{
-  position:absolute; bottom:4px; left:10px;
-  display:inline-flex; align-items:center; gap:4px;
-  font-size:10.5px; color: rgba(255,255,255,.55);
+  position:absolute; bottom:3px;
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:11px; color: rgba(255,255,255,.55);
+  font-variant-numeric: tabular-nums;
+  pointer-events:none;
 }
-.wa-me .wa-meta{ color: rgba(255,255,255,.72); }
-.wa-ticks{ width:15px; height:15px; color: rgba(255,255,255,.75); }
+.wa-me   .wa-meta{ inset-inline-end: 8px; color: rgba(255,255,255,.78); }
+.wa-them .wa-meta{ inset-inline-end: 8px; color: var(--tg-muted); }
+.wa-ticks{ width:15px; height:15px; color: rgba(255,255,255,.78); }
 .wa-ticks.read{ color: var(--tg-tick); }
 
 /* زر حذف رسالة */
@@ -472,18 +497,19 @@ body:has(.wa-wrap){
 
 /* COMPOSER — refined Telegram-like pill */
 .wa-composer{
-  display:flex; align-items:flex-end; gap:8px;
-  padding: 8px 10px calc(8px + var(--tg-safe-bot));
+  display:flex; align-items:flex-end; gap:6px;
+  padding: 6px 8px calc(6px + var(--tg-safe-bot));
   background: var(--tg-bg-2);
   border-top:1px solid var(--tg-line);
 }
 .wa-composer-field{
   flex:1 1 auto; min-width:0;
-  display:flex; align-items:center; gap:4px;
+  display:flex; align-items:center; gap:2px;
   background: var(--tg-surface);
   border:1.5px solid transparent;
-  border-radius: 22px;
-  padding: 2px 6px 2px 4px;
+  border-radius: 24px;
+  padding: 0 4px;
+  min-height: 46px;
   transition: border-color .15s, background .15s;
 }
 .wa-composer-field:focus-within{
@@ -492,30 +518,32 @@ body:has(.wa-wrap){
 }
 .wa-composer input[type="text"]{
   flex:1 1 auto; min-width:0;
-  padding: 10px 10px;
+  padding: 12px 8px;
   background: transparent;
   color: var(--tg-text);
   border:0; outline:none; font:inherit;
-  font-size: 15px;
+  font-size: 15px; line-height: 1.3;
 }
 .wa-composer input[type="text"]::placeholder{ color:var(--tg-muted); }
 
 .wa-attach, .wa-mic, .wa-send{
-  width:44px; height:44px; flex:0 0 auto;
+  width:40px; height:40px; flex:0 0 auto;
   border-radius:50%; border:0; cursor:pointer;
   display:inline-flex; align-items:center; justify-content:center;
   background: transparent; color: var(--tg-muted);
   transition: transform .1s ease, background .15s ease, color .15s;
 }
-.wa-attach{ margin: 0; }
+.wa-attach{ color: var(--tg-muted); }
 .wa-attach:hover, .wa-mic:hover{ background: rgba(255,255,255,.06); color: var(--tg-text); }
-.wa-attach:active, .wa-mic:active, .wa-send:active{ transform: scale(.92); }
-.wa-attach svg, .wa-mic svg, .wa-send svg{ width:22px; height:22px; }
+.wa-attach:active, .wa-mic:active, .wa-send:active{ transform: scale(.9); }
+.wa-attach svg, .wa-mic svg{ width:22px; height:22px; }
 .wa-send{
+  width:46px; height:46px;
   background: var(--tg-accent);
   color:#fff;
   box-shadow: 0 4px 14px rgba(51,144,236,.4);
 }
+.wa-send svg{ width:20px; height:20px; }
 .wa-send:hover{ background: var(--tg-accent-2); }
 
 /* modal input for rename */
