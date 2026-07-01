@@ -1,0 +1,71 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<div class="card">
+  <div style="display:flex;gap:14px;align-items:center;">
+    <div class="sidebar-avatar" style="width:56px;height:56px;font-size:24px;">
+      {{ (worker.full_name or '?')[:1] }}
+    </div>
+    <div>
+      <div style="font-size:20px;font-weight:800;">{{ worker.full_name }}</div>
+      <div style="opacity:.75;font-size:13px;margin-top:4px;">
+        رقم في الفريق: <b>{{ worker.username }}</b> — {{ month_label }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stats-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0;">
+  <div class="card" style="text-align:center;padding:14px;">
+    <div style="font-size:13px;opacity:.7;">أيام الحضور</div>
+    <div style="font-size:26px;font-weight:800;color:var(--gold,#ffbe57);">{{ days_attended }}</div>
+  </div>
+  <div class="card" style="text-align:center;padding:14px;">
+    <div style="font-size:13px;opacity:.7;">إجمالي الشهر</div>
+    <div style="font-size:26px;font-weight:800;">{{ '{:,}'.format(total_month) }}</div>
+  </div>
+  <div class="card" style="text-align:center;padding:14px;background:linear-gradient(135deg,#ffbe5722,#ef444422);">
+    <div style="font-size:13px;opacity:.85;">نصيبه من الشهر</div>
+    <div style="font-size:26px;font-weight:800;color:#ffbe57;">{{ '{:,.2f}'.format(total_share) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px;">تفاصيل الأيام</h3>
+  {% if not days %}
+    <p style="opacity:.7;">مفيش أيام مغلقة في {{ month_label }} لسه.</p>
+  {% else %}
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <thead>
+        <tr style="text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <th style="padding:8px 6px;">اليوم</th>
+          <th style="padding:8px 6px;">التاريخ</th>
+          <th style="padding:8px 6px;">إجمالي اليوم</th>
+          <th style="padding:8px 6px;">عدد العمال</th>
+          <th style="padding:8px 6px;">حضر؟</th>
+          <th style="padding:8px 6px;">نصيبه</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for d in days %}
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);{% if d.attended %}background:rgba(255,190,87,0.05);{% endif %}">
+          <td style="padding:8px 6px;">{{ d.weekday }}</td>
+          <td style="padding:8px 6px;font-family:monospace;">{{ d.date }}</td>
+          <td style="padding:8px 6px;">{{ '{:,}'.format(d.total) }}</td>
+          <td style="padding:8px 6px;">{{ d.attendees }}</td>
+          <td style="padding:8px 6px;">{% if d.attended %}✅{% else %}—{% endif %}</td>
+          <td style="padding:8px 6px;font-weight:700;color:{% if d.attended %}#ffbe57{% else %}#666{% endif %};">
+            {% if d.attended %}{{ '{:,.2f}'.format(d.share) }}{% else %}0{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+
+<div style="margin-top:14px;font-size:12px;opacity:.6;text-align:center;">
+  💡 نصيب اليوم = إجمالي اليوم ÷ عدد العمال الحاضرين — يُجمع تلقائيًا على مدار الشهر.
+</div>
+
+{% endblock %}

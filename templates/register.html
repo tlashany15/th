@@ -14,7 +14,7 @@
       </svg>
     </div>
     <h1 class="auth-title">إنشاء حساب</h1>
-    <p class="auth-sub">انضم لفريق التحصين</p>
+    <p class="auth-sub">هيتحطلك رقم في الفريق تلقائي بعد التسجيل</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
@@ -27,10 +27,6 @@
         <div class="field">
           <label>الاسم الكامل</label>
           <input name="full_name" required placeholder="مثال: محمد أحمد">
-        </div>
-        <div class="field">
-          <label>اسم المستخدم</label>
-          <input name="username" required placeholder="مثال: mo_ahmed">
         </div>
         <div class="field">
           <label>كلمة السر</label>
