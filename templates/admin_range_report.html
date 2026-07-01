@@ -1,0 +1,108 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <span class="hero-chip">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+    تقرير فترة مخصّصة
+  </span>
+  <h1 class="hero-h1" style="margin-top:6px;">اجمالي الفترة</h1>
+  <p class="hero-sub">حدّد من يوم كذا لغاية يوم كذا وهيجمعلك الإجمالي — ويتحفظ في السجل تلقائي.</p>
+</section>
+
+<div class="card">
+  <form method="post" class="rr-form">
+    <div class="rr-field">
+      <label for="start_day">من يوم</label>
+      <input type="date" id="start_day" name="start_day" required>
+    </div>
+    <div class="rr-field">
+      <label for="end_day">إلى يوم</label>
+      <input type="date" id="end_day" name="end_day" required>
+    </div>
+    <div class="rr-field" style="grid-column:1/-1;">
+      <label for="note">ملاحظة (اختياري)</label>
+      <input type="text" id="note" name="note" placeholder="مثلاً: مشروع فلان — عزبة كذا">
+    </div>
+    <div class="rr-submit">
+      <button type="submit" class="btn btn-gold" style="width:100%;">احسب واحفظ التقرير</button>
+    </div>
+  </form>
+</div>
+
+{% if result %}
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l7.5 7.5 10.5-15"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:16px;">نتيجة الفترة</div>
+        <div style="font-size:12px;color:var(--text-3);">{{ result.start }} → {{ result.end }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-gold">
+      <div class="kpi-v">{{ '{:,}'.format(result.total) }}</div>
+      <div class="kpi-l">إجمالي الفترة</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-v">{{ result.days }}</div>
+      <div class="kpi-l">عدد الأيام المغلقة</div>
+    </div>
+  </div>
+  {% if result.note %}
+    <div style="margin-top:10px;font-size:13px;color:var(--text-2);">📝 {{ result.note }}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.5 12a8.5 8.5 0 1 0 3-6.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 4v5h5M12 7v5l3.5 2"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:16px;">سجل التقارير</div>
+        <div style="font-size:12px;color:var(--text-3);">كل تقرير عملته محفوظ هنا — تقدر ترجعله في أي وقت</div>
+      </div>
+    </div>
+  </div>
+
+  {% if not reports %}
+    <div class="empty">مفيش تقارير محفوظة لسه.</div>
+  {% else %}
+    <div class="rr-list">
+      {% for r in reports %}
+      <div class="rr-item">
+        <div style="min-width:0;flex:1;">
+          <div class="rr-range">
+            <b>{{ r.start_day }}</b> → <b>{{ r.end_day }}</b>
+            <span style="color:var(--text-3);">• {{ r.days_count }} يوم</span>
+          </div>
+          {% if r.note %}<div class="rr-meta">📝 {{ r.note }}</div>{% endif %}
+          <div class="rr-meta">حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}</div>
+        </div>
+        <div style="text-align:left;display:flex;gap:8px;align-items:center;">
+          <div>
+            <div class="rr-total">{{ '{:,}'.format(r.total) }}</div>
+            <div class="rr-meta" style="text-align:left;">كتكوت</div>
+          </div>
+          <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
+                onsubmit="return confirm('تحذف التقرير ده؟');" style="margin:0;">
+            <button type="submit" class="btn btn-ghost" style="padding:6px 10px;color:#ff8f8f;" aria-label="حذف">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}
