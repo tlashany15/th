@@ -18,14 +18,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 # رفعنا الحد عشان الصوت ميتقطعش
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-# لبعض مزودي PostgreSQL (Supabase / Neon / Render) لازم SSL
-if DATABASE_URL and "sslmode=" not in DATABASE_URL:
-    sep = "&" if "?" in DATABASE_URL else "?"
-    DATABASE_URL = f"{DATABASE_URL}{sep}sslmode=require"
-# Heroku-style postgres:// → postgresql://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 _SCHEMA_READY = False
 def _ensure_schema():
@@ -38,32 +31,9 @@ def _ensure_schema():
         print("init_db error:", e)
 
 
-import traceback
-
-@app.errorhandler(500)
-@app.errorhandler(Exception)
-def _handle_error(e):
-    # سجل الخطأ الحقيقي في اللوجز عشان يظهر في Vercel
-    tb = traceback.format_exc()
-    print("=== UNHANDLED ERROR ===\n", tb, flush=True)
-    # لو المستخدم أدمن أو DEBUG شغال، اعرض التفاصيل
-    show_debug = os.environ.get("SHOW_ERRORS", "").lower() in ("1", "true", "yes")
-    msg = str(e) if show_debug else "حصل خطأ داخلي في السيرفر. راجع سجلات Vercel."
-    return (
-        "<!doctype html><meta charset='utf-8'>"
-        "<div style='font-family:system-ui;padding:24px;max-width:720px;margin:auto;direction:rtl'>"
-        f"<h2>500 — خطأ داخلي</h2><p>{msg}</p>"
-        + (f"<pre style='background:#f4f4f4;padding:12px;overflow:auto;direction:ltr;text-align:left'>{tb}</pre>" if show_debug else "")
-        + "</div>",
-        500,
-    )
-
-
 # ---------- قاعدة البيانات ----------
 def get_db():
     if "db" not in g:
-        if not DATABASE_URL:
-            raise RuntimeError("DATABASE_URL environment variable is not set")
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         conn.autocommit = False
         g.db = conn
@@ -79,8 +49,6 @@ def close_db(_):
 
 def init_db():
     """يُستدعى مرة واحدة لإنشاء الجداول"""
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL environment variable is not set")
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
     cur.execute("""
@@ -211,7 +179,14 @@ def _iso_utc(dt):
     """ترجع ISO بنهاية Z عشان المتصفح يفهمها UTC ويعرضها بتوقيت الجهاز"""
     if dt is None:
         return None
-    if dt.tzinfo is None:
+    # لو جاي string من قاعدة البيانات نحاول نحوله
+    if isinstance(dt, str):
+        try:
+            from datetime import datetime as _dt
+            dt = _dt.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            return dt
+    if getattr(dt, "tzinfo", None) is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -1139,3 +1114,31 @@ def init_db_route():
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+# ---------- favicon + error handlers ----------
+@app.route("/favicon.ico")
+@app.route("/favicon.png")
+def _favicon():
+    from flask import send_from_directory
+    import os as _os
+    static_dir = _os.path.join(app.root_path, "static")
+    for name in ("favicon.ico", "favicon.png", "logo.png"):
+        if _os.path.exists(_os.path.join(static_dir, name)):
+            return send_from_directory(static_dir, name)
+    return ("", 204)
+
+from werkzeug.exceptions import HTTPException as _HTTPException
+import traceback as _tb, os as _os_env
+
+@app.errorhandler(_HTTPException)
+def _handle_http_exc(e):
+    # نرجّع الرد الطبيعي (404/403/…): من غير ما نحوّله 500
+    return e
+
+@app.errorhandler(Exception)
+def _handle_any_exc(e):
+    print("=== UNHANDLED ERROR ===\n", _tb.format_exc(), flush=True)
+    if _os_env.environ.get("SHOW_ERRORS") == "1":
+        return ("<pre style='direction:ltr;text-align:left'>" + _tb.format_exc() + "</pre>", 500)
+    return ("حدث خطأ غير متوقع. حاول تاني.", 500)
+
