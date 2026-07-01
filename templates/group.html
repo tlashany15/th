@@ -187,13 +187,16 @@
     msgsEl.querySelectorAll('.wa-del:not([data-bound])').forEach(function(b){
       b.dataset.bound = '1';
       b.addEventListener('click', function(){
-        if (!confirm('حذف الرسالة؟')) return;
-        var id = b.dataset.id;
-        fetch('/group/delete/'+id, {method:'POST'}).then(function(r){
-          if (r.ok) {
-            var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]');
-            if (el) el.outerHTML = '<div class="wa-msg wa-them" data-id="'+id+'"><div class="wa-bubble wa-deleted">رسالة محذوفة</div></div>';
-          }
+        (window.appConfirm ? window.appConfirm('حذف الرسالة نهائيًا؟', {danger:true, okText:'حذف'}) : Promise.resolve(confirm('حذف الرسالة؟')))
+        .then(function(ok){
+          if (!ok) return;
+          var id = b.dataset.id;
+          fetch('/group/delete/'+id, {method:'POST'}).then(function(r){
+            if (r.ok) {
+              var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]');
+              if (el) el.outerHTML = '<div class="wa-msg wa-them" data-id="'+id+'"><div class="wa-bubble wa-deleted">رسالة محذوفة</div></div>';
+            }
+          });
         });
       });
     });
@@ -242,7 +245,7 @@
       fetch('/group/send', {method:'POST', body:fd})
         .then(function(r){ return r.json(); })
         .then(function(){ poll(); })
-        .catch(function(){ alert('فشل إرسال الرسالة الصوتية'); });
+        .catch(function(){ (window.appAlert||alert)('فشل إرسال الرسالة الصوتية','error'); });
     }
   });
 

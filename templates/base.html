@@ -60,5 +60,86 @@
     }
   })();
 </script>
+
+<!-- ===== Global Popups (appAlert / appConfirm) ===== -->
+<div class="app-toast-wrap" id="appToastWrap" aria-live="polite"></div>
+<div class="app-modal-root" id="appModalRoot" aria-hidden="true">
+  <div class="app-modal-back" data-app-close></div>
+  <div class="app-modal-card" role="dialog" aria-modal="true">
+    <div class="app-modal-ic" id="appModalIc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div class="app-modal-title" id="appModalTitle">تأكيد</div>
+    <div class="app-modal-sub" id="appModalSub">هل أنت متأكد؟</div>
+    <div class="app-modal-actions">
+      <button class="btn btn-ghost" data-app-close id="appModalCancel">إلغاء</button>
+      <button class="btn btn-primary" id="appModalOk">تأكيد</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var wrap = document.getElementById('appToastWrap');
+  var modal = document.getElementById('appModalRoot');
+  var modalIc = document.getElementById('appModalIc');
+  var modalTitle = document.getElementById('appModalTitle');
+  var modalSub = document.getElementById('appModalSub');
+  var modalOk = document.getElementById('appModalOk');
+  var modalCancel = document.getElementById('appModalCancel');
+  var currentResolve = null;
+
+  var ICONS = {
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>',
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+  };
+
+  window.appAlert = function(text, kind){
+    kind = kind || 'info';
+    var t = document.createElement('div');
+    t.className = 'app-toast is-' + kind;
+    t.innerHTML = '<span class="at-ic">' + (ICONS[kind]||ICONS.info) + '</span><span>' + String(text) + '</span>';
+    wrap.appendChild(t);
+    requestAnimationFrame(function(){ t.classList.add('is-show'); });
+    setTimeout(function(){
+      t.classList.remove('is-show');
+      setTimeout(function(){ t.remove(); }, 250);
+    }, 2400);
+  };
+
+  function openModal(opts){
+    modalTitle.textContent = opts.title || 'تأكيد';
+    modalSub.textContent = opts.sub || '';
+    modalIc.className = 'app-modal-ic' + (opts.danger ? ' is-danger' : '');
+    modalIc.innerHTML = ICONS[opts.danger ? 'error' : 'info'];
+    modalOk.textContent = opts.okText || 'تأكيد';
+    modalCancel.textContent = opts.cancelText || 'إلغاء';
+    modalOk.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+    modalCancel.style.display = opts.hideCancel ? 'none' : '';
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden','false');
+  }
+  function closeModal(v){
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden','true');
+    if (currentResolve){ currentResolve(v); currentResolve = null; }
+  }
+  window.appConfirm = function(text, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      currentResolve = resolve;
+      openModal({ title: opts.title || 'تأكيد', sub: text, danger: opts.danger,
+                  okText: opts.okText || 'تأكيد', cancelText: opts.cancelText || 'إلغاء' });
+    });
+  };
+  modalOk.addEventListener('click', function(){ closeModal(true); });
+  modal.querySelectorAll('[data-app-close]').forEach(function(el){
+    el.addEventListener('click', function(){ closeModal(false); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(false);
+  });
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,68 @@
+{% extends "app_base.html" %}
+{% block content %}
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 0115 0"/></svg>
+        بياناتي الشخصية
+      </span>
+      <h1 class="hero-h1">تعديل بياناتي</h1>
+      <p class="hero-sub">غيّر اسمك أو كلمة السر بتاعتك.</p>
+    </div>
+  </div>
+</section>
+
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">الاسم واسم المستخدم</div>
+        <div class="sec-h-s">هيظهر لباقي الفريق</div>
+      </div>
+    </div>
+  </div>
+  <form method="post">
+    <input type="hidden" name="action" value="name">
+    <div class="field">
+      <label>الاسم الكامل</label>
+      <input name="full_name" required value="{{ me.full_name }}">
+    </div>
+    <div class="field">
+      <label>اسم المستخدم</label>
+      <input name="username" required value="{{ me.username }}">
+    </div>
+    <button class="btn btn-primary btn-lg">حفظ التعديلات</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">تغيير كلمة السر</div>
+        <div class="sec-h-s">اكتب الحالية والجديدة</div>
+      </div>
+    </div>
+  </div>
+  <form method="post">
+    <input type="hidden" name="action" value="password">
+    <div class="field">
+      <label>كلمة السر الحالية</label>
+      <input name="old_password" type="password" required>
+    </div>
+    <div class="field">
+      <label>كلمة السر الجديدة</label>
+      <input name="new_password" type="password" required minlength="4">
+    </div>
+    <button class="btn btn-primary btn-lg">حفظ كلمة السر</button>
+  </form>
+</div>
+{% endblock %}

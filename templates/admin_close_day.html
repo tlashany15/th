@@ -1,0 +1,79 @@
+{% extends "app_base.html" %}
+{% block content %}
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75"/></svg>
+        إغلاق اليوم
+      </span>
+      <h1 class="hero-h1">تسجيل الإجمالي</h1>
+      <p class="hero-sub">اقفل يوم {{ day }} في السجل.</p>
+    </div>
+    <div class="hero-date">
+      <div class="hero-date-d">{{ day[8:] }}</div>
+      <div class="hero-date-m">{{ day[5:7] }}/{{ day[:4] }}</div>
+    </div>
+  </div>
+  <div class="kpi-grid kpi-grid-2">
+    <div class="kpi kpi-gold">
+      <div class="kpi-v">{{ day_total }}</div>
+      <div class="kpi-l">إجمالي حتى الآن</div>
+    </div>
+    <div class="kpi kpi-green">
+      <div class="kpi-v">{{ present_count }}</div>
+      <div class="kpi-l">الحاضرون</div>
+    </div>
+  </div>
+</section>
+
+<div class="card close-card">
+  {% if day_closed %}
+    <div class="closed-hero">
+      <div class="closed-hero-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
+      </div>
+      <div>
+        <div class="closed-hero-t">اليوم مغلق</div>
+        <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت</div>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('admin_reopen_day') }}">
+      <input type="hidden" name="day" value="{{ day }}">
+      <button class="btn btn-ghost">إعادة فتح اليوم</button>
+    </form>
+  {% else %}
+    <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
+      <input type="hidden" name="day" value="{{ day }}">
+      <div class="field">
+        <label>إجمالي عدد التحصين لليوم كله</label>
+        <div class="big-input">
+          <span class="bi-suffix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg></span>
+          <input id="closeTotalInput" name="total_count" type="number" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose">إغلاق اليوم وتسجيل الإجمالي</button>
+    </form>
+  {% endif %}
+  <div style="margin-top:10px;">
+    <a class="btn btn-ghost" href="{{ url_for('admin_panel', day=day) }}">← رجوع للوحة</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  var b = document.getElementById('btnConfirmClose');
+  var form = document.getElementById('closeDayForm');
+  var input = document.getElementById('closeTotalInput');
+  if (!b) return;
+  b.addEventListener('click', function(){
+    var v = parseInt((input.value||'0'), 10);
+    if (isNaN(v) || v < 0){ (window.appAlert||alert)('ادخل رقم صحيح','error'); input.focus(); return; }
+    window.appConfirm('تسجيل ' + v.toLocaleString('ar-EG') + ' كتكوت كإجمالي نهائي لليوم؟', {okText:'تأكيد الإغلاق'}).then(function(ok){
+      if (ok) form.submit();
+    });
+  });
+})();
+</script>
+{% endblock %}
