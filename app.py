@@ -742,8 +742,9 @@ def chats_list():
             "username": r["username"],
             "avatar": r["avatar"],
             "online": _is_online(r["last_seen"]),
+            "last_seen": _iso_utc(r["last_seen"]),
             "last_text": last_text,
-            "last_time": last_time,
+            "last_time": _iso_utc(last_time) if last_time else None,
             "unread": r["unread"] or 0,
         })
     contacts.sort(key=lambda c: c["last_time"] or "", reverse=True)
@@ -823,6 +824,12 @@ def chat_messages_api(other_id):
                    WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL""",
                 (other_id, u["id"]))
     db.commit()
+    # كل الرسايل بتاعتي اللي الطرف التاني قراها (عشان نظبط الـ ticks)
+    cur.execute("""SELECT id FROM chat_messages
+                   WHERE sender_id=%s AND receiver_id=%s AND read_at IS NOT NULL
+                   ORDER BY id DESC LIMIT 200""",
+                (u["id"], other_id))
+    read_ids = [row["id"] for row in cur.fetchall()]
     cur.execute("SELECT last_seen FROM users WHERE id=%s", (other_id,))
     other_row = cur.fetchone()
     cur.close()
@@ -839,7 +846,9 @@ def chat_messages_api(other_id):
         })
     return jsonify({
         "messages": msgs,
+        "read_ids": read_ids,
         "other_online": _is_online(other_row["last_seen"]) if other_row else False,
+        "other_last_seen": _iso_utc(other_row["last_seen"]) if other_row else None,
     })
 
 
