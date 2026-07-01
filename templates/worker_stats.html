@@ -1,71 +1,114 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<div class="card">
-  <div style="display:flex;gap:14px;align-items:center;">
-    <div class="sidebar-avatar" style="width:56px;height:56px;font-size:24px;">
+<!-- ===== HERO ===== -->
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row" style="align-items:center;gap:14px;">
+    <div class="sidebar-avatar" style="width:56px;height:56px;font-size:24px;flex-shrink:0;">
       {{ (worker.full_name or '?')[:1] }}
     </div>
-    <div>
-      <div style="font-size:20px;font-weight:800;">{{ worker.full_name }}</div>
-      <div style="opacity:.75;font-size:13px;margin-top:4px;">
-        رقم في الفريق: <b>{{ worker.username }}</b> — {{ month_label }}
+    <div style="min-width:0;flex:1;">
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 1115 0v.75H4.5v-.75z"/></svg>
+        نصيب العامل
+      </span>
+      <h1 class="hero-h1" style="margin-top:6px;">{{ worker.full_name }}</h1>
+      <p class="hero-sub">
+        رقم في الفريق: <b>{{ worker.username }}</b> • {{ month_label }}
+      </p>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi kpi-gold">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
+      </div>
+      <div class="kpi-v">{{ days_attended }}</div>
+      <div class="kpi-l">أيام الحضور</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l7.5 7.5 10.5-15"/></svg>
+      </div>
+      <div class="kpi-v">{{ '{:,}'.format(total_month) }}</div>
+      <div class="kpi-l">إجمالي الشهر</div>
+    </div>
+    <div class="kpi kpi-green">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.25 0-4-1.007-4-2.25S9.75 7.5 12 7.5c.725 0 1.45.22 2.003.659L15 8.818"/></svg>
+      </div>
+      <div class="kpi-v">{{ '{:,.2f}'.format(total_share) }}</div>
+      <div class="kpi-l">نصيبه من الشهر</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== تفاصيل الأيام ===== -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12M8.25 17.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:16px;">تفاصيل الأيام</div>
+        <div style="font-size:12px;color:var(--text-3);">{{ month_label }}</div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="stats-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0;">
-  <div class="card" style="text-align:center;padding:14px;">
-    <div style="font-size:13px;opacity:.7;">أيام الحضور</div>
-    <div style="font-size:26px;font-weight:800;color:var(--gold,#ffbe57);">{{ days_attended }}</div>
-  </div>
-  <div class="card" style="text-align:center;padding:14px;">
-    <div style="font-size:13px;opacity:.7;">إجمالي الشهر</div>
-    <div style="font-size:26px;font-weight:800;">{{ '{:,}'.format(total_month) }}</div>
-  </div>
-  <div class="card" style="text-align:center;padding:14px;background:linear-gradient(135deg,#ffbe5722,#ef444422);">
-    <div style="font-size:13px;opacity:.85;">نصيبه من الشهر</div>
-    <div style="font-size:26px;font-weight:800;color:#ffbe57;">{{ '{:,.2f}'.format(total_share) }}</div>
-  </div>
-</div>
-
-<div class="card">
-  <h3 style="margin:0 0 10px;">تفاصيل الأيام</h3>
   {% if not days %}
-    <p style="opacity:.7;">مفيش أيام مغلقة في {{ month_label }} لسه.</p>
+    <div class="empty">مفيش أيام مغلقة في {{ month_label }} لسه.</div>
   {% else %}
-    <table style="width:100%;border-collapse:collapse;font-size:14px;">
-      <thead>
-        <tr style="text-align:right;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <th style="padding:8px 6px;">اليوم</th>
-          <th style="padding:8px 6px;">التاريخ</th>
-          <th style="padding:8px 6px;">إجمالي اليوم</th>
-          <th style="padding:8px 6px;">عدد العمال</th>
-          <th style="padding:8px 6px;">حضر؟</th>
-          <th style="padding:8px 6px;">نصيبه</th>
-        </tr>
-      </thead>
-      <tbody>
+    <div class="tl">
       {% for d in days %}
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);{% if d.attended %}background:rgba(255,190,87,0.05);{% endif %}">
-          <td style="padding:8px 6px;">{{ d.weekday }}</td>
-          <td style="padding:8px 6px;font-family:monospace;">{{ d.date }}</td>
-          <td style="padding:8px 6px;">{{ '{:,}'.format(d.total) }}</td>
-          <td style="padding:8px 6px;">{{ d.attendees }}</td>
-          <td style="padding:8px 6px;">{% if d.attended %}✅{% else %}—{% endif %}</td>
-          <td style="padding:8px 6px;font-weight:700;color:{% if d.attended %}#ffbe57{% else %}#666{% endif %};">
-            {% if d.attended %}{{ '{:,.2f}'.format(d.share) }}{% else %}0{% endif %}
-          </td>
-        </tr>
+      <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
+        <div class="tl-date">
+          <div class="tl-num">{{ d.date.split('-')[-1] if '-' in d.date|string else d.date }}</div>
+          <div class="tl-wd">{{ d.weekday }}</div>
+        </div>
+        <div class="tl-bar"></div>
+        <div class="tl-body">
+          <div class="tl-row-top">
+            <div class="tl-total">
+              <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
+              <div class="tl-tlab">إجمالي اليوم</div>
+            </div>
+            {% if d.attended %}
+              <span class="badge badge-green sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:11px;height:11px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                حاضر
+              </span>
+            {% else %}
+              <span class="badge sm" style="background:rgba(255,255,255,.06);color:var(--text-3);">
+                غائب
+              </span>
+            {% endif %}
+          </div>
+          <div class="tl-meta" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <span class="mini-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
+              {{ d.attendees }} عامل
+            </span>
+            <span class="mini-chip" style="font-family:monospace;">{{ d.date }}</span>
+            {% if d.attended %}
+              <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
+                نصيبه: {{ '{:,.2f}'.format(d.share) }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
       {% endfor %}
-      </tbody>
-    </table>
+    </div>
   {% endif %}
 </div>
 
-<div style="margin-top:14px;font-size:12px;opacity:.6;text-align:center;">
-  💡 نصيب اليوم = إجمالي اليوم ÷ عدد العمال الحاضرين — يُجمع تلقائيًا على مدار الشهر.
+<div class="card" style="text-align:center;font-size:12.5px;color:var(--text-3);padding:12px;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-left:4px;color:var(--gold-2);"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+  نصيب اليوم = إجمالي اليوم ÷ عدد العمال الحاضرين — يُجمع تلقائيًا على مدار الشهر.
 </div>
 
 {% endblock %}
