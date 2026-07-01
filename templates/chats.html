@@ -60,7 +60,11 @@
         <div class="ch-mid">
           <div class="ch-top">
             <span class="ch-name">{{ c.full_name }}</span>
-            {% if c.last_time %}<span class="ch-time" data-time="{{ c.last_time }}"></span>{% endif %}
+            {% if c.last_time %}
+              <span class="ch-time" data-time="{{ c.last_time }}"></span>
+            {% elif c.last_seen and not c.online %}
+              <span class="ch-time" data-last-seen="{{ c.last_seen }}"></span>
+            {% endif %}
           </div>
           <div class="ch-bot">
             <span class="ch-preview">{{ c.last_text }}</span>
@@ -96,8 +100,20 @@
     if (diff < 86400*7) return Math.floor(diff/86400) + ' ي';
     return d.toLocaleDateString('ar-EG');
   }
+  function lastSeenShort(iso){
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var diff = (Date.now() - d.getTime())/1000;
+    if (diff < 60)      return 'الآن';
+    if (diff < 3600)    return 'منذ ' + Math.floor(diff/60) + ' د';
+    if (diff < 86400)   return 'منذ ' + Math.floor(diff/3600) + ' س';
+    if (diff < 86400*7) return 'منذ ' + Math.floor(diff/86400) + ' ي';
+    return d.toLocaleDateString('ar-EG');
+  }
   document.querySelectorAll('.ch-time[data-time]').forEach(function(el){
     el.textContent = relTime(el.dataset.time);
+  });
+  document.querySelectorAll('.ch-time[data-last-seen]').forEach(function(el){
+    el.textContent = lastSeenShort(el.dataset.lastSeen);
   });
 })();
 </script>

@@ -14,7 +14,9 @@
     </div>
     <div class="wa-head-info">
       <div class="wa-head-name">{{ other.full_name }}</div>
-      <div class="wa-head-status" id="otherStatus">{% if other.online %}متصل الآن{% else %}غير متصل{% endif %}</div>
+      <div class="wa-head-status {% if other.online %}is-online{% endif %}" id="otherStatus">
+        {% if other.online %}متصل الآن{% else %}غير متصل{% endif %}
+      </div>
     </div>
   </header>
 
@@ -38,11 +40,13 @@
 
   <!-- COMPOSER -->
   <form class="wa-composer" id="composer" autocomplete="off">
-    <label class="wa-attach" aria-label="صورة">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"/></svg>
-      <input id="imgInput" type="file" accept="image/*" hidden>
-    </label>
-    <input id="textInput" type="text" placeholder="اكتب رسالة" autocomplete="off">
+    <div class="wa-composer-field">
+      <label class="wa-attach" aria-label="صورة">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/></svg>
+        <input id="imgInput" type="file" accept="image/*" hidden>
+      </label>
+      <input id="textInput" type="text" placeholder="اكتب رسالة" autocomplete="off">
+    </div>
     <button type="button" class="wa-mic" id="micBtn" aria-label="رسالة صوتية">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
     </button>
@@ -68,14 +72,41 @@
 
   var lastId = 0;
   var lastDayKey = '';
+  var pollTimer = null;
+
+  // ===== Presence text (Telegram style) =====
+  function fmtLastSeen(iso){
+    if (!iso) return 'غير متصل';
+    var d = new Date(iso);
+    if (isNaN(d)) return 'غير متصل';
+    var diff = Math.floor((Date.now() - d.getTime())/1000);
+    if (diff < 60)         return 'آخر ظهور منذ لحظات';
+    if (diff < 3600)       return 'آخر ظهور منذ ' + Math.floor(diff/60) + ' د';
+    if (diff < 86400)      return 'آخر ظهور منذ ' + Math.floor(diff/3600) + ' س';
+    if (diff < 86400*2)    return 'آخر ظهور أمس';
+    if (diff < 86400*7)    return 'آخر ظهور منذ ' + Math.floor(diff/86400) + ' أيام';
+    return 'آخر ظهور ' + d.toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  }
+
+  function updateStatus(online, lastSeen){
+    statusEl.classList.remove('is-online','is-typing');
+    if (online){
+      statusEl.classList.add('is-online');
+      statusEl.textContent = 'متصل الآن';
+    } else {
+      statusEl.textContent = fmtLastSeen(lastSeen);
+    }
+  }
+
+  // ===== Message rendering =====
+  function ticksHTML(read){
+    return '<svg class="wa-ticks '+(read?'read':'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">'+
+             '<path stroke-linecap="round" stroke-linejoin="round" d="M2 13l4 4L14 7M10 13l4 4L22 7"/>'+
+           '</svg>';
+  }
 
   function bubbleHTML(m){
     var side = m.mine ? 'me' : 'them';
-    var ticks = m.mine
-      ? (m.read
-          ? '<svg class="wa-ticks read" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M2 13l4 4L14 7M10 13l4 4L22 7"/></svg>'
-          : '<svg class="wa-ticks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M2 13l4 4L14 7M10 13l4 4L22 7"/></svg>')
-      : '';
     var inner = '';
     if (m.kind === 'image') {
       inner = '<img class="wa-img" src="'+m.body+'" alt="">';
@@ -84,9 +115,11 @@
     } else {
       inner = '<div class="wa-text">'+ChatHelpers.escape(m.body).replace(/\n/g,'<br>')+'</div>';
     }
-    return '<div class="wa-msg wa-'+side+'" data-id="'+m.id+'">'+
+    return '<div class="wa-msg wa-'+side+'" data-id="'+m.id+'" data-mine="'+(m.mine?1:0)+'">'+
              '<div class="wa-bubble">'+inner+
-               '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span>'+ticks+'</div>'+
+               '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span>'+
+                 (m.mine ? ticksHTML(m.read) : '')+
+               '</div>'+
              '</div>'+
            '</div>';
   }
@@ -95,7 +128,7 @@
 
   function appendMessages(list){
     if (!list.length) return;
-    var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 80;
+    var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 100;
     var html = '';
     list.forEach(function(m){
       var dk = ChatHelpers.dayKey(m.created_at);
@@ -111,25 +144,50 @@
     if (atBottom) scrollBottom();
   }
 
+  // Update read state on existing mine bubbles based on server data
+  function refreshReadTicks(readIds){
+    if (!readIds || !readIds.length) return;
+    var set = {};
+    readIds.forEach(function(id){ set[id]=1; });
+    msgsEl.querySelectorAll('.wa-me[data-id]').forEach(function(el){
+      var id = parseInt(el.dataset.id,10);
+      if (set[id]){
+        var t = el.querySelector('.wa-ticks');
+        if (t) t.classList.add('read');
+      }
+    });
+  }
+
   function poll(){
     fetch('/chat/' + OTHER_ID + '/messages?after=' + lastId, {headers:{'X-Requested-With':'fetch'}})
       .then(function(r){ return r.json(); })
       .then(function(d){
         appendMessages(d.messages || []);
-        statusEl.textContent = d.other_online ? 'متصل الآن' : 'غير متصل';
-        if (d.other_online) {
-          document.querySelectorAll('.wa-me .wa-ticks').forEach(function(t){ t.classList.add('read'); });
-        }
+        refreshReadTicks(d.read_ids || []);
+        updateStatus(!!d.other_online, d.other_last_seen);
       }).catch(function(){});
   }
   poll();
-  setInterval(poll, 2500);
+  pollTimer = setInterval(poll, 2500);
 
+  // Faster refresh + presence ping on visibility change
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) {
+      poll();
+      try { fetch('/me/ping', {method:'POST'}); } catch(e){}
+    }
+  });
+
+  // Composer behaviour
   textInput.addEventListener('input', function(){
     var hasText = textInput.value.trim().length > 0;
     sendBtn.hidden = !hasText;
     micBtn.hidden = hasText;
   });
+  textInput.addEventListener('focus', function(){
+    setTimeout(scrollBottom, 200);
+  });
+
   composer.addEventListener('submit', function(e){
     e.preventDefault();
     var v = textInput.value.trim();

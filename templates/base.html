@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#06091a">
+  <meta name="theme-color" content="#0e1621">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -39,11 +39,24 @@
         e.preventDefault(); return false;
       }
     });
-    // ping بسيط عشان نحدّث حالة "متصل" للمستخدم
+
+    // ====== Real-time presence ======
     if (document.body && !document.body.dataset.noPing) {
+      var doPing = function(){
+        try { fetch('/me/ping', { method:'POST', headers:{'X-Requested-With':'fetch'}, keepalive: true }); } catch(e){}
+      };
+      // فوري + كل 15 ثانية
+      doPing();
       setInterval(function(){
-        try { fetch('/me/ping', { method:'POST', headers:{'X-Requested-With':'fetch'} }); } catch(e){}
-      }, 25000);
+        if (!document.hidden) doPing();
+      }, 15000);
+      // لما التبويب يرجع
+      document.addEventListener('visibilitychange', function(){
+        if (!document.hidden) doPing();
+      });
+      window.addEventListener('focus', doPing);
+      // قبل إغلاق الصفحة
+      window.addEventListener('pagehide', doPing);
     }
   })();
 </script>
