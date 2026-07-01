@@ -105,7 +105,15 @@
            '</svg>';
   }
 
-  function bubbleHTML(m){
+  var OTHER_AVATAR = {{ (other.avatar or '')|tojson }};
+  var OTHER_INITIAL = {{ (other.full_name[0] if other.full_name else '?')|tojson }};
+
+  function avatarHTML(){
+    if (OTHER_AVATAR) return '<img class="wa-av" src="'+OTHER_AVATAR+'" alt="">';
+    return '<div class="wa-av wa-av-fb">'+ChatHelpers.escape(OTHER_INITIAL)+'</div>';
+  }
+
+  function bubbleHTML(m, showAvatar, tail){
     var side = m.mine ? 'me' : 'them';
     var inner = '';
     if (m.kind === 'image') {
@@ -115,8 +123,11 @@
     } else {
       inner = '<div class="wa-text">'+ChatHelpers.escape(m.body).replace(/\n/g,'<br>')+'</div>';
     }
-    return '<div class="wa-msg wa-'+side+'" data-id="'+m.id+'" data-mine="'+(m.mine?1:0)+'">'+
-             '<div class="wa-bubble">'+inner+
+    var av = (!m.mine && showAvatar) ? '<div class="wa-msg-av">'+avatarHTML()+'</div>' : (!m.mine ? '<div class="wa-msg-av wa-av-hidden"></div>' : '');
+    var tailCls = tail ? ' wa-tail' : '';
+    return '<div class="wa-msg wa-'+side+(tail?' wa-last':'')+'" data-id="'+m.id+'" data-mine="'+(m.mine?1:0)+'">'+
+             av +
+             '<div class="wa-bubble'+tailCls+'">'+inner+
                '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span>'+
                  (m.mine ? ticksHTML(m.read) : '')+
                '</div>'+
@@ -129,17 +140,27 @@
   function appendMessages(list){
     if (!list.length) return;
     var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 100;
-    var html = '';
-    list.forEach(function(m){
+    // Remove tail/avatar from previous last-them bubble if new message continues same sender
+    list.forEach(function(m, i){
       var dk = ChatHelpers.dayKey(m.created_at);
       if (dk !== lastDayKey){
-        html += '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>';
+        msgsEl.insertAdjacentHTML('beforeend',
+          '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>');
         lastDayKey = dk;
       }
-      html += bubbleHTML(m);
+      var next = list[i+1];
+      var isLastOfGroup = !next || (!!next.mine !== !!m.mine) ||
+                          (ChatHelpers.dayKey(next.created_at) !== dk);
+      // if previous rendered bubble was them and this one is also them, strip its tail+avatar
+      var prevEl = msgsEl.lastElementChild;
+      if (prevEl && prevEl.classList && prevEl.classList.contains('wa-them') && !m.mine){
+        prevEl.classList.remove('wa-last');
+        var pb = prevEl.querySelector('.wa-bubble'); if (pb) pb.classList.remove('wa-tail');
+        var pa = prevEl.querySelector('.wa-msg-av'); if (pa){ pa.classList.add('wa-av-hidden'); pa.innerHTML=''; }
+      }
+      msgsEl.insertAdjacentHTML('beforeend', bubbleHTML(m, isLastOfGroup, isLastOfGroup));
       lastId = Math.max(lastId, m.id);
     });
-    msgsEl.insertAdjacentHTML('beforeend', html);
     ChatHelpers.bindAudio(msgsEl);
     if (atBottom) scrollBottom();
   }
