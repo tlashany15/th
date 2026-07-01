@@ -130,6 +130,15 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_group_created ON group_messages(created_at DESC);
 
         -- آخر قراءة لكل مستخدم للمجموعة
+        -- ملخص الفترة (نصف شهر) — عشان مانبعتش نفس الرسالة تاني
+        CREATE TABLE IF NOT EXISTS period_summaries (
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            half INTEGER NOT NULL CHECK (half IN (1,2)),
+            total INTEGER NOT NULL DEFAULT 0,
+            posted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (year, month, half)
+        );
         CREATE TABLE IF NOT EXISTS group_reads (
             user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             last_read_id INTEGER NOT NULL DEFAULT 0,
@@ -516,6 +525,47 @@ def admin_close_day():
     )
     db.commit()
     cur.close()
+    # ==== ملخص الفترة (نصف شهر) — تلقائي في الجروب ====
+    try:
+        import calendar as _cal
+        y, m, dnum = [int(x) for x in day.split('-')]
+        last_day = _cal.monthrange(y, m)[1]
+        is_period_end = (dnum == 15) or (dnum == last_day)
+        if is_period_end:
+            half = 1 if dnum == 15 else 2
+            start_d = f"{y:04d}-{m:02d}-01" if half == 1 else f"{y:04d}-{m:02d}-16"
+            end_d   = f"{y:04d}-{m:02d}-15" if half == 1 else f"{y:04d}-{m:02d}-{last_day:02d}"
+            cur.execute(
+                "SELECT COALESCE(SUM(total_count),0) AS s, COUNT(*) AS c FROM day_closures WHERE day BETWEEN %s AND %s",
+                (start_d, end_d),
+            )
+            row = cur.fetchone()
+            period_total = int(row["s"] or 0)
+            days_closed = int(row["c"] or 0)
+            cur.execute("SELECT 1 FROM period_summaries WHERE year=%s AND month=%s AND half=%s",
+                        (y, m, half))
+            already = cur.fetchone()
+            if not already and period_total > 0:
+                AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+                             "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+                half_lbl = f"النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})"
+                body = (
+                    "📊 ملخص " + half_lbl + " من " + AR_MONTHS[m-1] + f" {y}\n"
+                    + f"• الإجمالي: {period_total:,} كتكوت\n"
+                    + f"• عدد أيام العمل: {days_closed}\n"
+                    + f"• الفترة: {start_d} → {end_d}"
+                )
+                cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
+                               VALUES (%s, 'system', %s, TRUE)""", (u["id"], body))
+                # نلغي تثبيت أى ملخّص فتره قديم
+                cur.execute("""UPDATE group_messages SET pinned=FALSE
+                               WHERE pinned=TRUE AND kind='system' AND id <> (SELECT MAX(id) FROM group_messages WHERE kind='system')""")
+                cur.execute("INSERT INTO period_summaries(year, month, half, total) VALUES(%s,%s,%s,%s)",
+                            (y, m, half, period_total))
+                db.commit()
+                flash(f"تم نشر ملخص {half_lbl} في الجروب تلقائيًا 📊", "success")
+    except Exception as _e:
+        print("period summary error:", _e)
     flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
     return redirect(url_for("admin_panel", day=day))
 
@@ -666,6 +716,84 @@ def admin_users():
     users = cur.fetchall()
     cur.close()
     return render_template("admin_users.html", users=users)
+
+
+# ---- صفحة مستقلة لإغلاق اليوم ----
+@app.route("/admin/close-page")
+@admin_required
+def admin_close_page():
+    day = _parse_day(request.args.get("day"))
+    day_s = day.isoformat()
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
+    day_total = cur.fetchone()["s"]
+    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    _row = cur.fetchone()
+    closed = _row is not None
+    if closed:
+        day_total = _row["total_count"]
+    cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
+    present_count = cur.fetchone()["c"]
+    cur.close()
+    return render_template("admin_close_day.html",
+                           day=day_s, day_total=day_total,
+                           present_count=present_count, day_closed=closed)
+
+
+# ---- صفحة مستقلة لتحضير عمال بكره ----
+@app.route("/admin/tomorrow-page")
+@admin_required
+def admin_tomorrow_page():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, full_name FROM users WHERE role='worker' ORDER BY full_name")
+    all_workers = cur.fetchall()
+    cur.close()
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    return render_template("admin_tomorrow.html",
+                           all_workers=all_workers, tomorrow=tomorrow)
+
+
+# ---- بروفايل المسؤول: تغيير الاسم / كلمة السر ----
+@app.route("/admin/profile", methods=["GET", "POST"])
+@admin_required
+def admin_profile():
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    if request.method == "POST":
+        action = request.form.get("action", "name")
+        if action == "name":
+            new_name = (request.form.get("full_name") or "").strip()
+            new_username = (request.form.get("username") or "").strip()
+            if not new_name or not new_username:
+                flash("الاسم واسم المستخدم مطلوبين", "error")
+            else:
+                try:
+                    cur.execute("UPDATE users SET full_name=%s, username=%s WHERE id=%s",
+                                (new_name[:80], new_username[:40], u["id"]))
+                    db.commit()
+                    flash("تم تحديث بياناتك ✓", "success")
+                except psycopg2.IntegrityError:
+                    db.rollback()
+                    flash("اسم المستخدم ده موجود بالفعل", "error")
+        elif action == "password":
+            old_pw = request.form.get("old_password", "")
+            new_pw = request.form.get("new_password", "")
+            if not new_pw or len(new_pw) < 4:
+                flash("كلمة السر الجديدة قصيرة", "error")
+            elif not check_password_hash(u["password_hash"], old_pw):
+                flash("كلمة السر الحالية غلط", "error")
+            else:
+                cur.execute("UPDATE users SET password_hash=%s WHERE id=%s",
+                            (generate_password_hash(new_pw), u["id"]))
+                db.commit()
+                flash("تم تحديث كلمة السر ✓", "success")
+        cur.close()
+        return redirect(url_for("admin_profile"))
+    cur.close()
+    return render_template("admin_profile.html", me=u)
 
 
 # ============================================================
