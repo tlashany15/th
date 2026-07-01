@@ -1070,6 +1070,30 @@ def group_rename():
     return redirect(url_for("group_room"))
 
 
+@app.route("/group/members")
+@login_required
+def group_members_api():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, full_name, username, avatar, role, last_seen FROM users ORDER BY full_name")
+    rows = cur.fetchall()
+    cur.close()
+    members = []
+    for r in rows:
+        members.append({
+            "id": r["id"],
+            "full_name": r["full_name"],
+            "username": r["username"],
+            "avatar": r["avatar"],
+            "role": r["role"],
+            "online": _is_online(r["last_seen"]),
+            "last_seen": _iso_utc(r["last_seen"]),
+        })
+    members.sort(key=lambda m: (not m["online"], m["full_name"]))
+    online_count = sum(1 for m in members if m["online"])
+    return jsonify({"members": members, "online": online_count, "total": len(members)})
+
+
 @app.route("/me/avatar", methods=["POST"])
 @login_required
 def update_avatar():
