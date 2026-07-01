@@ -124,6 +124,10 @@
     return '<div class="wa-av wa-av-fb" style="background:hsl('+((m.sender_id||0)*47%360)+',60%,45%)">'+ChatHelpers.escape(ch)+'</div>';
   }
 
+  function sysDelBtn(id){
+    if (!IS_ADMIN) return '';
+    return '<button class="wa-del wa-del-sys" data-id="'+id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>';
+  }
   function bubbleHTML(m){
     if (m.deleted) {
       return '<div class="wa-msg wa-them" data-id="'+m.id+'">'+
@@ -135,10 +139,11 @@
                '<div class="wa-sys-card">'+
                  '<div class="wa-sys-ic">📋</div>'+
                  '<pre class="wa-sys-body">'+ChatHelpers.escape(m.body||'')+'</pre>'+
+                 sysDelBtn(m.id)+
                '</div></div>';
     }
     if (m.kind === 'system') {
-      return '<div class="wa-sys" data-id="'+m.id+'"><span class="wa-sys-pill">'+ChatHelpers.escape(m.body||'')+'</span></div>';
+      return '<div class="wa-sys" data-id="'+m.id+'"><span class="wa-sys-pill">'+ChatHelpers.escape(m.body||'')+'</span>'+sysDelBtn(m.id)+'</div>';
     }
     var side = m.mine ? 'me' : 'them';
     var canDel = (m.mine || IS_ADMIN);
@@ -186,14 +191,16 @@
   function bindDelete(){
     msgsEl.querySelectorAll('.wa-del:not([data-bound])').forEach(function(b){
       b.dataset.bound = '1';
-      b.addEventListener('click', function(){
+      b.addEventListener('click', function(ev){
+        ev.stopPropagation();
         (window.appConfirm ? window.appConfirm('حذف الرسالة نهائيًا؟', {danger:true, okText:'حذف'}) : Promise.resolve(confirm('حذف الرسالة؟')))
         .then(function(ok){
           if (!ok) return;
           var id = b.dataset.id;
           fetch('/group/delete/'+id, {method:'POST'}).then(function(r){
             if (r.ok) {
-              var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]');
+              var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]') ||
+                       msgsEl.querySelector('.wa-sys[data-id="'+id+'"]');
               if (el) el.outerHTML = '<div class="wa-msg wa-them" data-id="'+id+'"><div class="wa-bubble wa-deleted">رسالة محذوفة</div></div>';
             }
           });

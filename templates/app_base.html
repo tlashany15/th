@@ -138,10 +138,6 @@
       {{ snav_icon('dashboard') }}
       الرئيسية
     </a>
-    <a href="{{ url_for('worker_stats', worker_id=current_user.id) }}" class="{% if request.endpoint == 'worker_stats' %}active{% endif %}">
-      {{ snav_icon('wallet') }}
-      نصيبي
-    </a>
   {% endif %}
   <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room'] %}active{% endif %}">
     {{ snav_icon('chat') }}

@@ -26,7 +26,10 @@
       <input type="text" id="note" name="note" placeholder="مثلاً: مشروع فلان — عزبة كذا">
     </div>
     <div class="rr-submit">
-      <button type="submit" class="btn btn-gold" style="width:100%;">احسب واحفظ التقرير</button>
+      <button type="submit" class="btn btn-gold" style="width:100%;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;margin-inline-end:6px;vertical-align:-3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17l6-5-6-5v10z"/></svg>
+        احسب واحفظ التقرير
+      </button>
     </div>
   </form>
 </div>
@@ -44,18 +47,36 @@
       </div>
     </div>
   </div>
-  <div class="kpi-grid">
+  <div class="kpi-grid kpi-grid-2">
     <div class="kpi kpi-gold">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
+      </div>
       <div class="kpi-v">{{ '{:,}'.format(result.total) }}</div>
       <div class="kpi-l">إجمالي الفترة</div>
     </div>
     <div class="kpi kpi-blue">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+      </div>
       <div class="kpi-v">{{ result.days }}</div>
       <div class="kpi-l">عدد الأيام المغلقة</div>
     </div>
+    {% if result.days and result.days > 0 %}
+    <div class="kpi kpi-green" style="grid-column:1/-1;">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>
+      </div>
+      <div class="kpi-v">{{ '{:,}'.format((result.total // result.days) if result.days else 0) }}</div>
+      <div class="kpi-l">متوسط اليوم</div>
+    </div>
+    {% endif %}
   </div>
   {% if result.note %}
-    <div style="margin-top:10px;font-size:13px;color:var(--text-2);">📝 {{ result.note }}</div>
+    <div class="rr-note">
+      <span class="rr-note-ic">📝</span>
+      <span>{{ result.note }}</span>
+    </div>
   {% endif %}
 </div>
 {% endif %}
