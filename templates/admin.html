@@ -141,104 +141,19 @@
   </div>
 </div>
 
-<!-- ===== CLOSE DAY ===== -->
+{% if day_closed %}
 <div class="card close-card">
-  {% if day_closed %}
-    <div class="closed-hero">
-      <div class="closed-hero-ic">
-        <!-- syringe -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-      </div>
-      <div>
-        <div class="closed-hero-t">اليوم مغلق</div>
-        <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت — تم تسجيله في السجل</div>
-      </div>
+  <div class="closed-hero">
+    <div class="closed-hero-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
     </div>
-    <form method="post" action="{{ url_for('admin_reopen_day') }}">
-      <input type="hidden" name="day" value="{{ day }}">
-      <button class="btn btn-ghost">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-        إعادة فتح اليوم
-      </button>
-    </form>
-  {% else %}
-    <div class="sec-head">
-      <div class="sec-h-l">
-        <div class="sec-h-ico sec-h-ico-gold">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-        </div>
-        <div>
-          <div class="sec-h-t">إغلاق اليوم</div>
-          <div class="sec-h-s">سجّل الإجمالي وأنزل اليوم في السجل</div>
-        </div>
-      </div>
-    </div>
-    <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
-      <input type="hidden" name="day" value="{{ day }}">
-      <div class="field">
-        <label>إجمالي عدد التحصين</label>
-        <div class="big-input">
-          <span class="bi-suffix" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-          </span>
-          <input id="closeTotalInput" name="total_count" type="number" min="0" required placeholder="مثال: 1500">
-        </div>
-      </div>
-      <button class="btn btn-primary btn-lg" type="button" id="openCloseModal" style="margin-top:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-        إغلاق اليوم وتسجيل الإجمالي
-      </button>
-    </form>
-  {% endif %}
-</div>
-
-<!-- ===== تحضير الغد (إعلان في الجروب) ===== -->
-<div class="card">
-  <div class="sec-head">
-    <div class="sec-h-l">
-      <div class="sec-h-ico sec-h-ico-blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-      </div>
-      <div>
-        <div class="sec-h-t">تحضير عمال بكره</div>
-        <div class="sec-h-s">اختر الأسماء وانشرها في الدردشة الجماعية (تتثبّت تلقائيًا)</div>
-      </div>
-    </div>
-  </div>
-  <form method="post" action="{{ url_for('admin_announce_tomorrow') }}">
-    <input type="hidden" name="day" value="{{ tomorrow }}">
-    <div class="tomorrow-grid">
-      {% for w in all_workers %}
-      <label class="tom-chk">
-        <input type="checkbox" name="user_ids" value="{{ w.id }}">
-        <span class="tom-name">{{ w.full_name }}</span>
-      </label>
-      {% else %}
-      <div class="empty"><div>لا يوجد عمال مسجلين</div></div>
-      {% endfor %}
-    </div>
-    <button class="btn btn-primary btn-lg" type="submit" style="margin-top:10px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-      نشر قائمة حضور {{ tomorrow }} في الجروب
-    </button>
-  </form>
-</div>
-
-<!-- ===== MODAL (مخصّص بدل confirm()) ===== -->
-<div class="modal-root" id="modalRoot" aria-hidden="true">
-  <div class="modal-backdrop" data-close></div>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-ic">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-    </div>
-    <div class="modal-title" id="modalTitle">قفل اليوم وتسجيل الإجمالي؟</div>
-    <div class="modal-sub">سيتم تسجيل <strong id="modalTotal">0</strong> كتكوت كإجمالي نهائي لليوم. تقدر تعيد فتحه لاحقاً.</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" data-close>إلغاء</button>
-      <button class="btn btn-primary" id="modalConfirm">تأكيد الإغلاق</button>
+    <div>
+      <div class="closed-hero-t">اليوم مغلق</div>
+      <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت</div>
     </div>
   </div>
 </div>
+{% endif %}
 
 <script>
 (function(){
@@ -317,40 +232,6 @@
   /* تحديث صامت كل 15 ثانية */
   if (!closed) setInterval(refreshPanel, 15000);
 
-  /* ====== MODAL إغلاق اليوم ====== */
-  var modal = document.getElementById('modalRoot');
-  var openBtn = document.getElementById('openCloseModal');
-  var confirmBtn = document.getElementById('modalConfirm');
-  var totalInput = document.getElementById('closeTotalInput');
-  var modalTotal = document.getElementById('modalTotal');
-  var closeForm = document.getElementById('closeDayForm');
-
-  function openModal(){
-    if (!totalInput.value || parseInt(totalInput.value,10) < 0){
-      totalInput.focus();
-      totalInput.classList.add('shake');
-      setTimeout(function(){ totalInput.classList.remove('shake'); }, 500);
-      return;
-    }
-    modalTotal.textContent = parseInt(totalInput.value,10).toLocaleString('ar-EG');
-    modal.classList.add('is-open');
-    modal.setAttribute('aria-hidden','false');
-  }
-  function closeModal(){
-    modal.classList.remove('is-open');
-    modal.setAttribute('aria-hidden','true');
-  }
-  if (openBtn) openBtn.addEventListener('click', openModal);
-  if (confirmBtn) confirmBtn.addEventListener('click', function(){
-    confirmBtn.disabled = true;
-    closeForm.submit();
-  });
-  modal.querySelectorAll('[data-close]').forEach(function(el){
-    el.addEventListener('click', closeModal);
-  });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') closeModal();
-  });
 })();
 </script>
 
@@ -368,6 +249,10 @@
     <a class="fab-item" href="{{ url_for('admin_profile') }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 0115 0"/></svg>
       <span>بياناتي</span>
+    </a>
+    <a class="fab-item is-gold" href="{{ url_for('history') }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>السجلات</span>
     </a>
   </div>
   <button class="fab-main" id="adminFabBtn" aria-label="اختصارات">
