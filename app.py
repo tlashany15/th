@@ -389,6 +389,8 @@ def check_in():
 @login_required
 def history():
     import calendar
+    u = current_user()
+    is_admin = (u and u["role"] == "admin")
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -404,9 +406,14 @@ def history():
               for r in cur.fetchall()}
     cur.close()
 
-    months = set((d.year, d.month) for d in by_day.keys())
     today = date.today()
-    months.add((today.year, today.month))
+    if is_admin:
+        months = set((d.year, d.month) for d in by_day.keys())
+        months.add((today.year, today.month))
+    else:
+        # العمال يشوفوا الفترة الحالية بس (نصف الشهر الجاري)
+        months = {(today.year, today.month)}
+    current_half = 1 if today.day <= 15 else 2
     periods = []
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
     AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -414,6 +421,9 @@ def history():
     for (y, m) in sorted(months, reverse=True):
         last_day = calendar.monthrange(y, m)[1]
         for half, (start, end) in enumerate([(1, 15), (16, last_day)], start=1):
+            # للعمال: لو الشهر الحالي، أظهر النصف الحالي بس
+            if (not is_admin) and (y, m) == (today.year, today.month) and half != current_half:
+                continue
             days_list = []
             for dnum in range(start, end + 1):
                 d = date(y, m, dnum)
