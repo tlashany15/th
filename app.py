@@ -139,6 +139,17 @@ def init_db():
             posted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             PRIMARY KEY (year, month, half)
         );
+        -- تقارير فترة مخصّصة (المسؤول يحدد من/إلى)
+        CREATE TABLE IF NOT EXISTS range_reports (
+            id SERIAL PRIMARY KEY,
+            admin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            start_day DATE NOT NULL,
+            end_day DATE NOT NULL,
+            total INTEGER NOT NULL DEFAULT 0,
+            days_count INTEGER NOT NULL DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
         CREATE TABLE IF NOT EXISTS group_reads (
             user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             last_read_id INTEGER NOT NULL DEFAULT 0,
@@ -976,6 +987,85 @@ def admin_profile():
         return redirect(url_for("admin_profile"))
     cur.close()
     return render_template("admin_profile.html", me=u)
+
+
+# ============================================================
+# ============ تقرير فترة مخصّصة (المسؤول فقط) ================
+# ============================================================
+@app.route("/admin/range-report", methods=["GET", "POST"])
+@admin_required
+def admin_range_report():
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    # ensure table exists (safety)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS range_reports (
+            id SERIAL PRIMARY KEY,
+            admin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            start_day DATE NOT NULL,
+            end_day DATE NOT NULL,
+            total INTEGER NOT NULL DEFAULT 0,
+            days_count INTEGER NOT NULL DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+
+    result = None
+    if request.method == "POST":
+        start_s = (request.form.get("start_day") or "").strip()
+        end_s   = (request.form.get("end_day") or "").strip()
+        note    = (request.form.get("note") or "").strip() or None
+        try:
+            start_d = datetime.strptime(start_s, "%Y-%m-%d").date()
+            end_d   = datetime.strptime(end_s, "%Y-%m-%d").date()
+        except ValueError:
+            flash("اختار تاريخين صحيحين", "error")
+            cur.close()
+            return redirect(url_for("admin_range_report"))
+        if end_d < start_d:
+            start_d, end_d = end_d, start_d
+        cur.execute(
+            "SELECT COALESCE(SUM(total_count),0) AS s, COUNT(*) AS c "
+            "FROM day_closures WHERE day BETWEEN %s AND %s",
+            (start_d.isoformat(), end_d.isoformat()),
+        )
+        row = cur.fetchone()
+        total = int(row["s"] or 0)
+        days_count = int(row["c"] or 0)
+        cur.execute(
+            "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note) "
+            "VALUES (%s,%s,%s,%s,%s,%s) RETURNING id",
+            (u["id"], start_d.isoformat(), end_d.isoformat(), total, days_count, note),
+        )
+        db.commit()
+        result = {
+            "start": start_d.isoformat(), "end": end_d.isoformat(),
+            "total": total, "days": days_count, "note": note,
+        }
+        flash("تم حساب التقرير وحفظه في السجل ✓", "success")
+
+    cur.execute(
+        "SELECT id, start_day, end_day, total, days_count, note, created_at "
+        "FROM range_reports ORDER BY created_at DESC LIMIT 100"
+    )
+    reports = cur.fetchall()
+    cur.close()
+    return render_template("admin_range_report.html", result=result, reports=reports)
+
+
+@app.route("/admin/range-report/<int:rid>/delete", methods=["POST"])
+@admin_required
+def admin_range_report_delete(rid):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM range_reports WHERE id=%s", (rid,))
+    db.commit()
+    cur.close()
+    flash("تم حذف التقرير", "success")
+    return redirect(url_for("admin_range_report"))
+
 
 
 # ============================================================
