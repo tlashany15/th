@@ -219,3 +219,85 @@ html[data-chat-theme="forest"] .wa-me .wa-bubble{
 }
 html[data-chat-theme="forest"] .wa-them .wa-bubble{ background:#1e4d31; color:#e6ffed; border:none; }
 html[data-chat-theme="forest"] .tg-chats-head{ background:#163a24; }
+
+/* ---------- Custom theme editor ---------- */
+.th-card-edit{
+  position:absolute; top:6px; inset-inline-start:6px;
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.55); color:#fff;
+  display:grid; place-items:center;
+  cursor:pointer;
+}
+.th-card-edit svg{ width:12px;height:12px; }
+
+.th-custom-editor{
+  display:none;
+  margin-top:14px; padding:14px;
+  background:rgba(255,255,255,.04);
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.th-custom-editor.is-open{ display:block; }
+.th-custom-title{ font-size:14px; font-weight:800; margin-bottom:10px; }
+.th-custom-row{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin-bottom:8px;
+  font-size:13px;
+}
+.th-custom-row label{ flex:1; }
+.th-custom-row input[type="color"]{
+  width:44px; height:32px; border:none; background:transparent; cursor:pointer;
+  border-radius:8px; padding:0;
+}
+.th-custom-imgctrls{ display:flex; gap:6px; }
+.th-custom-file{
+  padding:6px 12px; border-radius:8px;
+  background:rgba(255,255,255,.08); color:inherit;
+  font-size:12px; cursor:pointer;
+}
+.th-custom-clear{
+  padding:6px 12px; border-radius:8px; border:none;
+  background:rgba(239,107,87,.2); color:#ff9a88;
+  font-size:12px; cursor:pointer;
+}
+.th-custom-actions{ margin-top:12px; text-align:center; }
+.th-custom-apply{
+  padding:10px 28px; border-radius:10px; border:none;
+  background:var(--gold,#f5b950); color:#1a1207;
+  font-weight:800; font-size:14px; cursor:pointer;
+}
+
+/* ---------- Custom theme surfaces (colors set by JS via #thCustomStyle) ---------- */
+html[data-chat-theme="custom"] .wa-msgs{ background-attachment:fixed; }
+
+/* ---------- Sunset ---------- */
+html[data-chat-theme="sunset"] .wa-msgs{ background:linear-gradient(180deg,#2d1b4e 0%, #c2185b 100%); }
+html[data-chat-theme="sunset"] .wa-head,
+html[data-chat-theme="sunset"] .wa-composer{ background:#3d1e5c; border-color:#4a2469; }
+html[data-chat-theme="sunset"] .wa-me .wa-bubble{ background:linear-gradient(160deg,#ffb347,#ff6b6b); color:#1a0e02; border:none; }
+html[data-chat-theme="sunset"] .wa-them .wa-bubble{ background:#3d1e5c; color:#ffe5ec; border:none; }
+html[data-chat-theme="sunset"] .tg-chats-head{ background:#3d1e5c; }
+
+/* ---------- Midnight ---------- */
+html[data-chat-theme="midnight"] .wa-msgs{ background:linear-gradient(180deg,#0a0e27 0%, #1a1e4e 100%); }
+html[data-chat-theme="midnight"] .wa-head,
+html[data-chat-theme="midnight"] .wa-composer{ background:#0f1338; border-color:#1e1e4e; }
+html[data-chat-theme="midnight"] .wa-me .wa-bubble{ background:linear-gradient(160deg,#6366f1,#8b5cf6); color:#fff; border:none; }
+html[data-chat-theme="midnight"] .wa-them .wa-bubble{ background:#1e1e4e; color:#e0e7ff; border:none; }
+html[data-chat-theme="midnight"] .tg-chats-head{ background:#0f1338; }
+
+/* ---------- Mocha ---------- */
+html[data-chat-theme="mocha"] .wa-msgs{ background:linear-gradient(180deg,#2b1810 0%, #4a2e1c 100%); }
+html[data-chat-theme="mocha"] .wa-head,
+html[data-chat-theme="mocha"] .wa-composer{ background:#3d251a; border-color:#4a2e1c; }
+html[data-chat-theme="mocha"] .wa-me .wa-bubble{ background:linear-gradient(160deg,#d4a574,#8b5a3c); color:#1a0e02; border:none; }
+html[data-chat-theme="mocha"] .wa-them .wa-bubble{ background:#3d251a; color:#f5e6d3; border:none; }
+html[data-chat-theme="mocha"] .tg-chats-head{ background:#3d251a; }
+
+/* ---------- Mint ---------- */
+html[data-chat-theme="mint"] .wa-msgs{ background:linear-gradient(180deg,#0f2e2a 0%, #1a4d42 100%); }
+html[data-chat-theme="mint"] .wa-head,
+html[data-chat-theme="mint"] .wa-composer{ background:#163a34; border-color:#1e4d43; }
+html[data-chat-theme="mint"] .wa-me .wa-bubble{ background:linear-gradient(160deg,#6ee7b7,#10b981); color:#052e26; border:none; }
+html[data-chat-theme="mint"] .wa-them .wa-bubble{ background:#1e4d43; color:#d1fae5; border:none; }
+html[data-chat-theme="mint"] .tg-chats-head{ background:#163a34; }
