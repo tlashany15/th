@@ -1,0 +1,221 @@
+/* ============================================================
+   Themes — WhatsApp / Telegram style theme system
+   Applies to: chats list (.tg-*), 1:1 chat (.wa-*), group chat
+   Toggle via <html data-chat-theme="..."> from themes.js
+   ============================================================ */
+
+/* Theme picker button (injected into chat headers) */
+.th-theme-btn{
+  width:38px;height:38px;border-radius:10px;
+  display:grid;place-items:center;
+  color:var(--text-2);background:transparent;border:none;
+  transition:background .15s, color .15s, transform .15s;
+  cursor:pointer;flex-shrink:0;
+}
+.th-theme-btn:hover{ background:rgba(255,255,255,.08); color:var(--text); }
+.th-theme-btn:active{ transform:scale(.94); }
+.th-theme-btn svg{ width:20px;height:20px; }
+
+/* Modal */
+.th-modal{ position:fixed; inset:0; z-index:9998; display:none; }
+.th-modal.is-open{ display:block; }
+.th-modal-back{ position:absolute; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(6px); }
+.th-modal-card{
+  position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+  width:min(560px, 100%);
+  background:var(--surface, #171f33);
+  color:var(--text, #eef2fb);
+  border-radius:22px 22px 0 0;
+  padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -24px 60px rgba(0,0,0,.5);
+  max-height:82vh; overflow:auto;
+  animation:thSlideUp .25s ease-out;
+}
+@keyframes thSlideUp{ from{ transform:translate(-50%, 30px); opacity:.6 } to{ transform:translate(-50%, 0); opacity:1 } }
+.th-modal-grip{ width:44px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);margin:0 auto 12px; }
+.th-modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding:0 4px; }
+.th-modal-title{ font-size:16px; font-weight:800; }
+.th-modal-close{
+  width:32px;height:32px;border-radius:8px;display:grid;place-items:center;
+  background:rgba(255,255,255,.06);color:inherit;border:none;cursor:pointer;
+}
+.th-modal-close svg{ width:16px;height:16px; }
+
+.th-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:10px;
+}
+@media (min-width:520px){ .th-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+
+.th-card{
+  border:2px solid transparent;
+  border-radius:14px;
+  padding:8px 8px 10px;
+  background:rgba(255,255,255,.04);
+  cursor:pointer;
+  transition:transform .15s, border-color .15s, background .15s;
+  text-align:center;
+}
+.th-card:hover{ background:rgba(255,255,255,.07); }
+.th-card:active{ transform:scale(.98); }
+.th-card.is-active{ border-color:var(--gold, #f5b950); background:rgba(245,185,80,.08); }
+.th-card-preview{
+  position:relative;
+  aspect-ratio:9/13;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:8px;
+  border:1px solid rgba(255,255,255,.08);
+  display:flex; flex-direction:column;
+  padding:8px 6px;
+  gap:6px;
+}
+.th-p-bubble{
+  max-width:70%; padding:5px 8px; border-radius:10px;
+  font-size:9px; line-height:1.1; color:#fff;
+}
+.th-p-bubble.me{ align-self:flex-end; }
+.th-p-bubble.them{ align-self:flex-start; }
+.th-card-name{ font-size:12.5px; font-weight:700; }
+.th-card-check{
+  position:absolute; top:6px; inset-inline-end:6px;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--gold,#f5b950); color:#1a1207;
+  display:none; place-items:center;
+  box-shadow:0 4px 10px rgba(0,0,0,.4);
+}
+.th-card-check svg{ width:12px;height:12px; }
+.th-card.is-active .th-card-check{ display:grid; }
+
+/* =========================================================
+   Theme definitions
+   Chat surfaces get their own tokens so we don't touch the
+   rest of the app UI.
+   ========================================================= */
+
+/* ---------- Default (فريق التحصين) — no override needed ---------- */
+
+/* ---------- WhatsApp Dark ---------- */
+html[data-chat-theme="wa-dark"] .wa-msgs{
+  background:#0b141a
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='%23202c33' opacity='.35'><circle cx='20' cy='20' r='2'/><circle cx='80' cy='40' r='2'/><circle cx='50' cy='90' r='2'/><path d='M10 60 l6 -6 6 6 -6 6z'/></g></svg>");
+}
+html[data-chat-theme="wa-dark"] .wa-head,
+html[data-chat-theme="wa-dark"] .wa-composer{
+  background:linear-gradient(180deg,#1f2c33,#1a252c);
+  border-color:#233138;
+}
+html[data-chat-theme="wa-dark"] .wa-me .wa-bubble{
+  background:#005c4b; color:#e9edef; border:none;
+}
+html[data-chat-theme="wa-dark"] .wa-me .wa-meta{ color:rgba(233,237,239,.65); }
+html[data-chat-theme="wa-dark"] .wa-them .wa-bubble{
+  background:#202c33; color:#e9edef; border:none;
+}
+html[data-chat-theme="wa-dark"] .tg-chats-head{ background:linear-gradient(180deg,#1f2c33,#0b141a); }
+html[data-chat-theme="wa-dark"] .tg-row.is-active,
+html[data-chat-theme="wa-dark"] .tg-row:hover{ background:#1f2c33; }
+
+/* ---------- WhatsApp Light ---------- */
+html[data-chat-theme="wa-light"] .wa-msgs{
+  background:#efeae2
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='%23d9d3ca' opacity='.5'><circle cx='20' cy='20' r='2'/><circle cx='80' cy='40' r='2'/><circle cx='50' cy='90' r='2'/></g></svg>");
+  color:#111b21;
+}
+html[data-chat-theme="wa-light"] .wa-head,
+html[data-chat-theme="wa-light"] .wa-composer{
+  background:#f0f2f5; color:#111b21; border-color:#e2e5e8;
+}
+html[data-chat-theme="wa-light"] .wa-head-name,
+html[data-chat-theme="wa-light"] .wa-head-status{ color:#111b21; }
+html[data-chat-theme="wa-light"] .wa-back,
+html[data-chat-theme="wa-light"] .wa-head-action,
+html[data-chat-theme="wa-light"] .th-theme-btn{ color:#54656f; }
+html[data-chat-theme="wa-light"] .wa-me .wa-bubble{
+  background:#d9fdd3; color:#111b21; border:none;
+}
+html[data-chat-theme="wa-light"] .wa-me .wa-meta{ color:rgba(17,27,33,.55); }
+html[data-chat-theme="wa-light"] .wa-them .wa-bubble{
+  background:#ffffff; color:#111b21; border:none;
+  box-shadow:0 1px 1px rgba(0,0,0,.08);
+}
+html[data-chat-theme="wa-light"] .wa-them .wa-meta{ color:rgba(17,27,33,.45); }
+html[data-chat-theme="wa-light"] .wa-day-sep span{ background:rgba(255,255,255,.85); color:#54656f; border-color:#dce0e3; }
+html[data-chat-theme="wa-light"] .tg-chats-head{ background:#f0f2f5; color:#111b21; }
+html[data-chat-theme="wa-light"] .tg-search input{ background:#fff; color:#111b21; }
+html[data-chat-theme="wa-light"] .tg-name{ color:#111b21; }
+
+/* ---------- Telegram Blue (default TG dark) ---------- */
+html[data-chat-theme="tg-blue"] .wa-msgs{
+  background:linear-gradient(180deg,#0f1c2e 0%, #17324c 100%);
+}
+html[data-chat-theme="tg-blue"] .wa-head,
+html[data-chat-theme="tg-blue"] .wa-composer{
+  background:#17212b; border-color:#0e1621;
+}
+html[data-chat-theme="tg-blue"] .wa-me .wa-bubble{
+  background:#2b5278; color:#fff; border:none;
+}
+html[data-chat-theme="tg-blue"] .wa-me .wa-meta{ color:rgba(255,255,255,.65); }
+html[data-chat-theme="tg-blue"] .wa-them .wa-bubble{
+  background:#182533; color:#fff; border:none;
+}
+html[data-chat-theme="tg-blue"] .tg-chats-head{ background:#17212b; }
+
+/* ---------- Telegram Dark (near black) ---------- */
+html[data-chat-theme="tg-dark"] .wa-msgs{ background:#0e1621; }
+html[data-chat-theme="tg-dark"] .wa-head,
+html[data-chat-theme="tg-dark"] .wa-composer{ background:#17212b; border-color:#0e1621; }
+html[data-chat-theme="tg-dark"] .wa-me .wa-bubble{ background:#766ac8; color:#fff; border:none; }
+html[data-chat-theme="tg-dark"] .wa-them .wa-bubble{ background:#182533; color:#fff; border:none; }
+html[data-chat-theme="tg-dark"] .tg-chats-head{ background:#17212b; }
+
+/* ---------- AMOLED (pure black) ---------- */
+html[data-chat-theme="amoled"] .wa-msgs{ background:#000; }
+html[data-chat-theme="amoled"] .wa-head,
+html[data-chat-theme="amoled"] .wa-composer{ background:#000; border-color:#161616; }
+html[data-chat-theme="amoled"] .wa-me .wa-bubble{
+  background:linear-gradient(160deg,#f5b950,#ef6b57); color:#1a0e02; border:none;
+}
+html[data-chat-theme="amoled"] .wa-them .wa-bubble{
+  background:#0e0e0e; color:#eee; border:1px solid #1c1c1c;
+}
+html[data-chat-theme="amoled"] .tg-chats-head{ background:#000; }
+html[data-chat-theme="amoled"] .tg-row{ background:#0a0a0a; border-color:#161616; }
+
+/* ---------- Rose ---------- */
+html[data-chat-theme="rose"] .wa-msgs{
+  background:linear-gradient(180deg,#2a0f1f 0%, #3d1729 100%);
+}
+html[data-chat-theme="rose"] .wa-head,
+html[data-chat-theme="rose"] .wa-composer{ background:#3d1729; border-color:#4a1e35; }
+html[data-chat-theme="rose"] .wa-me .wa-bubble{
+  background:linear-gradient(160deg,#ff6b9d,#c94b7b); color:#fff; border:none;
+}
+html[data-chat-theme="rose"] .wa-them .wa-bubble{ background:#4a1e35; color:#ffe8f0; border:none; }
+html[data-chat-theme="rose"] .tg-chats-head{ background:#3d1729; }
+
+/* ---------- Ocean ---------- */
+html[data-chat-theme="ocean"] .wa-msgs{
+  background:linear-gradient(180deg,#062a3d 0%, #0a3d5a 100%);
+}
+html[data-chat-theme="ocean"] .wa-head,
+html[data-chat-theme="ocean"] .wa-composer{ background:#083648; border-color:#0d485f; }
+html[data-chat-theme="ocean"] .wa-me .wa-bubble{
+  background:linear-gradient(160deg,#22d3ee,#0891b2); color:#052732; border:none;
+}
+html[data-chat-theme="ocean"] .wa-them .wa-bubble{ background:#0d485f; color:#e0f7fa; border:none; }
+html[data-chat-theme="ocean"] .tg-chats-head{ background:#083648; }
+
+/* ---------- Forest (green) ---------- */
+html[data-chat-theme="forest"] .wa-msgs{
+  background:linear-gradient(180deg,#0f2417 0%, #163a24 100%);
+}
+html[data-chat-theme="forest"] .wa-head,
+html[data-chat-theme="forest"] .wa-composer{ background:#163a24; border-color:#1e4d31; }
+html[data-chat-theme="forest"] .wa-me .wa-bubble{
+  background:linear-gradient(160deg,#4ade80,#16a34a); color:#062910; border:none;
+}
+html[data-chat-theme="forest"] .wa-them .wa-bubble{ background:#1e4d31; color:#e6ffed; border:none; }
+html[data-chat-theme="forest"] .tg-chats-head{ background:#163a24; }
