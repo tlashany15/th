@@ -197,14 +197,85 @@ window.ChatHelpers = (function(){
     });
   }
 
+  // تحويل الروابط لروابط قابلة للضغط داخل نص الرسالة
+  function linkify(text){
+    var esc = escape(text || '');
+    var re = /((https?:\/\/|www\.)[^\s<]+[^\s<.,!?:;\)"'])/gi;
+    return esc.replace(re, function(u){
+      var href = u.match(/^https?:\/\//i) ? u : 'https://' + u;
+      return '<a href="'+href+'" target="_blank" rel="noopener nofollow" class="wa-link">'+u+'</a>';
+    }).replace(/\n/g,'<br>');
+  }
+
+  // إظهار Toast بسيط
+  function toast(msg){
+    var t = document.createElement('div');
+    t.className = 'wa-toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.classList.add('show'); }, 10);
+    setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.remove(); }, 250); }, 1500);
+  }
+
+  // نسخ نص للحافظة
+  function copyText(text){
+    if (!text) return Promise.resolve(false);
+    if (navigator.clipboard && window.isSecureContext){
+      return navigator.clipboard.writeText(text).then(function(){ return true; }).catch(function(){ return false; });
+    }
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand('copy'); ta.remove();
+      return Promise.resolve(!!ok);
+    } catch(e){ return Promise.resolve(false); }
+  }
+
+  // ضغط طويل / نقرة مزدوجة على الفقاعات لنسخ محتوى النص
+  function bindCopy(root){
+    (root || document).querySelectorAll('.wa-bubble:not([data-copybound])').forEach(function(b){
+      b.dataset.copybound = '1';
+      var timer = null, longPressed = false;
+      function getText(){
+        var t = b.querySelector('.wa-text');
+        return t ? t.innerText : '';
+      }
+      function trigger(){
+        var txt = getText();
+        if (!txt) return;
+        copyText(txt).then(function(ok){ toast(ok ? 'تم نسخ الرسالة ✓' : 'تعذّر النسخ'); });
+      }
+      b.addEventListener('touchstart', function(){
+        longPressed = false;
+        timer = setTimeout(function(){ longPressed = true; trigger(); }, 550);
+      }, {passive:true});
+      b.addEventListener('touchend', function(e){
+        clearTimeout(timer);
+        if (longPressed) { e.preventDefault(); }
+      });
+      b.addEventListener('touchmove', function(){ clearTimeout(timer); });
+      b.addEventListener('dblclick', trigger);
+      b.addEventListener('mousedown', function(e){
+        if (e.button !== 0) return;
+        timer = setTimeout(function(){ trigger(); }, 550);
+      });
+      b.addEventListener('mouseup', function(){ clearTimeout(timer); });
+      b.addEventListener('mouseleave', function(){ clearTimeout(timer); });
+    });
+  }
+
   return {
     escape: escape,
+    linkify: linkify,
     fmtTime: fmtTime,
     fmtSec: fmtSec,
     dayKey: dayKey,
     dayLabel: dayLabel,
     audioPlayerHTML: audioPlayerHTML,
     bindAudio: bindAudio,
+    bindCopy: bindCopy,
+    copyText: copyText,
+    toast: toast,
     attachRecorder: attachRecorder
   };
 })();

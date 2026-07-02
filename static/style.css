@@ -1597,3 +1597,97 @@ a{ color:inherit; text-decoration:none; }
 .contact-dev-btn:hover{ transform:translateY(-1px); filter:brightness(1.06); }
 .contact-dev-btn:active{ transform:scale(.97); }
 .contact-dev-btn svg{ width:18px; height:18px; }
+
+/* ============================================================
+   Extras: links in bubbles, copy toast, cover photo, history edit
+   ============================================================ */
+.wa-link{ color:#6ec1ff; text-decoration:underline; word-break:break-all; }
+.wa-me .wa-link{ color:#0b3a5e; }
+
+/* Copy toast */
+.wa-toast{
+  position:fixed; left:50%; bottom:24px; transform:translate(-50%, 20px);
+  background:rgba(20,20,25,.95); color:#fff; padding:10px 18px;
+  border-radius:14px; font-size:13px; font-weight:700;
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  opacity:0; transition:opacity .2s, transform .2s; z-index:9999;
+  pointer-events:none;
+}
+.wa-toast.show{ opacity:1; transform:translate(-50%, 0); }
+
+/* Chats header cover */
+.tg-chats-head{ position:relative; overflow:hidden; padding-top:14px; }
+.tg-head-cover{
+  position:absolute; inset:0 0 auto 0; height:120px;
+  background: linear-gradient(160deg, rgba(245,185,80,.18), rgba(239,68,68,.10));
+  z-index:0;
+}
+.tg-chats-head.has-cover .tg-head-cover{
+  background: var(--user-cover) center/cover no-repeat;
+}
+.tg-chats-head.has-cover .tg-head-cover::after{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%);
+}
+.tg-chats-head .tg-me-av,
+.tg-chats-head .tg-head-title{ position:relative; z-index:2; }
+.tg-chats-head .tg-me-av{ margin-top:60px; }
+.tg-me-av-edit{
+  position:absolute; right:2px; bottom:2px; width:26px; height:26px;
+  background:var(--grad-gold); color:#1a1207; border-radius:50%;
+  display:grid; place-items:center; border:2px solid var(--bg);
+  box-shadow:0 4px 10px rgba(0,0,0,.3);
+}
+.tg-me-av-edit svg{ width:13px; height:13px; }
+
+.tg-head-cover-actions{
+  position:absolute; top:8px; left:8px; z-index:3;
+  display:flex; gap:6px;
+}
+.tg-cover-btn{
+  width:34px; height:34px; border-radius:50%;
+  background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.15);
+  display:grid; place-items:center; cursor:pointer;
+  transition:background .15s, transform .12s;
+}
+.tg-cover-btn:hover{ background:rgba(0,0,0,.65); }
+.tg-cover-btn:active{ transform:scale(.94); }
+.tg-cover-btn svg{ width:16px; height:16px; }
+.tg-cover-remove-form{ margin:0; padding:0; }
+.tg-cover-remove-form button{ padding:0; }
+
+/* History: reset period + edit day inline */
+.period-head{ position:relative; }
+.period-reset-form{ margin:0; margin-inline-start:auto; padding:0; }
+.btn-reset-period{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px; border-radius:10px; cursor:pointer;
+  background:linear-gradient(160deg, rgba(239,68,68,.18), rgba(239,68,68,.08));
+  color:#ffb4b4; border:1px solid rgba(239,68,68,.35);
+  font-size:12px; font-weight:800; transition:filter .15s, transform .12s;
+}
+.btn-reset-period:hover{ filter:brightness(1.15); }
+.btn-reset-period:active{ transform:scale(.97); }
+.btn-reset-period svg{ width:14px; height:14px; }
+
+.tl-edit-form{
+  display:flex; align-items:center; gap:6px;
+  margin-top:8px; padding:6px; border-radius:10px;
+  background:rgba(255,255,255,.03); border:1px dashed var(--line-strong);
+}
+.tl-edit-form input[type="number"]{
+  flex:1; min-width:0; height:32px; padding:0 10px;
+  background:rgba(0,0,0,.25); color:var(--text);
+  border:1px solid var(--line-strong); border-radius:8px;
+  font-size:13px; font-weight:700; text-align:center;
+}
+.tl-edit-form button{
+  display:inline-flex; align-items:center; gap:4px;
+  height:32px; padding:0 12px; border-radius:8px; cursor:pointer;
+  background:var(--grad-gold); color:#1a1207; font-weight:800; font-size:12px;
+  border:none; transition:filter .15s, transform .12s;
+}
+.tl-edit-form button:hover{ filter:brightness(1.06); }
+.tl-edit-form button:active{ transform:scale(.97); }
+.tl-edit-form button svg{ width:13px; height:13px; }
