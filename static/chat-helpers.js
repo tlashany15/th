@@ -81,7 +81,7 @@ window.ChatHelpers = (function(){
         });
         if (audio.paused) {
           audio.play().then(function(){ box.classList.add('is-playing'); })
-            .catch(function(){ alert('المتصفح ما يقدرش يشغّل الصوت'); });
+            .catch(function(){ (window.appAlert||alert)('المتصفح ما يقدرش يشغّل الصوت','error'); });
         } else {
           audio.pause();
           box.classList.remove('is-playing');
@@ -110,7 +110,7 @@ window.ChatHelpers = (function(){
     function start(){
       if (isRecording || isStopping || isSending) return; // امنع بدء تسجيل مزدوج
       if (!navigator.mediaDevices || !window.MediaRecorder) {
-        alert('المتصفح ما يدعمش التسجيل');
+        (window.appAlert||alert)('المتصفح ما يدعمش التسجيل','error');
         return;
       }
       isRecording = true;
@@ -136,7 +136,7 @@ window.ChatHelpers = (function(){
           sentOnce = true;
           var blob = new Blob(chunks, {type: mimeUsed});
           chunks = [];
-          if (blob.size < 1000) { alert('التسجيل قصير جدًا'); return; }
+          if (blob.size < 1000) { (window.appAlert||alert)('التسجيل قصير جدًا','error'); return; }
           isSending = true;
           try { onSend(blob, mimeUsed, function(){ isSending = false; }); }
           catch(e){ isSending = false; }
@@ -152,7 +152,7 @@ window.ChatHelpers = (function(){
         }, 250);
       }).catch(function(){
         isRecording = false;
-        alert('فعّل صلاحية الميكروفون من إعدادات المتصفح');
+        (window.appAlert||alert)('فعّل صلاحية الميكروفون من إعدادات المتصفح','error');
       });
     }
 
