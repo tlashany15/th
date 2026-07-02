@@ -89,6 +89,7 @@
     <a href="{{ url_for('worker_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي وكلمة السر</span></a>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
     {% endif %}
+    <a href="#" id="sidebarThemeLink"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.7 0 2-1.4 1-2.4-.8-.8-.3-2.6 1-2.6h2a5 5 0 005-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/></svg></span><span>مظهر الدردشة</span></a>
     <a href="{{ url_for('logout') }}" class="sidebar-danger"><span class="snav-ico">{{ snav_icon('logout') }}</span><span>تسجيل الخروج</span></a>
   </nav>
 
@@ -173,7 +174,16 @@
   if (cls) cls.addEventListener('click', close);
   if (ov)  ov.addEventListener('click', close);
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+  var themeLink = document.getElementById('sidebarThemeLink');
+  if (themeLink){
+    themeLink.addEventListener('click', function(e){
+      e.preventDefault();
+      close();
+      if (window.TahsinTheme) window.TahsinTheme.open();
+    });
+  }
 })();
+
 </script>
 {% endif %}
 

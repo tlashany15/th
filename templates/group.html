@@ -160,7 +160,8 @@
     var canDel = (m.mine || IS_ADMIN);
     var inner = '';
     if (m.kind === 'image') {
-      inner = '<img class="wa-img wa-img-tap" src="'+m.body+'" alt="" loading="lazy">';
+      inner = '<img class="wa-img wa-img-tap" data-msg-id="'+m.id+'" src="'+m.body+'" alt="" loading="lazy">';
+
     } else if (m.kind === 'audio') {
       inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
     } else {
@@ -409,9 +410,17 @@
   document.body.appendChild(lb);
   var lbImg = lb.querySelector('.wa-lb-img');
   var lbDl  = lb.querySelector('.wa-lb-dl');
-  function openLB(src){
-    lbImg.src = src; lbDl.href = src;
-    try { lbDl.download = (src.split('/').pop() || 'image'); } catch(e){}
+  function openLB(src, msgId){
+    lbImg.src = src;
+    if (msgId){
+      // نستخدم روت الوسائط عشان الملف يتحفظ باسم "صور تطبيق التحصين_..." وامتداد صحيح
+      var url = '/media/group/' + msgId + '?dl=1';
+      lbDl.href = url;
+      lbDl.setAttribute('download', 'صور تطبيق التحصين_' + msgId + '.jpg');
+    } else {
+      lbDl.href = src;
+      try { lbDl.download = 'صور تطبيق التحصين_' + Date.now() + '.jpg'; } catch(e){}
+    }
     lb.hidden = false; document.body.style.overflow = 'hidden';
   }
   function closeLB(){ lb.hidden = true; lbImg.src=''; document.body.style.overflow = ''; }
@@ -422,7 +431,8 @@
   // Delegated clicks: images open lightbox; system messages flash-highlight
   msgsEl.addEventListener('click', function(ev){
     var img = ev.target.closest && ev.target.closest('.wa-img-tap');
-    if (img) { ev.preventDefault(); openLB(img.src); return; }
+    if (img) { ev.preventDefault(); openLB(img.src, img.dataset.msgId); return; }
+
     var sys = ev.target.closest && ev.target.closest('.wa-sys-tap');
     if (sys && !(ev.target.closest && ev.target.closest('.wa-del'))) {
       sys.scrollIntoView({behavior:'smooth', block:'center'});

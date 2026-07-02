@@ -117,7 +117,8 @@
     var side = m.mine ? 'me' : 'them';
     var inner = '';
     if (m.kind === 'image') {
-      inner = '<img class="wa-img" src="'+m.body+'" alt="">';
+      inner = '<img class="wa-img wa-img-tap" data-msg-id="'+m.id+'" src="'+m.body+'" alt="">';
+
     } else if (m.kind === 'audio') {
       inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
     } else {
@@ -255,8 +256,51 @@
         .catch(function(){ (window.appAlert||alert)('فشل إرسال الرسالة الصوتية','error'); });
     }
   });
+
+  // ===== Image lightbox (with proper download) =====
+  var lb = document.createElement('div');
+  lb.className = 'wa-lightbox'; lb.hidden = true;
+  lb.innerHTML = '<div class="wa-lb-back"></div>'+
+                 '<img class="wa-lb-img" alt="">'+
+                 '<div class="wa-lb-bar">'+
+                   '<a class="wa-lb-btn wa-lb-dl" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>تنزيل</span></a>'+
+                   '<button class="wa-lb-btn wa-lb-close" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg><span>إغلاق</span></button>'+
+                 '</div>';
+  document.body.appendChild(lb);
+  var lbImg = lb.querySelector('.wa-lb-img');
+  var lbDl  = lb.querySelector('.wa-lb-dl');
+  function openLB(src, msgId){
+    lbImg.src = src;
+    if (msgId){
+      lbDl.href = '/media/chat/' + msgId + '?dl=1';
+      lbDl.setAttribute('download', 'صور تطبيق التحصين_' + msgId + '.jpg');
+    } else {
+      lbDl.href = src;
+      try { lbDl.download = 'صور تطبيق التحصين_' + Date.now() + '.jpg'; } catch(e){}
+    }
+    lb.hidden = false; document.body.style.overflow = 'hidden';
+  }
+  function closeLB(){ lb.hidden = true; lbImg.src=''; document.body.style.overflow = ''; }
+  lb.querySelector('.wa-lb-close').addEventListener('click', closeLB);
+  lb.querySelector('.wa-lb-back').addEventListener('click', closeLB);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !lb.hidden) closeLB(); });
+  msgsEl.addEventListener('click', function(ev){
+    var img = ev.target.closest && ev.target.closest('.wa-img-tap');
+    if (img) { ev.preventDefault(); openLB(img.src, img.dataset.msgId); }
+  });
 })();
 </script>
+<style>
+.wa-img-tap{cursor:zoom-in}
+.wa-lightbox{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px}
+.wa-lb-back{position:absolute;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(6px)}
+.wa-lb-img{position:relative;max-width:100%;max-height:calc(100vh - 90px);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);object-fit:contain;z-index:1}
+.wa-lb-bar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:2}
+.wa-lb-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:99px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);text-decoration:none;font-weight:700;font-size:13px;backdrop-filter:blur(10px);cursor:pointer}
+.wa-lb-btn:hover{background:rgba(255,255,255,.22)}
+.wa-lb-btn svg{width:16px;height:16px}
+</style>
+
 
 
 {% endblock %}
