@@ -18,7 +18,13 @@
         {% if other.online %}متصل الآن{% else %}غير متصل{% endif %}
       </div>
     </div>
+    <button type="button" class="wa-head-action wa-head-call" id="callStartBtn" aria-label="مكالمة صوتية" title="مكالمة صوتية">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.12.9.33 1.78.63 2.61a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.47-1.47a2 2 0 012.11-.45c.83.3 1.71.51 2.61.63A2 2 0 0122 16.92z"/></svg>
+    </button>
   </header>
+
+  <!-- CALL BANNER (dm) -->
+  <div class="vc-banner" id="vcBanner" hidden data-scope="dm"></div>
 
   <!-- MESSAGES -->
   <main class="wa-msgs" id="msgs"></main>
@@ -256,6 +262,21 @@
     }
   });
 })();
+</script>
+
+<script src="{{ url_for('static', filename='voice-call.js') }}"></script>
+<script>
+  window.VoiceCall.init({
+    scope: 'dm',
+    peerId: {{ other.id }},
+    peerName: {{ other.full_name|tojson }},
+    peerAvatar: {{ (other.avatar or '')|tojson }},
+    meId: {{ current_user.id }},
+    isAdmin: {{ 'true' if current_user.role == 'admin' else 'false' }},
+    canStart: true,
+    bannerEl: document.getElementById('vcBanner'),
+    startBtn: document.getElementById('callStartBtn')
+  });
 </script>
 
 {% endblock %}

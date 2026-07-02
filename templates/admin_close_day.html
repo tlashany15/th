@@ -36,7 +36,9 @@
       </div>
       <div>
         <div class="closed-hero-t">اليوم مغلق</div>
-        <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت</div>
+        <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت
+          {% if no_deduct_total %} · بدون خصم <strong>{{ no_deduct_total }}</strong>{% endif %}
+        </div>
       </div>
     </div>
     <form method="post" action="{{ url_for('admin_reopen_day') }}">
@@ -47,12 +49,30 @@
     <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
       <input type="hidden" name="day" value="{{ day }}">
       <div class="field">
-        <label>إجمالي عدد التحصين لليوم كله</label>
+        <label>إجمالي عدد التحصين لليوم كله <span class="field-hint">(اللي بيتوزع على العمال)</span></label>
         <div class="big-input">
           <span class="bi-suffix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg></span>
           <input id="closeTotalInput" name="total_count" type="number" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}">
         </div>
       </div>
+
+      <div class="field field-nd">
+        <label>
+          الأعداد بدون خصم
+          <span class="field-hint">(للمحاسبة فقط — مش بتتوزع على العمال ومش بتنزل في الجروب)</span>
+        </label>
+        <div class="big-input big-input-nd">
+          <span class="bi-suffix">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
+          </span>
+          <input id="closeNoDeductInput" name="no_deduct_total" type="number" min="0" placeholder="0" value="{{ no_deduct_total or '' }}">
+        </div>
+        <div class="nd-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          هيتحسب في صفحة التقرير بس — منفصل تماماً عن نصيب العمال.
+        </div>
+      </div>
+
       <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose">إغلاق اليوم وتسجيل الإجمالي</button>
     </form>
   {% endif %}

@@ -8,7 +8,7 @@
     تقرير فترة مخصّصة
   </span>
   <h1 class="hero-h1" style="margin-top:6px;">اجمالي الفترة</h1>
-  <p class="hero-sub">حدّد من يوم كذا لغاية يوم كذا وهيجمعلك الإجمالي — ويتحفظ في السجل تلقائي.</p>
+  <p class="hero-sub">حدّد فترة، والحساب هيتم من <b>الأعداد بدون خصم</b> (اللي مش بتتوزع على العمال).</p>
 </section>
 
 <div class="card">
@@ -53,7 +53,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format(result.total) }}</div>
-      <div class="kpi-l">إجمالي الفترة</div>
+      <div class="kpi-l">إجمالي الفترة (بدون خصم)</div>
     </div>
     <div class="kpi kpi-blue">
       <div class="kpi-ico">
@@ -62,13 +62,20 @@
       <div class="kpi-v">{{ result.days }}</div>
       <div class="kpi-l">عدد الأيام المغلقة</div>
     </div>
+    <div class="kpi kpi-slim" style="grid-column:1/-1;">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </div>
+      <div class="kpi-v">{{ '{:,}'.format(result.distributed_total or 0) }}</div>
+      <div class="kpi-l">للمرجع فقط: إجمالي اللي اتوزع على العمال</div>
+    </div>
     {% if result.days and result.days > 0 %}
     <div class="kpi kpi-green" style="grid-column:1/-1;">
       <div class="kpi-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format((result.total // result.days) if result.days else 0) }}</div>
-      <div class="kpi-l">متوسط اليوم</div>
+      <div class="kpi-l">متوسط اليوم (بدون خصم)</div>
     </div>
     {% endif %}
   </div>
@@ -111,7 +118,10 @@
         <div style="text-align:left;display:flex;gap:8px;align-items:center;">
           <div>
             <div class="rr-total">{{ '{:,}'.format(r.total) }}</div>
-            <div class="rr-meta" style="text-align:left;">كتكوت</div>
+            <div class="rr-meta" style="text-align:left;">بدون خصم</div>
+            {% if r.distributed_total %}
+              <div class="rr-meta" style="text-align:left;opacity:.7;">توزيع: {{ '{:,}'.format(r.distributed_total) }}</div>
+            {% endif %}
           </div>
           <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
                 onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تحذف التقرير ده؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('تحذف التقرير ده؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;" style="margin:0;">
