@@ -1,0 +1,27 @@
+{% extends "app_base.html" %}
+{% block content %}
+<div class="notif-page">
+  <h2 class="notif-page-title">الإشعارات</h2>
+  {% if not items %}
+    <div class="notif-empty">مفيش إشعارات لسه</div>
+  {% else %}
+    <ul class="notif-list">
+      {% for n in items %}
+        <li class="notif-item {% if not n.read_at %}is-unread{% endif %}">
+          {% if n.url %}<a href="{{ n.url }}" class="notif-link">{% endif %}
+            <div class="notif-title">{{ n.title }}</div>
+            {% if n.body %}<div class="notif-body">{{ n.body }}</div>{% endif %}
+            <div class="notif-time" data-time="{{ n.created_at.isoformat() }}"></div>
+          {% if n.url %}</a>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+<script>
+document.querySelectorAll('.notif-time[data-time]').forEach(function(el){
+  var d = new Date(el.dataset.time);
+  if (!isNaN(d)) el.textContent = d.toLocaleString('ar-EG');
+});
+</script>
+{% endblock %}

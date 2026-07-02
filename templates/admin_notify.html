@@ -1,0 +1,48 @@
+{% extends "app_base.html" %}
+{% block content %}
+<div class="notify-page">
+  <h2 class="notify-title">📢 إرسال إشعار</h2>
+  <form method="post" action="{{ url_for('admin_notify') }}" class="notify-form">
+    <label class="notify-field">
+      <span>العنوان</span>
+      <input type="text" name="title" required maxlength="200" placeholder="مثلاً: تذكير بموعد الحضور">
+    </label>
+    <label class="notify-field">
+      <span>النص (اختياري)</span>
+      <textarea name="body" rows="3" maxlength="1000" placeholder="تفاصيل الإشعار…"></textarea>
+    </label>
+    <label class="notify-field">
+      <span>رابط (اختياري)</span>
+      <input type="text" name="url" placeholder="/group أو أي مسار داخلي">
+    </label>
+
+    <div class="notify-field">
+      <span>المستهدفون</span>
+      <div class="notify-target">
+        <label class="notify-radio">
+          <input type="radio" name="target" value="all" checked onchange="document.getElementById('userPicker').style.display='none'">
+          <span>كل المستخدمين</span>
+        </label>
+        <label class="notify-radio">
+          <input type="radio" name="target" value="pick" onchange="document.getElementById('userPicker').style.display='block'">
+          <span>عمال محددين</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="userPicker" class="notify-picker" style="display:none">
+      <div class="notify-picker-hint">اختر واحد أو أكتر:</div>
+      <div class="notify-users">
+        {% for u in users %}
+          <label class="notify-chip">
+            <input type="checkbox" name="user_ids" value="{{ u.id }}">
+            <span>{{ u.full_name }}{% if u.role == 'admin' %} ★{% endif %}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="submit" class="notify-submit">إرسال الإشعار</button>
+  </form>
+</div>
+{% endblock %}

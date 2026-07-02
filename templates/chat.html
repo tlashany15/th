@@ -124,11 +124,18 @@
     } else {
       inner = '<div class="wa-text">'+ChatHelpers.linkify(m.body||'')+'</div>';
     }
+    var quoted = '';
+    if (m.reply_to) {
+      quoted = '<div class="wa-quoted" data-reply-target="'+m.reply_to.id+'">'+
+                 '<span class="wq-name">'+(m.reply_to.mine ? 'أنت' : 'ردّ')+'</span>'+
+                 '<span class="wq-snip">'+ChatHelpers.escape(m.reply_to.snippet||'')+'</span>'+
+               '</div>';
+    }
     var av = (!m.mine && showAvatar) ? '<div class="wa-msg-av">'+avatarHTML()+'</div>' : (!m.mine ? '<div class="wa-msg-av wa-av-hidden"></div>' : '');
     var tailCls = tail ? ' wa-tail' : '';
     return '<div class="wa-msg wa-'+side+(tail?' wa-last':'')+'" data-id="'+m.id+'" data-mine="'+(m.mine?1:0)+'">'+
              av +
-             '<div class="wa-bubble'+tailCls+'">'+inner+
+             '<div class="wa-bubble'+tailCls+'">'+quoted+inner+
                '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span>'+
                  (m.mine ? ticksHTML(m.read) : '')+
                '</div>'+

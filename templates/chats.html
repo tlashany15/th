@@ -49,9 +49,8 @@
   <!-- Search bar -->
   <div class="tg-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-    <input id="chatsSearch" type="search" placeholder="ابحث عن اسم للدردشة الفردية…">
+    <input id="chatsSearch" type="search" placeholder="اكتب اسم العامل لفتح دردشة خاصة…">
   </div>
-  <div class="tg-search-hint" id="chatsSearchHint">اكتب اسم أي عامل عشان تفتح معاه دردشة خاصة</div>
 
 
   <ul class="tg-list">
@@ -111,7 +110,6 @@
   var cf = document.getElementById('coverFile');
   if (cf)     ChatHelpers.attachImageAutoCompress(cf,     {maxDim:1600, quality:0.75, autoSubmitForm:'coverForm'});
   var s = document.getElementById('chatsSearch');
-  var hint = document.getElementById('chatsSearchHint');
   var emptyEl = document.getElementById('chatsSearchEmpty');
   var contactItems = document.querySelectorAll('.tg-contact-item');
   function applyFilter(){
@@ -125,7 +123,6 @@
       li.hidden = !match;
       if (match) anyVisible = true;
     });
-    if (hint) hint.style.display = q ? 'none' : '';
     if (emptyEl) emptyEl.hidden = !q || anyVisible;
   }
   s && s.addEventListener('input', applyFilter);

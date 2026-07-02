@@ -55,6 +55,12 @@
     <div class="brand-icon">{{ brand_icon(22) }}</div>
     <span>فريق التحصين</span>
   </div>
+  {% if current_user %}
+  <a href="{{ url_for('notifications_page') }}" class="topbar-bell" id="topbarBell" aria-label="الإشعارات">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+    <span class="bell-badge" id="bellBadge" hidden>0</span>
+  </a>
+  {% endif %}
 </div>
 
 {% if current_user %}
@@ -82,6 +88,7 @@
     <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>تقرير فترة مخصّصة</span></a>
     <a href="{{ url_for('admin_gross_log') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>سجل الأعداد بدون خصم</span></a>
     <a href="{{ url_for('admin_notes') }}"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظاتي</span></a>
+    <a href="{{ url_for('admin_notify') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></span><span>إرسال إشعار</span></a>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
     {% else %}
     <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية</span></a>
@@ -184,6 +191,34 @@
   }
 })();
 
+// ==================== Polling للإشعارات + جسر FCM لـ Sketchware ====================
+(function(){
+  var bell = document.getElementById('bellBadge');
+  if (!bell) return;
+  function refresh(){
+    fetch('/api/notifications/unread', {credentials:'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var c = j.count || 0;
+        if (c > 0){ bell.hidden = false; bell.textContent = c > 99 ? '99+' : c; }
+        else { bell.hidden = true; }
+      }).catch(function(){});
+  }
+  refresh();
+  setInterval(refresh, 25000);
+
+  // جسر توكن FCM: في Sketchware Pro يضيف WebView.addJavascriptInterface باسم AndroidFCM
+  // فيه دالة getToken() ترجع توكن Firebase. الويب يبعته للسيرفر.
+  try {
+    if (window.AndroidFCM && typeof window.AndroidFCM.getToken === 'function'){
+      var token = window.AndroidFCM.getToken();
+      if (token && token.length > 20){
+        var fd = new FormData(); fd.append('token', token); fd.append('platform', 'android');
+        fetch('/api/fcm/register', {method:'POST', body: fd, credentials:'same-origin'});
+      }
+    }
+  } catch(e) {}
+})();
 </script>
 {% endif %}
 
