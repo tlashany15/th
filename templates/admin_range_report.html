@@ -114,7 +114,7 @@
             <div class="rr-meta" style="text-align:left;">كتكوت</div>
           </div>
           <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
-                onsubmit="return confirm('تحذف التقرير ده؟');" style="margin:0;">
+                onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تحذف التقرير ده؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('تحذف التقرير ده؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;" style="margin:0;">
             <button type="submit" class="btn btn-ghost" style="padding:6px 10px;color:#ff8f8f;" aria-label="حذف">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
             </button>

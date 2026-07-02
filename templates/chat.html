@@ -252,7 +252,7 @@
       fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd})
         .then(function(r){ return r.json(); })
         .then(function(){ poll(); })
-        .catch(function(){ alert('فشل إرسال الرسالة الصوتية'); });
+        .catch(function(){ (window.appAlert||alert)('فشل إرسال الرسالة الصوتية','error'); });
     }
   });
 })();

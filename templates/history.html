@@ -46,7 +46,7 @@
       {% set p_start = p.days[0].date %}
       {% set p_end = p.days[-1].date %}
       <form method="post" action="{{ url_for('admin_reset_period') }}" class="period-reset-form"
-            onsubmit="return confirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها.');">
+            onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير الفترة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
         <input type="hidden" name="start" value="{{ p_start }}">
         <input type="hidden" name="end"   value="{{ p_end }}">
         <button type="submit" class="btn-reset-period" title="تصفير الفترة">
