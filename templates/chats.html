@@ -101,15 +101,13 @@
   </ul>
 </div>
 
+<script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
 <script>
 (function(){
-  document.getElementById('avatarFile').addEventListener('change', function(){
-    document.getElementById('avatarForm').submit();
-  });
+  var avFile = document.getElementById('avatarFile');
+  if (avFile) ChatHelpers.attachImageAutoCompress(avFile, {maxDim:512, quality:0.8, autoSubmitForm:'avatarForm'});
   var cf = document.getElementById('coverFile');
-  if (cf) cf.addEventListener('change', function(){
-    document.getElementById('coverForm').submit();
-  });
+  if (cf)     ChatHelpers.attachImageAutoCompress(cf,     {maxDim:1600, quality:0.75, autoSubmitForm:'coverForm'});
   var s = document.getElementById('chatsSearch');
   s && s.addEventListener('input', function(){
     var q = s.value.trim().toLowerCase();

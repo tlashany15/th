@@ -69,7 +69,7 @@
   <!-- تفاصيل الأيام -->
   <div class="tl">
     {% for d in p.days %}
-    <div class="tl-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}">
+    <div class="tl-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}" id="day-{{ d.date }}">
       <div class="tl-date">
         <div class="tl-num">{{ d.day_num }}</div>
         <div class="tl-wd">{{ d.weekday }}</div>
@@ -103,6 +103,25 @@
           <div class="tl-names">
             {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}
           </div>
+          {% endif %}
+          {% if is_admin and all_workers %}
+          <details class="tl-att-edit">
+            <summary>تعديل الحضور</summary>
+            <div class="tl-att-list">
+              {% for w in all_workers %}
+                {% set present = w.id in d.attendee_ids %}
+                <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="tl-att-form">
+                  <input type="hidden" name="day" value="{{ d.date }}">
+                  <input type="hidden" name="user_id" value="{{ w.id }}">
+                  <input type="hidden" name="next" value="history">
+                  <button type="submit" class="tl-att-chip {% if present %}is-on{% else %}is-off{% endif %}"
+                          title="{% if present %}تسجيل غياب{% else %}تسجيل حضور{% endif %}">
+                    {% if present %}✓{% else %}+{% endif %} {{ w.full_name }}
+                  </button>
+                </form>
+              {% endfor %}
+            </div>
+          </details>
           {% endif %}
         {% else %}
           <div class="tl-empty">— لم يُسجَّل —</div>

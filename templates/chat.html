@@ -142,6 +142,8 @@
     var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 100;
     // Remove tail/avatar from previous last-them bubble if new message continues same sender
     list.forEach(function(m, i){
+      if (m.id <= lastId) return;
+      if (msgsEl.querySelector('.wa-msg[data-id="'+m.id+'"]')) { lastId = Math.max(lastId, m.id); return; }
       var dk = ChatHelpers.dayKey(m.created_at);
       if (dk !== lastDayKey){
         msgsEl.insertAdjacentHTML('beforeend',
@@ -180,14 +182,18 @@
     });
   }
 
+  var pollBusy = false;
   function poll(){
+    if (pollBusy) return;
+    pollBusy = true;
     fetch('/chat/' + OTHER_ID + '/messages?after=' + lastId, {headers:{'X-Requested-With':'fetch'}})
       .then(function(r){ return r.json(); })
       .then(function(d){
         appendMessages(d.messages || []);
         refreshReadTicks(d.read_ids || []);
         updateStatus(!!d.other_online, d.other_last_seen);
-      }).catch(function(){});
+      }).catch(function(){})
+      .finally(function(){ pollBusy = false; });
   }
   poll();
   pollTimer = setInterval(poll, 2500);
@@ -210,22 +216,29 @@
     setTimeout(scrollBottom, 200);
   });
 
+  var sending = false;
   composer.addEventListener('submit', function(e){
     e.preventDefault();
+    if (sending) return;
     var v = textInput.value.trim();
     if (!v) return;
+    sending = true;
     var fd = new FormData();
     fd.append('kind','text'); fd.append('body', v);
     textInput.value = ''; sendBtn.hidden = true; micBtn.hidden = false;
-    fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
+    fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd})
+      .then(function(){ poll(); })
+      .finally(function(){ sending = false; });
   });
 
   imgInput.addEventListener('change', function(){
     var f = imgInput.files[0]; if (!f) return;
-    var fd = new FormData();
-    fd.append('kind','image'); fd.append('file', f);
-    fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
-    imgInput.value = '';
+    ChatHelpers.compressImage(f, {maxDim:1280, quality:0.72}).then(function(nf){
+      var fd = new FormData();
+      fd.append('kind','image'); fd.append('file', nf);
+      fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
+      imgInput.value = '';
+    });
   });
 
   // تسجيل صوتي
