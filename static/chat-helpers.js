@@ -105,14 +105,17 @@ window.ChatHelpers = (function(){
     var recSend = document.getElementById('recSend');
 
     var mediaRec=null, chunks=[], stream=null, startTs=0, tickId=null, cancelled=false, mimeUsed='audio/webm';
+    var isRecording=false, isStopping=false, isSending=false, sentOnce=false;
 
     function start(){
+      if (isRecording || isStopping || isSending) return; // امنع بدء تسجيل مزدوج
       if (!navigator.mediaDevices || !window.MediaRecorder) {
         alert('المتصفح ما يدعمش التسجيل');
         return;
       }
+      isRecording = true;
       navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        stream = s; chunks = []; cancelled = false;
+        stream = s; chunks = []; cancelled = false; sentOnce = false;
         var mime = '';
         var candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg'];
         for (var i=0;i<candidates.length;i++){
@@ -126,43 +129,72 @@ window.ChatHelpers = (function(){
         mimeUsed = mediaRec.mimeType || mime || 'audio/webm';
         mediaRec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
         mediaRec.onstop = function(){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          if (cancelled || !chunks.length) return;
+          try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
+          isRecording = false; isStopping = false;
+          if (cancelled || !chunks.length) { chunks = []; return; }
+          if (sentOnce) { chunks = []; return; } // امنع إرسال مكرر
+          sentOnce = true;
           var blob = new Blob(chunks, {type: mimeUsed});
-          // الحد الأدنى نص ثانية تقريبا
-          if (blob.size < 1000) {
-            alert('التسجيل قصير جدًا');
-            return;
-          }
-          onSend(blob, mimeUsed);
+          chunks = [];
+          if (blob.size < 1000) { alert('التسجيل قصير جدًا'); return; }
+          isSending = true;
+          try { onSend(blob, mimeUsed, function(){ isSending = false; }); }
+          catch(e){ isSending = false; }
         };
         mediaRec.start();
         startTs = Date.now();
         bar.hidden = false;
+        bar.classList.add('is-active');
         if (composer) composer.style.display = 'none';
         recTime.textContent = '0:00';
         tickId = setInterval(function(){
           recTime.textContent = fmtSec(Math.floor((Date.now()-startTs)/1000));
         }, 250);
-      }).catch(function(){ alert('فعّل صلاحية الميكروفون من إعدادات المتصفح'); });
+      }).catch(function(){
+        isRecording = false;
+        alert('فعّل صلاحية الميكروفون من إعدادات المتصفح');
+      });
     }
 
     function stop(send){
+      if (isStopping) return;                 // امنع الاستدعاء المزدوج
+      if (!isRecording && !mediaRec) return;
+      isStopping = true;
       cancelled = !send;
       if (mediaRec && mediaRec.state !== 'inactive') {
         try { mediaRec.stop(); } catch(e){}
       } else if (stream) {
-        stream.getTracks().forEach(function(t){ t.stop(); });
+        try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
+        isRecording = false; isStopping = false;
       }
       clearInterval(tickId);
       bar.hidden = true;
+      bar.classList.remove('is-active');
       if (composer) composer.style.display = '';
       recTime.textContent = '0:00';
     }
 
-    micBtn.addEventListener('click', start);
-    recCancel.addEventListener('click', function(){ stop(false); });
-    recSend.addEventListener('click', function(){ stop(true); });
+    var lastMicTs = 0, lastSendTs = 0, lastCancelTs = 0;
+    micBtn.addEventListener('click', function(e){
+      var now = Date.now();
+      if (now - lastMicTs < 400) { e.preventDefault(); return; }
+      lastMicTs = now;
+      start();
+    });
+    recCancel.addEventListener('click', function(e){
+      var now = Date.now();
+      if (now - lastCancelTs < 400) { e.preventDefault(); return; }
+      lastCancelTs = now;
+      stop(false);
+    });
+    recSend.addEventListener('click', function(e){
+      var now = Date.now();
+      if (now - lastSendTs < 500) { e.preventDefault(); return; }
+      lastSendTs = now;
+      recSend.disabled = true;
+      stop(true);
+      setTimeout(function(){ recSend.disabled = false; }, 800);
+    });
   }
 
   return {
