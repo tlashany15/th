@@ -84,6 +84,7 @@ def init_db():
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0;
 
         ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS cover TEXT;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;
 
         -- جدول رسايل الشات الفردي
@@ -1339,7 +1340,7 @@ def group_messages_api():
                u.full_name AS sender_name, u.avatar AS sender_avatar, u.role AS sender_role
         FROM group_messages m
         LEFT JOIN users u ON u.id = m.sender_id
-        WHERE m.id > %s
+        WHERE m.id > %s AND m.deleted = FALSE
         ORDER BY m.id ASC LIMIT 300
     """, (after,))
     rows = cur.fetchall()
@@ -1348,6 +1349,10 @@ def group_messages_api():
                    WHERE pinned=TRUE AND deleted=FALSE
                    ORDER BY created_at DESC LIMIT 1""")
     pinned = cur.fetchone()
+    # ids اللي اتحذفت من الآخر (عشان الكلاينت يشيلها من الشاشة) — آخر 500
+    cur.execute("""SELECT id FROM group_messages WHERE deleted=TRUE
+                   ORDER BY id DESC LIMIT 500""")
+    deleted_ids = [r["id"] for r in cur.fetchall()]
     # حدّث آخر قراءة لأكبر id
     if rows:
         cur.execute("""INSERT INTO group_reads(user_id, last_read_id) VALUES(%s,%s)
@@ -1373,6 +1378,7 @@ def group_messages_api():
     return jsonify({
         "messages": msgs,
         "pinned": ({"id": pinned["id"], "body": pinned["body"], "kind": pinned["kind"]} if pinned else None),
+        "deleted_ids": deleted_ids,
     })
 
 
@@ -1440,8 +1446,8 @@ def group_avatar():
         flash("اختر صورة", "error")
         return redirect(url_for("group_room"))
     data = f.read()
-    if len(data) > 3 * 1024 * 1024:
-        flash("الصورة كبيرة (الحد 3 ميجا)", "error")
+    if len(data) > 5 * 1024 * 1024:
+        flash("الصورة كبيرة (الحد 5 ميجا)", "error")
         return redirect(url_for("group_room"))
     mime = f.mimetype or "image/jpeg"
     data_url = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
@@ -1503,8 +1509,8 @@ def update_avatar():
         flash("اختر صورة", "error")
         return redirect(request.referrer or url_for("chats_list"))
     data = f.read()
-    if len(data) > 2 * 1024 * 1024:
-        flash("الصورة كبيرة (الحد 2 ميجا)", "error")
+    if len(data) > 5 * 1024 * 1024:
+        flash("الصورة كبيرة (الحد 5 ميجا)", "error")
         return redirect(request.referrer or url_for("chats_list"))
     mime = f.mimetype or "image/jpeg"
     data_url = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
@@ -1515,6 +1521,89 @@ def update_avatar():
     cur.close()
     flash("تم تحديث صورتك ✓", "success")
     return redirect(request.referrer or url_for("chats_list"))
+
+
+@app.route("/me/cover", methods=["POST"])
+@login_required
+def update_cover():
+    u = current_user()
+    action = request.form.get("action", "")
+    db = get_db()
+    cur = db.cursor()
+    if action == "remove":
+        cur.execute("UPDATE users SET cover=NULL WHERE id=%s", (u["id"],))
+        db.commit()
+        cur.close()
+        flash("تم إزالة صورة الغلاف", "info")
+        return redirect(request.referrer or url_for("chats_list"))
+    f = request.files.get("file")
+    if not f:
+        flash("اختر صورة", "error")
+        return redirect(request.referrer or url_for("chats_list"))
+    data = f.read()
+    if len(data) > 5 * 1024 * 1024:
+        flash("الصورة كبيرة (الحد 5 ميجا)", "error")
+        return redirect(request.referrer or url_for("chats_list"))
+    mime = f.mimetype or "image/jpeg"
+    data_url = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
+    cur.execute("UPDATE users SET cover=%s WHERE id=%s", (data_url, u["id"]))
+    db.commit()
+    cur.close()
+    flash("تم تحديث صورة الغلاف ✓", "success")
+    return redirect(request.referrer or url_for("chats_list"))
+
+
+# ---- تعديل إجمالي يوم مقفول + تصفير فترة (المسؤول) ----
+@app.route("/admin/edit-day-total", methods=["POST"])
+@admin_required
+def admin_edit_day_total():
+    u = current_user()
+    day = request.form.get("day", "").strip()
+    try:
+        total = int(request.form.get("total_count", "0"))
+        if total < 0: raise ValueError
+    except ValueError:
+        flash("عدد غير صالح", "error")
+        return redirect(url_for("history"))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count)
+                   VALUES(%s,%s,%s)
+                   ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count""",
+                (day, u["id"], total))
+    db.commit()
+    cur.close()
+    flash("تم تحديث إجمالي يوم " + day + " ✓", "success")
+    return redirect(url_for("history"))
+
+
+@app.route("/admin/reset-period", methods=["POST"])
+@admin_required
+def admin_reset_period():
+    """يمسح كل إغلاقات + تحصينات + حضور فترة (نصف شهر أو شهر كامل)"""
+    start_d = request.form.get("start", "").strip()
+    end_d   = request.form.get("end", "").strip()
+    if not (start_d and end_d):
+        flash("فترة غير صالحة", "error")
+        return redirect(url_for("history"))
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("DELETE FROM vaccinations WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        cur.execute("DELETE FROM attendance   WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        cur.execute("DELETE FROM day_closures WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        # نمسح ملخصات الفترة اللي جواها الفترة دي (لو موجودة)
+        cur.execute("""DELETE FROM period_summaries
+                       WHERE make_date(year, month, CASE WHEN half=1 THEN 1 ELSE 16 END) BETWEEN %s AND %s""",
+                    (start_d, end_d))
+        db.commit()
+        flash("تم تصفير الفترة من " + start_d + " إلى " + end_d + " ✓", "success")
+    except Exception as e:
+        db.rollback()
+        flash("خطأ أثناء التصفير: " + str(e), "error")
+    finally:
+        cur.close()
+    return redirect(url_for("history"))
 
 
 @app.route("/me/ping", methods=["POST"])
