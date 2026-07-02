@@ -475,14 +475,24 @@ def history():
     cur.execute("""
         SELECT c.day, c.total_count,
                COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
-                        FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names
+                        FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
+               COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
+                        FILTER (WHERE u.id IS NOT NULL), '{}') AS ids
         FROM day_closures c
         LEFT JOIN attendance a ON a.day = c.day
         LEFT JOIN users u ON u.id = a.user_id
         GROUP BY c.day, c.total_count
     """)
-    by_day = {r["day"]: {"total": r["total_count"], "names": list(r["names"] or [])}
+    by_day = {r["day"]: {"total": r["total_count"],
+                          "names": list(r["names"] or []),
+                          "ids": list(r["ids"] or [])}
               for r in cur.fetchall()}
+
+    # قائمة كل العمال (للمسؤول عشان يقدر يعدّل الحضور من السجل)
+    all_workers = []
+    if is_admin:
+        cur.execute("SELECT id, full_name FROM users WHERE role='worker' ORDER BY full_name")
+        all_workers = [{"id": r["id"], "full_name": r["full_name"]} for r in cur.fetchall()]
     cur.close()
 
     today = date.today()
@@ -516,13 +526,14 @@ def history():
                     "holiday": is_friday,
                     "total": rec["total"] if rec else 0,
                     "names": rec["names"] if rec else [],
+                    "attendee_ids": rec["ids"] if rec else [],
                     "has_data": rec is not None,
                 })
             periods.append({
                 "label": f"{AR_MONTHS[m-1]} {y} — {'النصف الأول (1-15)' if half==1 else f'النصف الثاني (16-{last_day})'}",
                 "days": days_list,
             })
-    return render_template("history.html", periods=periods)
+    return render_template("history.html", periods=periods, all_workers=all_workers)
 
 
 # ---------- إحصائيات العامل الشهرية (نصيبه) ----------
@@ -811,6 +822,7 @@ def admin_add_for_worker():
 def admin_mark_attendance():
     day = _parse_day(request.form.get("day")).isoformat()
     user_id = int(request.form.get("user_id"))
+    nxt = (request.form.get("next") or "").strip()
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (user_id, day))
@@ -821,6 +833,8 @@ def admin_mark_attendance():
         cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s)", (user_id, day))
     db.commit()
     cur.close()
+    if nxt == "history":
+        return redirect(url_for("history") + "#day-" + day)
     return redirect(url_for("admin_panel", day=day))
 
 
