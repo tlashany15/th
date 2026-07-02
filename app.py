@@ -11,8 +11,10 @@ from functools import wraps
 import json as _json
 
 from flask import (Flask, g, redirect, render_template, request, session,
-                   url_for, flash, jsonify)
+                   url_for, flash, jsonify, Response, abort)
 from werkzeug.security import check_password_hash, generate_password_hash
+from urllib.parse import quote as _urlquote
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
@@ -1885,6 +1887,64 @@ def admin_notes_delete(nid):
 # تم شيل كل مسارات وواجهات المكالمات بناءً على طلب الإدارة.
 
 
+
+# ====================== تنزيل الوسائط (صور/صوت) باسم صحيح ======================
+_MEDIA_EXT = {
+    "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+    "image/webp": "webp", "image/gif": "gif", "image/heic": "heic",
+    "audio/webm": "webm", "audio/ogg": "ogg", "audio/mpeg": "mp3",
+    "audio/mp4": "m4a", "audio/aac": "aac", "audio/wav": "wav",
+}
+
+def _decode_data_url(body):
+    if not body or not body.startswith("data:"):
+        return None, None
+    try:
+        header, b64 = body.split(",", 1)
+        mime = header[5:].split(";")[0].strip() or "application/octet-stream"
+        data = base64.b64decode(b64)
+        return mime, data
+    except Exception:
+        return None, None
+
+@app.route("/media/<scope>/<int:msg_id>")
+@login_required
+def media_msg(scope, msg_id):
+    """يرجّع صورة/صوت الرسالة بامتداد صحيح + Content-Disposition عشان يتحفظ بشكل سليم على أندرويد."""
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    row = None
+    if scope == "group":
+        cur.execute("SELECT id, kind, body FROM group_messages WHERE id=%s AND deleted=FALSE", (msg_id,))
+        row = cur.fetchone()
+    elif scope == "chat":
+        cur.execute("SELECT id, kind, body, sender_id, receiver_id FROM chat_messages WHERE id=%s", (msg_id,))
+        row = cur.fetchone()
+        if row and u["id"] not in (row["sender_id"], row["receiver_id"]):
+            cur.close(); abort(403)
+    cur.close()
+    if not row:
+        abort(404)
+    if row["kind"] not in ("image", "audio"):
+        abort(404)
+    mime, data = _decode_data_url(row["body"])
+    if data is None:
+        abort(404)
+    ext = _MEDIA_EXT.get(mime, "jpg" if row["kind"] == "image" else "webm")
+    # اسم الملف: يبدأ بـ "صور تطبيق التحصين" عشان يتجمّع فى الداونلودز
+    prefix = "صور تطبيق التحصين" if row["kind"] == "image" else "أصوات تطبيق التحصين"
+    fname = f"{prefix}_{scope}_{msg_id}.{ext}"
+    ascii_fallback = f"TahsinApp_{scope}_{msg_id}.{ext}"
+    dl = request.args.get("dl", "0") == "1"
+    resp = Response(data, mimetype=mime)
+    disp = "attachment" if dl else "inline"
+    resp.headers["Content-Disposition"] = (
+        f'{disp}; filename="{ascii_fallback}"; '
+        f"filename*=UTF-8''{_urlquote(fname)}"
+    )
+    resp.headers["Cache-Control"] = "private, max-age=86400"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
 
 
 
