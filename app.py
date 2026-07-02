@@ -343,7 +343,8 @@ def inject_user():
         try:
             db = get_db()
             cur = db.cursor()
-            # المسؤول يشوف الكل، العامل يشوف نفسه بس
+            # المسؤول يشوف الكل (بما فيهم نفسه عشان يحسب لنفسه لو حضر)
+            # العامل يشوف نفسه بس
             if u["role"] == "admin":
                 cur.execute("SELECT id, full_name, username, role FROM users ORDER BY (role='admin') DESC, full_name")
             else:
@@ -770,7 +771,12 @@ def admin_close_day():
         att = cur.fetchone()
         cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day,))
         present_c = int(cur.fetchone()["c"] or 0)
-        summary_line = f"\n\n✅ تم إغلاق اليوم\n• الإجمالي: {total:,} كتكوت\n• الحاضرون: {present_c}\n{marker}"
+        summary_line = (
+            f"\n\n[ICON:check] تم إغلاق اليوم"
+            f"\n- الإجمالي: {total:,} كتكوت"
+            f"\n- الحاضرون: {present_c}"
+            f"\n{marker}"
+        )
         if att and marker not in (att["body"] or ""):
             new_body = (att["body"] or "") + summary_line
             cur.execute("UPDATE group_messages SET body=%s, pinned=TRUE WHERE id=%s",
@@ -782,7 +788,7 @@ def admin_close_day():
             exists = cur.fetchone()
             if not exists:
                 cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
-                body_new = f"📋 إغلاق يوم {day}{summary_line}"
+                body_new = f"[ICON:clipboard] إغلاق يوم {day}{summary_line}"
                 cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
                                VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body_new))
     except Exception as _e:
@@ -815,10 +821,10 @@ def admin_close_day():
                              "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
                 half_lbl = f"النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})"
                 body = (
-                    "📊 ملخص " + half_lbl + " من " + AR_MONTHS[m-1] + f" {y}\n"
-                    + f"• الإجمالي: {period_total:,} كتكوت\n"
-                    + f"• عدد أيام العمل: {days_closed}\n"
-                    + f"• الفترة: {start_d} → {end_d}"
+                    "[ICON:chart] ملخص " + half_lbl + " من " + AR_MONTHS[m-1] + f" {y}\n"
+                    + f"- الإجمالي: {period_total:,} كتكوت\n"
+                    + f"- عدد أيام العمل: {days_closed}\n"
+                    + f"- الفترة: {start_d} → {end_d}"
                 )
                 cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
                                VALUES (%s, 'system', %s, TRUE)""", (u["id"], body))
@@ -828,7 +834,7 @@ def admin_close_day():
                 cur.execute("INSERT INTO period_summaries(year, month, half, total) VALUES(%s,%s,%s,%s)",
                             (y, m, half, period_total))
                 db.commit()
-                flash(f"تم نشر ملخص {half_lbl} في الجروب تلقائيًا 📊", "success")
+                flash(f"تم نشر ملخص {half_lbl} في الجروب تلقائيًا", "success")
         cur.close()
     except Exception as _e:
         print("period summary error:", _e)
@@ -929,12 +935,12 @@ def admin_announce_tomorrow():
     names = [r["full_name"] for r in cur.fetchall()]
     # نلغي تثبيت أي إعلان حضور سابق
     cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
-    body = "📋 حضور يوم " + day + "\n• " + "\n• ".join(names)
+    body = "[ICON:clipboard] حضور يوم " + day + "\n- " + "\n- ".join(names)
     cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
                    VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body))
     db.commit()
     cur.close()
-    flash("تم نشر قائمة حضور الغد في الدردشة الجماعية 📌", "success")
+    flash("تم نشر قائمة حضور الغد في الدردشة الجماعية", "success")
     return redirect(url_for("admin_panel"))
 
 
@@ -1006,11 +1012,78 @@ def admin_close_page():
         no_deduct_total = _row["no_deduct_total"] or 0
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
     present_count = cur.fetchone()["c"]
+    # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور
+    cur.execute("""
+        SELECT u.id, u.full_name, u.role,
+               EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present
+        FROM users u
+        ORDER BY (u.role='admin') DESC, u.full_name
+    """, (day_s,))
+    all_people = cur.fetchall()
     cur.close()
     return render_template("admin_close_day.html",
                            day=day_s, day_total=day_total,
                            no_deduct_total=no_deduct_total,
-                           present_count=present_count, day_closed=closed)
+                           present_count=present_count, day_closed=closed,
+                           all_people=all_people)
+
+
+# ---- سجل الأعداد بدون خصم (مرجع للمسؤول) ----
+@app.route("/admin/gross-log")
+@admin_required
+def admin_gross_log():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""SELECT day, total_count, no_deduct_total, closed_at
+                   FROM day_closures
+                   WHERE COALESCE(no_deduct_total,0) > 0
+                   ORDER BY day DESC LIMIT 365""")
+    rows = cur.fetchall()
+    cur.execute("SELECT COALESCE(SUM(no_deduct_total),0) AS s FROM day_closures")
+    grand = int(cur.fetchone()["s"] or 0)
+    cur.close()
+    return render_template("admin_gross_log.html", rows=rows, grand=grand)
+
+
+# ---- بروفايل العامل ----
+@app.route("/me/profile", methods=["GET", "POST"])
+@login_required
+def worker_profile():
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    if request.method == "POST":
+        action = request.form.get("action", "name")
+        if action == "name":
+            new_name = (request.form.get("full_name") or "").strip()
+            new_username = (request.form.get("username") or "").strip()
+            if not new_name or not new_username:
+                flash("الاسم واسم المستخدم مطلوبين", "error")
+            else:
+                try:
+                    cur.execute("UPDATE users SET full_name=%s, username=%s WHERE id=%s",
+                                (new_name[:80], new_username[:40], u["id"]))
+                    db.commit()
+                    flash("تم تحديث بياناتك", "success")
+                except psycopg2.IntegrityError:
+                    db.rollback()
+                    flash("اسم المستخدم ده موجود بالفعل", "error")
+        elif action == "password":
+            old_pw = request.form.get("old_password", "")
+            new_pw = request.form.get("new_password", "")
+            if not new_pw or len(new_pw) < 4:
+                flash("كلمة السر الجديدة قصيرة", "error")
+            elif not check_password_hash(u["password_hash"], old_pw):
+                flash("كلمة السر الحالية غلط", "error")
+            else:
+                cur.execute("UPDATE users SET password_hash=%s WHERE id=%s",
+                            (generate_password_hash(new_pw), u["id"]))
+                db.commit()
+                flash("تم تحديث كلمة السر", "success")
+        cur.close()
+        return redirect(url_for("worker_profile"))
+    cur.close()
+    return render_template("admin_profile.html", me=u)
 
 
 # ---- صفحة مستقلة لتحضير عمال بكره ----
@@ -1097,7 +1170,7 @@ def admin_range_report():
     if request.method == "POST":
         start_s = (request.form.get("start_day") or "").strip()
         end_s   = (request.form.get("end_day") or "").strip()
-        note    = (request.form.get("note") or "").strip() or None
+        note    = None
         try:
             start_d = datetime.strptime(start_s, "%Y-%m-%d").date()
             end_d   = datetime.strptime(end_s, "%Y-%m-%d").date()
@@ -1172,13 +1245,14 @@ def _msg_preview(m):
     if not m:
         return ""
     if m["kind"] == "image":
-        return "📷 صورة"
+        return "صورة"
     if m["kind"] == "audio":
-        return "🎤 رسالة صوتية"
+        return "رسالة صوتية"
     if m["kind"] == "attendance":
-        return "📋 قائمة حضور"
+        return "قائمة حضور"
     if m["kind"] == "system":
-        return (m.get("body") or "")[:60]
+        body = (m.get("body") or "")
+        return body.replace("[ICON:chart]","").replace("[ICON:check]","").replace("[ICON:clipboard]","").strip()[:60]
     body = m.get("body") or ""
     return body if len(body) <= 40 else body[:40] + "…"
 
@@ -1806,213 +1880,10 @@ def admin_notes_delete(nid):
 
 
 # =========================================================================
-# ================== المكالمات الصوتية (WebRTC + Signaling) ================
+# ================== المكالمات الصوتية (تمت الإزالة) =======================
 # =========================================================================
-CALL_TIMEOUT_SECONDS = 25  # مشارك يعتبر خرج لو ما بعتش heartbeat في المده دي
+# تم شيل كل مسارات وواجهات المكالمات بناءً على طلب الإدارة.
 
-def _cleanup_stale_participants(cur, call_id):
-    cur.execute("""
-        UPDATE voice_participants
-           SET left_at = NOW()
-         WHERE call_id=%s AND left_at IS NULL
-           AND last_seen < NOW() - (%s || ' seconds')::interval
-    """, (call_id, str(CALL_TIMEOUT_SECONDS)))
-    # لو ما بقاش فيه مشاركين نشطين، اقفل المكالمة
-    cur.execute("""
-        UPDATE voice_calls SET active=FALSE, ended_at=NOW()
-         WHERE id=%s AND active=TRUE
-           AND NOT EXISTS (SELECT 1 FROM voice_participants
-                           WHERE call_id=%s AND left_at IS NULL)
-    """, (call_id, call_id))
-
-
-def _dm_pair(a, b):
-    return (min(a, b), max(a, b))
-
-
-def _get_or_create_call(cur, scope, user_id, peer_id=None):
-    if scope == "group":
-        cur.execute("SELECT id, started_by FROM voice_calls WHERE scope='group' AND active=TRUE ORDER BY id DESC LIMIT 1")
-        r = cur.fetchone()
-        if r: return r["id"], False
-        cur.execute("""INSERT INTO voice_calls(scope, started_by) VALUES('group', %s) RETURNING id""",
-                    (user_id,))
-        return cur.fetchone()["id"], True
-    else:
-        a, b = _dm_pair(user_id, peer_id)
-        cur.execute("""SELECT id FROM voice_calls
-                       WHERE scope='dm' AND active=TRUE AND dm_a=%s AND dm_b=%s
-                       ORDER BY id DESC LIMIT 1""", (a, b))
-        r = cur.fetchone()
-        if r: return r["id"], False
-        cur.execute("""INSERT INTO voice_calls(scope, dm_a, dm_b, started_by)
-                       VALUES('dm', %s, %s, %s) RETURNING id""", (a, b, user_id))
-        return cur.fetchone()["id"], True
-
-
-@app.route("/call/state")
-@login_required
-def call_state():
-    """يرجّع حالة المكالمة الجارية (لو موجودة) لجروب أو خاص."""
-    u = current_user()
-    scope = request.args.get("scope", "group")
-    peer_id = request.args.get("peer", type=int)
-    db = get_db(); cur = db.cursor()
-    if scope == "group":
-        cur.execute("SELECT id, started_by, started_at FROM voice_calls WHERE scope='group' AND active=TRUE ORDER BY id DESC LIMIT 1")
-    else:
-        if not peer_id:
-            cur.close()
-            return jsonify({"active": False})
-        a, b = _dm_pair(u["id"], peer_id)
-        cur.execute("""SELECT id, started_by, started_at FROM voice_calls
-                       WHERE scope='dm' AND active=TRUE AND dm_a=%s AND dm_b=%s
-                       ORDER BY id DESC LIMIT 1""", (a, b))
-    call = cur.fetchone()
-    if not call:
-        cur.close()
-        return jsonify({"active": False})
-    _cleanup_stale_participants(cur, call["id"])
-    db.commit()
-    cur.execute("""
-        SELECT vp.user_id, u.full_name, u.avatar, vp.joined_at
-          FROM voice_participants vp
-          JOIN users u ON u.id = vp.user_id
-         WHERE vp.call_id=%s AND vp.left_at IS NULL
-         ORDER BY vp.joined_at ASC
-    """, (call["id"],))
-    parts = [{"id": r["user_id"], "name": r["full_name"], "avatar": r["avatar"]} for r in cur.fetchall()]
-    cur.execute("SELECT full_name FROM users WHERE id=%s", (call["started_by"],))
-    st = cur.fetchone()
-    cur.close()
-    # لو المكالمة اتقفلت بعد الـ cleanup
-    if not parts:
-        db2 = get_db(); c2 = db2.cursor()
-        c2.execute("SELECT active FROM voice_calls WHERE id=%s", (call["id"],))
-        row = c2.fetchone(); c2.close()
-        if not row or not row["active"]:
-            return jsonify({"active": False})
-    return jsonify({
-        "active": True,
-        "call_id": call["id"],
-        "started_by": st["full_name"] if st else "",
-        "started_at": call["started_at"].isoformat() if call["started_at"] else None,
-        "participants": parts,
-    })
-
-
-@app.route("/call/join", methods=["POST"])
-@login_required
-def call_join():
-    u = current_user()
-    scope = request.form.get("scope", "group")
-    peer_id = request.form.get("peer", type=int)
-    if scope == "dm" and (not peer_id or peer_id == u["id"]):
-        return jsonify({"ok": False, "error": "peer_required"}), 400
-    db = get_db(); cur = db.cursor()
-    call_id, created = _get_or_create_call(cur, scope, u["id"], peer_id)
-    cur.execute("""
-        INSERT INTO voice_participants(call_id, user_id, last_seen)
-        VALUES(%s,%s,NOW())
-        ON CONFLICT (call_id, user_id) DO UPDATE
-           SET left_at=NULL, last_seen=NOW()
-    """, (call_id, u["id"]))
-    db.commit()
-    cur.execute("""SELECT user_id FROM voice_participants
-                   WHERE call_id=%s AND left_at IS NULL AND user_id<>%s""",
-                (call_id, u["id"]))
-    peers = [r["user_id"] for r in cur.fetchall()]
-    cur.close()
-    return jsonify({"ok": True, "call_id": call_id, "peers": peers, "created": created})
-
-
-@app.route("/call/heartbeat", methods=["POST"])
-@login_required
-def call_heartbeat():
-    u = current_user()
-    call_id = request.form.get("call_id", type=int)
-    if not call_id: return jsonify({"ok": False}), 400
-    db = get_db(); cur = db.cursor()
-    cur.execute("""UPDATE voice_participants SET last_seen=NOW()
-                    WHERE call_id=%s AND user_id=%s AND left_at IS NULL""",
-                (call_id, u["id"]))
-    _cleanup_stale_participants(cur, call_id)
-    db.commit(); cur.close()
-    return jsonify({"ok": True})
-
-
-@app.route("/call/leave", methods=["POST"])
-@login_required
-def call_leave():
-    u = current_user()
-    call_id = request.form.get("call_id", type=int)
-    if not call_id: return jsonify({"ok": False}), 400
-    db = get_db(); cur = db.cursor()
-    cur.execute("""UPDATE voice_participants SET left_at=NOW()
-                    WHERE call_id=%s AND user_id=%s AND left_at IS NULL""",
-                (call_id, u["id"]))
-    _cleanup_stale_participants(cur, call_id)
-    db.commit(); cur.close()
-    return jsonify({"ok": True})
-
-
-@app.route("/call/end", methods=["POST"])
-@login_required
-def call_end():
-    """يقفل المكالمة كلها — للـ starter أو للمسؤول."""
-    u = current_user()
-    call_id = request.form.get("call_id", type=int)
-    if not call_id: return jsonify({"ok": False}), 400
-    db = get_db(); cur = db.cursor()
-    cur.execute("SELECT started_by, scope FROM voice_calls WHERE id=%s", (call_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); return jsonify({"ok": False}), 404
-    if r["started_by"] != u["id"] and u["role"] != "admin":
-        cur.close(); return jsonify({"ok": False, "error": "forbidden"}), 403
-    cur.execute("""UPDATE voice_participants SET left_at=NOW() WHERE call_id=%s AND left_at IS NULL""", (call_id,))
-    cur.execute("UPDATE voice_calls SET active=FALSE, ended_at=NOW() WHERE id=%s", (call_id,))
-    db.commit(); cur.close()
-    return jsonify({"ok": True})
-
-
-@app.route("/call/signal/send", methods=["POST"])
-@login_required
-def call_signal_send():
-    u = current_user()
-    call_id = request.form.get("call_id", type=int)
-    to_user = request.form.get("to", type=int)
-    payload = request.form.get("payload", "")
-    if not (call_id and to_user and payload):
-        return jsonify({"ok": False}), 400
-    db = get_db(); cur = db.cursor()
-    cur.execute("""INSERT INTO voice_signals(call_id, from_user, to_user, payload)
-                   VALUES(%s,%s,%s,%s)""", (call_id, u["id"], to_user, payload))
-    db.commit(); cur.close()
-    return jsonify({"ok": True})
-
-
-@app.route("/call/signal/poll")
-@login_required
-def call_signal_poll():
-    u = current_user()
-    call_id = request.args.get("call_id", type=int)
-    since = request.args.get("since", type=int) or 0
-    if not call_id: return jsonify({"ok": False, "signals": []})
-    db = get_db(); cur = db.cursor()
-    cur.execute("""SELECT id, from_user, payload, created_at
-                     FROM voice_signals
-                    WHERE call_id=%s AND to_user=%s AND id>%s
-                    ORDER BY id ASC LIMIT 200""", (call_id, u["id"], since))
-    rows = cur.fetchall()
-    # امسح الإشارات القديمة (تنظيف)
-    if rows:
-        cur.execute("DELETE FROM voice_signals WHERE call_id=%s AND to_user=%s AND id<=%s",
-                    (call_id, u["id"], rows[-1]["id"]))
-    db.commit(); cur.close()
-    return jsonify({"ok": True, "signals": [
-        {"id": r["id"], "from": r["from_user"], "payload": r["payload"]} for r in rows
-    ]})
 
 
 
