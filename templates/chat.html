@@ -121,7 +121,7 @@
     } else if (m.kind === 'audio') {
       inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
     } else {
-      inner = '<div class="wa-text">'+ChatHelpers.escape(m.body).replace(/\n/g,'<br>')+'</div>';
+      inner = '<div class="wa-text">'+ChatHelpers.linkify(m.body||'')+'</div>';
     }
     var av = (!m.mine && showAvatar) ? '<div class="wa-msg-av">'+avatarHTML()+'</div>' : (!m.mine ? '<div class="wa-msg-av wa-av-hidden"></div>' : '');
     var tailCls = tail ? ' wa-tail' : '';
@@ -162,6 +162,7 @@
       lastId = Math.max(lastId, m.id);
     });
     ChatHelpers.bindAudio(msgsEl);
+    ChatHelpers.bindCopy(msgsEl);
     if (atBottom) scrollBottom();
   }
 

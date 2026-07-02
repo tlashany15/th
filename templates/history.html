@@ -36,11 +36,25 @@
   </div>
 </section>
 
+{% set is_admin = current_user and current_user.role == 'admin' %}
 {% for p in periods %}
 <div class="card period-card">
   <div class="period-head">
     <div class="period-stripe"></div>
     <div class="period-label">{{ p.label }}</div>
+    {% if is_admin and p.days %}
+      {% set p_start = p.days[0].date %}
+      {% set p_end = p.days[-1].date %}
+      <form method="post" action="{{ url_for('admin_reset_period') }}" class="period-reset-form"
+            onsubmit="return confirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها.');">
+        <input type="hidden" name="start" value="{{ p_start }}">
+        <input type="hidden" name="end"   value="{{ p_end }}">
+        <button type="submit" class="btn-reset-period" title="تصفير الفترة">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 006.34 6.34M4 16a8 8 0 0013.66 1.66"/></svg>
+          تصفير الفترة
+        </button>
+      </form>
+    {% endif %}
   </div>
 
   <!-- نقاط ملخّصة (heat dots) -->
@@ -72,6 +86,16 @@
             </div>
             <span class="badge badge-green sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:11px;height:11px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>مغلق</span>
           </div>
+          {% if is_admin %}
+          <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="tl-edit-form">
+            <input type="hidden" name="day" value="{{ d.date }}">
+            <input type="number" min="0" name="total_count" value="{{ d.total }}" required>
+            <button type="submit" title="حفظ التعديل">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              حفظ
+            </button>
+          </form>
+          {% endif %}
           {% if d.names %}
           <div class="tl-meta">
             <span class="mini-chip">👥 {{ d.names|length }} عامل</span>
@@ -82,6 +106,16 @@
           {% endif %}
         {% else %}
           <div class="tl-empty">— لم يُسجَّل —</div>
+          {% if is_admin %}
+          <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="tl-edit-form">
+            <input type="hidden" name="day" value="{{ d.date }}">
+            <input type="number" min="0" name="total_count" placeholder="ادخل إجمالي" required>
+            <button type="submit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              إضافة
+            </button>
+          </form>
+          {% endif %}
         {% endif %}
       </div>
     </div>

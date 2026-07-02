@@ -4,13 +4,36 @@
 <div class="tg-chats">
 
   <!-- Telegram-style top header -->
-  <div class="tg-chats-head">
+  <div class="tg-chats-head {% if current_user.cover %}has-cover{% endif %}"
+       {% if current_user.cover %}style="--user-cover:url('{{ current_user.cover }}')"{% endif %}>
+    <div class="tg-head-cover" aria-hidden="true"></div>
+
+    <div class="tg-head-cover-actions">
+      <label class="tg-cover-btn" title="{% if current_user.cover %}تغيير{% else %}إضافة{% endif %} صورة الغلاف">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 4.5h16.5a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5H3.75a1.5 1.5 0 01-1.5-1.5V6a1.5 1.5 0 011.5-1.5z"/></svg>
+        <form id="coverForm" method="post" action="{{ url_for('update_cover') }}" enctype="multipart/form-data" style="display:none">
+          <input type="file" name="file" id="coverFile" accept="image/*">
+        </form>
+      </label>
+      {% if current_user.cover %}
+      <form method="post" action="{{ url_for('update_cover') }}" class="tg-cover-remove-form">
+        <input type="hidden" name="action" value="remove">
+        <button type="submit" class="tg-cover-btn" title="إزالة الغلاف" aria-label="إزالة الغلاف">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
     <label class="tg-me-av" title="غيّر صورتك">
       {% if current_user.avatar %}
         <img src="{{ current_user.avatar }}" alt="">
       {% else %}
         <div class="tg-me-av-fb">{{ current_user.full_name[0] }}</div>
       {% endif %}
+      <span class="tg-me-av-edit" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+      </span>
       <form id="avatarForm" method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:none">
         <input type="file" name="file" id="avatarFile" accept="image/*">
       </form>
@@ -19,6 +42,7 @@
       <div class="tg-head-name">{{ current_user.full_name }}</div>
     </div>
   </div>
+
 
 
 
@@ -81,6 +105,10 @@
 (function(){
   document.getElementById('avatarFile').addEventListener('change', function(){
     document.getElementById('avatarForm').submit();
+  });
+  var cf = document.getElementById('coverFile');
+  if (cf) cf.addEventListener('change', function(){
+    document.getElementById('coverForm').submit();
   });
   var s = document.getElementById('chatsSearch');
   s && s.addEventListener('input', function(){

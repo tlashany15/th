@@ -129,11 +129,7 @@
     return '<button class="wa-del wa-del-sys" data-id="'+id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>';
   }
   function bubbleHTML(m){
-    if (m.deleted) {
-      return '<div class="wa-msg wa-them" data-id="'+m.id+'">'+
-               '<div class="wa-bubble wa-deleted">رسالة محذوفة</div>'+
-             '</div>';
-    }
+    if (m.deleted) { return ''; }
     if (m.kind === 'attendance') {
       return '<div class="wa-sys" data-id="'+m.id+'">'+
                '<div class="wa-sys-card">'+
@@ -153,7 +149,7 @@
     } else if (m.kind === 'audio') {
       inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
     } else {
-      inner = '<div class="wa-text">'+ChatHelpers.escape(m.body).replace(/\n/g,'<br>')+'</div>';
+      inner = '<div class="wa-text">'+ChatHelpers.linkify(m.body||'')+'</div>';
     }
     var senderLine = (!m.mine) ? '<div class="wa-sender" style="color:hsl('+((m.sender_id||0)*47%360)+',70%,70%)">'+ChatHelpers.escape(m.sender_name)+(m.sender_role==='admin'?' <span class="wa-adm">مسؤول</span>':'')+'</div>' : '';
     var delBtn = canDel ? '<button class="wa-del" data-id="'+m.id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>' : '';
@@ -169,21 +165,32 @@
 
   function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
 
+  function removeDeleted(ids){
+    if (!ids || !ids.length) return;
+    ids.forEach(function(id){
+      var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]') ||
+               msgsEl.querySelector('.wa-sys[data-id="'+id+'"]');
+      if (el) el.remove();
+    });
+  }
+
   function appendMessages(list){
     if (!list.length) return;
     var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 80;
     var html = '';
     list.forEach(function(m){
+      lastId = Math.max(lastId, m.id);
+      if (m.deleted) return;
       var dk = ChatHelpers.dayKey(m.created_at);
       if (dk !== lastDayKey){
         html += '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>';
         lastDayKey = dk;
       }
       html += bubbleHTML(m);
-      lastId = Math.max(lastId, m.id);
     });
     msgsEl.insertAdjacentHTML('beforeend', html);
     ChatHelpers.bindAudio(msgsEl);
+    ChatHelpers.bindCopy(msgsEl);
     bindDelete();
     if (atBottom) scrollBottom();
   }
@@ -201,7 +208,7 @@
             if (r.ok) {
               var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]') ||
                        msgsEl.querySelector('.wa-sys[data-id="'+id+'"]');
-              if (el) el.outerHTML = '<div class="wa-msg wa-them" data-id="'+id+'"><div class="wa-bubble wa-deleted">رسالة محذوفة</div></div>';
+              if (el) el.remove();
             }
           });
         });
@@ -214,6 +221,7 @@
       .then(function(r){ return r.json(); })
       .then(function(d){
         appendMessages(d.messages || []);
+        removeDeleted(d.deleted_ids || []);
       }).catch(function(){});
   }
   poll();
