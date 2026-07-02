@@ -1,5 +1,6 @@
 {% extends "app_base.html" %}
 {% block content %}
+
 <section class="hero-admin">
   <div class="hero-mesh"></div>
   <div class="hero-row">
@@ -18,7 +19,7 @@
   </div>
   <div class="kpi-grid kpi-grid-2">
     <div class="kpi kpi-gold">
-      <div class="kpi-v">{{ day_total }}</div>
+      <div class="kpi-v">{{ '{:,}'.format(day_total or 0) }}</div>
       <div class="kpi-l">إجمالي حتى الآن</div>
     </div>
     <div class="kpi kpi-green">
@@ -28,6 +29,55 @@
   </div>
 </section>
 
+<!-- ============ قائمة الحضور — تحكم كامل قبل الإغلاق ============ -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">قائمة حضور اليوم</div>
+        <div class="sec-h-s">راجع الأسماء قبل الإغلاق — تقدر تشيل أو تحضّر أي حد (بما فيك نفسك)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="att-list">
+    {% for p in all_people %}
+    <div class="att-row {% if p.present %}is-on{% endif %}">
+      <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{{ (p.full_name or '?')[:1] }}</div>
+      <div class="att-body">
+        <div class="att-name">
+          {{ p.full_name }}
+          {% if p.role == 'admin' %}<span class="att-tag att-tag-gold">مسؤول</span>{% endif %}
+        </div>
+        <div class="att-sub">{% if p.present %}حاضر — سيأخذ نصيبه{% else %}غير مُحضَّر — لن يدخل في التوزيع{% endif %}</div>
+      </div>
+      {% if not day_closed %}
+      <form method="post" action="{{ url_for('admin_mark_attendance') }}" style="margin:0;">
+        <input type="hidden" name="day" value="{{ day }}">
+        <input type="hidden" name="user_id" value="{{ p.id }}">
+        <button type="submit" class="att-toggle {% if p.present %}on{% else %}off{% endif %}" title="{% if p.present %}شيل الحضور{% else %}حضّر{% endif %}">
+          {% if p.present %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            <span>حاضر</span>
+          {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            <span>حضّر</span>
+          {% endif %}
+        </button>
+      </form>
+      {% else %}
+      <span class="att-toggle {% if p.present %}on{% else %}off{% endif %}" style="pointer-events:none;">
+        {% if p.present %}حاضر{% else %}غائب{% endif %}
+      </span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
 <div class="card close-card">
   {% if day_closed %}
     <div class="closed-hero">
@@ -36,8 +86,9 @@
       </div>
       <div>
         <div class="closed-hero-t">اليوم مغلق</div>
-        <div class="closed-hero-s">الإجمالي <strong>{{ day_total }}</strong> كتكوت
-          {% if no_deduct_total %} · بدون خصم <strong>{{ no_deduct_total }}</strong>{% endif %}
+        <div class="closed-hero-s">
+          الإجمالي <strong>{{ '{:,}'.format(day_total) }}</strong> كتكوت
+          {% if no_deduct_total %} · بدون خصم <strong>{{ '{:,}'.format(no_deduct_total) }}</strong>{% endif %}
         </div>
       </div>
     </div>
@@ -48,38 +99,75 @@
   {% else %}
     <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
       <input type="hidden" name="day" value="{{ day }}">
-      <div class="field">
-        <label>إجمالي عدد التحصين لليوم كله <span class="field-hint">(اللي بيتوزع على العمال)</span></label>
-        <div class="big-input">
-          <span class="bi-suffix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg></span>
-          <input id="closeTotalInput" name="total_count" type="number" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}">
+
+      <div class="close-grid">
+        <div class="close-block close-block-gold">
+          <div class="close-block-head">
+            <div class="close-block-ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
+            </div>
+            <div>
+              <div class="close-block-t">إجمالي التحصين لليوم</div>
+              <div class="close-block-s">هيتوزع على الحاضرين فوق</div>
+            </div>
+          </div>
+          <input id="closeTotalInput" name="total_count" type="number" inputmode="numeric" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}" class="close-big-input">
+        </div>
+
+        <div class="close-block close-block-blue">
+          <div class="close-block-head">
+            <div class="close-block-ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
+            </div>
+            <div>
+              <div class="close-block-t">الأعداد بدون خصم</div>
+              <div class="close-block-s">للمحاسبة فقط — مش بتتوزع ومش بتنزل في الجروب</div>
+            </div>
+          </div>
+          <input id="closeNoDeductInput" name="no_deduct_total" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_total or '' }}" class="close-big-input">
         </div>
       </div>
 
-      <div class="field field-nd">
-        <label>
-          الأعداد بدون خصم
-          <span class="field-hint">(للمحاسبة فقط — مش بتتوزع على العمال ومش بتنزل في الجروب)</span>
-        </label>
-        <div class="big-input big-input-nd">
-          <span class="bi-suffix">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
-          </span>
-          <input id="closeNoDeductInput" name="no_deduct_total" type="number" min="0" placeholder="0" value="{{ no_deduct_total or '' }}">
-        </div>
-        <div class="nd-note">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-          هيتحسب في صفحة التقرير بس — منفصل تماماً عن نصيب العمال.
-        </div>
-      </div>
-
-      <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose">إغلاق اليوم وتسجيل الإجمالي</button>
+      <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose" style="margin-top:14px;width:100%;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        إغلاق اليوم وتسجيل الإجمالي
+      </button>
     </form>
   {% endif %}
   <div style="margin-top:10px;">
     <a class="btn btn-ghost" href="{{ url_for('admin_panel', day=day) }}">← رجوع للوحة</a>
   </div>
 </div>
+
+<style>
+.att-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.att-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.2s}
+.att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.35)}
+.att-av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0}
+.att-body{flex:1;min-width:0}
+.att-name{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:6px}
+.att-sub{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.att-tag{padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800}
+.att-tag-gold{background:var(--gold-soft);color:var(--gold-2)}
+.att-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:99px;font-size:12.5px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s}
+.att-toggle svg{width:14px;height:14px}
+.att-toggle.on{background:rgba(56,178,102,.18);color:#7ee2a1;border-color:rgba(56,178,102,.4)}
+.att-toggle.off{background:rgba(255,255,255,.05);color:var(--text-2);border-color:rgba(255,255,255,.1)}
+.att-toggle.on:hover{background:rgba(56,178,102,.28)}
+.att-toggle.off:hover{background:rgba(255,255,255,.09)}
+.close-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:640px){.close-grid{grid-template-columns:1fr 1fr}}
+.close-block{padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+.close-block-gold{background:linear-gradient(135deg,rgba(212,175,55,.10),rgba(255,255,255,.02));border-color:rgba(212,175,55,.30)}
+.close-block-blue{background:linear-gradient(135deg,rgba(80,150,255,.08),rgba(255,255,255,.02));border-color:rgba(80,150,255,.25)}
+.close-block-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.close-block-ic{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;flex-shrink:0}
+.close-block-ic svg{width:18px;height:18px}
+.close-block-t{font-weight:800;font-size:14px}
+.close-block-s{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
+.close-big-input{width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;color:#fff;font-size:22px;font-weight:800;text-align:center;letter-spacing:.5px;outline:none;transition:.15s}
+.close-big-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+</style>
 
 <script>
 (function(){

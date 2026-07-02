@@ -26,19 +26,12 @@
       <div class="kpi-v">{{ days_attended }}</div>
       <div class="kpi-l">أيام الحضور</div>
     </div>
-    <div class="kpi kpi-blue">
-      <div class="kpi-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l7.5 7.5 10.5-15"/></svg>
-      </div>
-      <div class="kpi-v">{{ '{:,}'.format(total_month) }}</div>
-      <div class="kpi-l">إجمالي الشهر</div>
-    </div>
     <div class="kpi kpi-green">
       <div class="kpi-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.25 0-4-1.007-4-2.25S9.75 7.5 12 7.5c.725 0 1.45.22 2.003.659L15 8.818"/></svg>
       </div>
-      <div class="kpi-v">{{ '{:,.2f}'.format(total_share) }}</div>
-      <div class="kpi-l">نصيبه من الشهر</div>
+      <div class="kpi-v">{{ '{:,}'.format(total_share|round(0, 'common')|int) }}</div>
+      <div class="kpi-l">نصيبه الكامل</div>
     </div>
   </div>
 </section>
@@ -93,7 +86,7 @@
             <span class="mini-chip" style="font-family:monospace;">{{ d.date }}</span>
             {% if d.attended %}
               <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
-                نصيبه: {{ '{:,.2f}'.format(d.share) }}
+                نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
               </span>
             {% endif %}
           </div>

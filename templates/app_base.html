@@ -46,7 +46,7 @@
 
 <!-- TOPBAR -->
 <div class="topbar">
-  {% if current_user and current_user.role == 'admin' %}
+  {% if current_user %}
   <button id="sidebarToggle" class="sidebar-toggle" aria-label="فتح القائمة" type="button">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
   </button>
@@ -57,21 +57,22 @@
   </div>
 </div>
 
-{% if current_user and current_user.role == 'admin' %}
-<!-- SIDEBAR (المسؤول فقط) -->
+{% if current_user %}
+<!-- SIDEBAR -->
 <aside id="appSidebar" class="app-sidebar" aria-hidden="true">
   <div class="sidebar-header">
     <div class="sidebar-me">
       <div class="sidebar-avatar">{{ (current_user.full_name or '?')[:1] }}</div>
       <div>
         <div class="sidebar-name">{{ current_user.full_name }}</div>
-        <div class="sidebar-role">مسؤول</div>
+        <div class="sidebar-role">{{ 'مسؤول' if current_user.role == 'admin' else 'عامل' }}</div>
       </div>
     </div>
     <button class="sidebar-close" id="sidebarClose" aria-label="إغلاق" type="button">✕</button>
   </div>
 
   <nav class="sidebar-nav">
+    {% if current_user.role == 'admin' %}
     <a href="{{ url_for('admin_panel') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>اللوحة الرئيسية</span></a>
     <a href="{{ url_for('admin_close_page', day=today) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
     <a href="{{ url_for('admin_tomorrow_page') }}"><span class="snav-ico">{{ snav_icon('tomorrow') }}</span><span>تحضير بكرة</span></a>
@@ -79,21 +80,26 @@
     <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>السجلات</span></a>
     <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>تقرير فترة مخصّصة</span></a>
+    <a href="{{ url_for('admin_gross_log') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>سجل الأعداد بدون خصم</span></a>
     <a href="{{ url_for('admin_notes') }}"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظاتي</span></a>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
+    {% else %}
+    <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية</span></a>
+    <a href="{{ url_for('worker_stats', worker_id=current_user.id) }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>نصيبي هذا الشهر</span></a>
+    <a href="{{ url_for('worker_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي وكلمة السر</span></a>
+    <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
+    {% endif %}
     <a href="{{ url_for('logout') }}" class="sidebar-danger"><span class="snav-ico">{{ snav_icon('logout') }}</span><span>تسجيل الخروج</span></a>
   </nav>
 
-  {% if sidebar_workers %}
-  <div class="sidebar-section-title">العمال — اضغط لعرض نصيبه</div>
+  {% if current_user.role == 'admin' and sidebar_workers %}
+  <div class="sidebar-section-title">الفريق — اضغط لعرض نصيبه</div>
   <div class="sidebar-workers">
     {% for w in sidebar_workers %}
-      {% if w.role != 'admin' %}
       <a class="sidebar-worker" href="{{ url_for('worker_stats', worker_id=w.id) }}">
         <span class="sw-badge">{{ (w.full_name or '?')[:1] }}</span>
-        <span class="sw-name">{{ w.full_name }}</span>
+        <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' %} <em style="opacity:.6;font-size:11px;">(مسؤول)</em>{% endif %}</span>
       </a>
-      {% endif %}
     {% endfor %}
   </div>
   {% endif %}
@@ -153,13 +159,14 @@
 </nav>
 {% endif %}
 
-{% if current_user and current_user.role == 'admin' %}
+{% if current_user %}
 <script>
 (function(){
   var side = document.getElementById('appSidebar');
   var btn  = document.getElementById('sidebarToggle');
   var cls  = document.getElementById('sidebarClose');
   var ov   = document.getElementById('sidebarOverlay');
+  if (!side) return;
   function open(){ side.classList.add('is-open'); ov.hidden = false; side.setAttribute('aria-hidden','false'); }
   function close(){ side.classList.remove('is-open'); ov.hidden = true; side.setAttribute('aria-hidden','true'); }
   if (btn) btn.addEventListener('click', open);
