@@ -3,12 +3,15 @@
 Flask + PostgreSQL — يعمل على Vercel
 """
 import os
+import re
 import base64
+import json as _json
+import urllib.request
+import urllib.error
 import psycopg2
 import psycopg2.extras
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
-import json as _json
 
 from flask import (Flask, g, redirect, render_template, request, session,
                    url_for, flash, jsonify, Response, abort)
@@ -208,6 +211,35 @@ def init_db():
             last_read_id INTEGER NOT NULL DEFAULT 0,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+
+        -- ==== إشعارات (داخل التطبيق + FCM لاحقًا) ====
+        CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            body  TEXT,
+            url   TEXT,
+            type  TEXT NOT NULL DEFAULT 'general',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            read_at TIMESTAMPTZ
+        );
+        CREATE INDEX IF NOT EXISTS idx_notif_user_created ON notifications(user_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_notif_user_unread ON notifications(user_id) WHERE read_at IS NULL;
+
+        -- توكنات FCM لكل مستخدم (لدفع الإشعارات لتطبيق Sketchware)
+        CREATE TABLE IF NOT EXISTS fcm_tokens (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL UNIQUE,
+            platform TEXT NOT NULL DEFAULT 'android',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
+        -- ==== دعم الرد + المنشن ====
+        ALTER TABLE chat_messages  ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
+        ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
+        ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS mentions    TEXT;  -- JSON list of user ids
     """)
     # نتأكد إن فيه مسؤول برقم "1"
     cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
@@ -932,8 +964,8 @@ def admin_announce_tomorrow():
         return redirect(url_for("admin_panel"))
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT full_name FROM users WHERE id = ANY(%s) ORDER BY full_name",
-                ([int(x) for x in ids],))
+    id_ints = [int(x) for x in ids]
+    cur.execute("SELECT full_name FROM users WHERE id = ANY(%s) ORDER BY full_name", (id_ints,))
     names = [r["full_name"] for r in cur.fetchall()]
     # نلغي تثبيت أي إعلان حضور سابق
     cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
@@ -942,7 +974,13 @@ def admin_announce_tomorrow():
                    VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body))
     db.commit()
     cur.close()
-    flash("تم نشر قائمة حضور الغد في الدردشة الجماعية", "success")
+    # 🔔 إشعار لكل عامل مدرج في حضور بكرة
+    _notify_users(id_ints,
+                  "🗓️ حضورك مطلوب بكرة",
+                  f"يوم {day} — اضغط لعرض التفاصيل",
+                  url=url_for("group_room"),
+                  type_="attendance")
+    flash("تم نشر قائمة حضور الغد + إرسال إشعار لكل عامل ✓", "success")
     return redirect(url_for("admin_panel"))
 
 
@@ -1380,13 +1418,26 @@ def chat_messages_api(other_id):
     db = get_db()
     cur = db.cursor()
     cur.execute("""
-        SELECT id, sender_id, receiver_id, kind, body, created_at, read_at
+        SELECT id, sender_id, receiver_id, kind, body, created_at, read_at, reply_to_id
         FROM chat_messages
         WHERE ((sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s))
           AND id > %s
         ORDER BY id ASC LIMIT 200
     """, (u["id"], other_id, other_id, u["id"], after))
     rows = cur.fetchall()
+    # جِب مقتطفات الرد
+    reply_ids = [r["reply_to_id"] for r in rows if r["reply_to_id"]]
+    replies_map = {}
+    if reply_ids:
+        cur.execute("""SELECT id, kind, body, sender_id FROM chat_messages WHERE id = ANY(%s)""",
+                    (reply_ids,))
+        for rr in cur.fetchall():
+            snip = rr["body"] if rr["kind"] == "text" else ("🖼️ صورة" if rr["kind"] == "image" else "🎤 صوت")
+            replies_map[rr["id"]] = {
+                "id": rr["id"],
+                "snippet": (snip or "")[:140],
+                "mine": rr["sender_id"] == u["id"],
+            }
     cur.execute("""UPDATE chat_messages SET read_at = NOW()
                    WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL""",
                 (other_id, u["id"]))
@@ -1410,6 +1461,7 @@ def chat_messages_api(other_id):
             "created_at": _iso_utc(r["created_at"]),
             "mine": r["sender_id"] == u["id"],
             "read": r["read_at"] is not None,
+            "reply_to": replies_map.get(r["reply_to_id"]) if r["reply_to_id"] else None,
         })
     return jsonify({
         "messages": msgs,
@@ -1446,14 +1498,26 @@ def chat_send(other_id):
     else:
         return jsonify({"ok": False, "error": "bad_kind"}), 400
 
+    reply_to_id = request.form.get("reply_to_id")
+    try:
+        reply_to_id = int(reply_to_id) if reply_to_id else None
+    except (TypeError, ValueError):
+        reply_to_id = None
     db = get_db()
     cur = db.cursor()
-    cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body)
-                   VALUES (%s, %s, %s, %s) RETURNING id, created_at""",
-                (u["id"], other_id, kind, body))
+    cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body, reply_to_id)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at""",
+                (u["id"], other_id, kind, body, reply_to_id))
     row = cur.fetchone()
     db.commit()
     cur.close()
+    # 🔔 إشعار للمستقبل
+    preview = body if kind == "text" else ("🖼️ صورة" if kind == "image" else "🎤 رسالة صوتية")
+    _notify_users([other_id],
+                  f"💬 {u['full_name']}",
+                  (preview or "")[:120],
+                  url=url_for("chat_room", other_id=u["id"]),
+                  type_="dm")
     return jsonify({"ok": True, "id": row["id"], "created_at": _iso_utc(row["created_at"])})
 
 
@@ -1496,6 +1560,7 @@ def group_messages_api():
     cur = db.cursor()
     cur.execute("""
         SELECT m.id, m.sender_id, m.kind, m.body, m.pinned, m.deleted, m.created_at,
+               m.reply_to_id, m.mentions,
                u.full_name AS sender_name, u.avatar AS sender_avatar, u.role AS sender_role
         FROM group_messages m
         LEFT JOIN users u ON u.id = m.sender_id
@@ -1503,6 +1568,19 @@ def group_messages_api():
         ORDER BY m.id ASC LIMIT 300
     """, (after,))
     rows = cur.fetchall()
+    # جِب مقتطفات الرسايل المُردّ عليها
+    reply_ids = [r["reply_to_id"] for r in rows if r["reply_to_id"]]
+    replies_map = {}
+    if reply_ids:
+        cur.execute("""SELECT m.id, m.kind, m.body, u.full_name AS sender_name
+                       FROM group_messages m LEFT JOIN users u ON u.id=m.sender_id
+                       WHERE m.id = ANY(%s)""", (reply_ids,))
+        for rr in cur.fetchall():
+            snippet = rr["body"] if rr["kind"] == "text" else ("🖼️ صورة" if rr["kind"] == "image" else "🎤 صوت")
+            replies_map[rr["id"]] = {
+                "id": rr["id"], "sender_name": rr["sender_name"] or "محذوف",
+                "snippet": (snippet or "")[:140]
+            }
     # المثبّت
     cur.execute("""SELECT id, body, kind FROM group_messages
                    WHERE pinned=TRUE AND deleted=FALSE
@@ -1521,6 +1599,10 @@ def group_messages_api():
     cur.close()
     msgs = []
     for r in rows:
+        try:
+            mentions = _json.loads(r["mentions"]) if r["mentions"] else []
+        except Exception:
+            mentions = []
         msgs.append({
             "id": r["id"],
             "sender_id": r["sender_id"],
@@ -1533,6 +1615,8 @@ def group_messages_api():
             "deleted": r["deleted"],
             "created_at": _iso_utc(r["created_at"]),
             "mine": r["sender_id"] == u["id"],
+            "reply_to": replies_map.get(r["reply_to_id"]) if r["reply_to_id"] else None,
+            "mentions": mentions,
         })
     return jsonify({
         "messages": msgs,
@@ -1566,14 +1650,44 @@ def group_send():
     else:
         return jsonify({"ok": False, "error": "bad_kind"}), 400
 
+    # reply + mentions
+    reply_to_id = request.form.get("reply_to_id")
+    try:
+        reply_to_id = int(reply_to_id) if reply_to_id else None
+    except (TypeError, ValueError):
+        reply_to_id = None
+    mention_ids = []
+    for raw in request.form.getlist("mentions"):
+        try:
+            mention_ids.append(int(raw))
+        except (TypeError, ValueError):
+            pass
+    mentions_json = _json.dumps(mention_ids) if mention_ids else None
+
     db = get_db()
     cur = db.cursor()
-    cur.execute("""INSERT INTO group_messages(sender_id, kind, body)
-                   VALUES (%s, %s, %s) RETURNING id, created_at""",
-                (u["id"], kind, body))
+    cur.execute("""INSERT INTO group_messages(sender_id, kind, body, reply_to_id, mentions)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at""",
+                (u["id"], kind, body, reply_to_id, mentions_json))
     row = cur.fetchone()
     db.commit()
+
+    # 🔔 إشعارات: للمُنشَن + لصاحب الرسالة اللي بيتم الرد عليها
+    notify_ids = set(mention_ids)
+    if reply_to_id:
+        cur.execute("SELECT sender_id FROM group_messages WHERE id=%s", (reply_to_id,))
+        rr = cur.fetchone()
+        if rr and rr["sender_id"] and rr["sender_id"] != u["id"]:
+            notify_ids.add(rr["sender_id"])
+    notify_ids.discard(u["id"])
     cur.close()
+    if notify_ids:
+        preview = body if kind == "text" else ("🖼️ صورة" if kind == "image" else "🎤 رسالة صوتية")
+        _notify_users(list(notify_ids),
+                      f"👥 {u['full_name']} في المجموعة",
+                      (preview or "")[:120],
+                      url=url_for("group_room"),
+                      type_="group_mention")
     return jsonify({"ok": True, "id": row["id"], "created_at": _iso_utc(row["created_at"])})
 
 
@@ -1946,6 +2060,153 @@ def media_msg(scope, msg_id):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     return resp
 
+
+
+# ==================== نظام الإشعارات + FCM ====================
+
+FCM_SERVER_KEY = os.environ.get("FCM_SERVER_KEY", "")
+
+def _send_fcm(tokens, title, body, url=""):
+    """يبعث إشعار FCM لقائمة توكنات. صامت لو مفيش FCM_SERVER_KEY."""
+    if not FCM_SERVER_KEY or not tokens:
+        return
+    payload = {
+        "registration_ids": list(tokens),
+        "priority": "high",
+        "notification": {"title": title, "body": (body or "")[:200], "sound": "default"},
+        "data": {"title": title, "body": body or "", "url": url or "", "click_action": "FLUTTER_NOTIFICATION_CLICK"},
+    }
+    try:
+        req = urllib.request.Request(
+            "https://fcm.googleapis.com/fcm/send",
+            data=_json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json",
+                     "Authorization": "key=" + FCM_SERVER_KEY},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=8).read()
+    except Exception as e:
+        print("FCM error:", e)
+
+
+def _notify_users(user_ids, title, body, url="", type_="general", push=True):
+    """يضيف صف في notifications لكل مستخدم + يبعت FCM اختياريًا."""
+    ids = [int(x) for x in user_ids if x]
+    if not ids:
+        return
+    db = get_db(); cur = db.cursor()
+    for uid in ids:
+        cur.execute("""INSERT INTO notifications(user_id, title, body, url, type)
+                       VALUES (%s,%s,%s,%s,%s)""",
+                    (uid, title[:200], (body or "")[:1000], url or None, type_))
+    db.commit()
+    if push:
+        cur.execute("SELECT token FROM fcm_tokens WHERE user_id = ANY(%s)", (ids,))
+        tokens = [r["token"] for r in cur.fetchall()]
+        if tokens:
+            _send_fcm(tokens, title, body or "", url or "")
+    cur.close()
+
+
+@app.route("/api/notifications/unread")
+@login_required
+def api_notifications_unread():
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    cur.execute("SELECT COUNT(*) AS c FROM notifications WHERE user_id=%s AND read_at IS NULL", (u["id"],))
+    count = cur.fetchone()["c"]
+    cur.execute("""SELECT id, title, body, url, type, created_at, read_at
+                   FROM notifications WHERE user_id=%s
+                   ORDER BY id DESC LIMIT 20""", (u["id"],))
+    items = [{
+        "id": r["id"], "title": r["title"], "body": r["body"], "url": r["url"],
+        "type": r["type"], "created_at": _iso_utc(r["created_at"]),
+        "read": r["read_at"] is not None,
+    } for r in cur.fetchall()]
+    cur.close()
+    return jsonify({"count": count, "items": items})
+
+
+@app.route("/notifications")
+@login_required
+def notifications_page():
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    cur.execute("""SELECT id, title, body, url, type, created_at, read_at
+                   FROM notifications WHERE user_id=%s
+                   ORDER BY id DESC LIMIT 200""", (u["id"],))
+    rows = cur.fetchall()
+    cur.execute("UPDATE notifications SET read_at=NOW() WHERE user_id=%s AND read_at IS NULL", (u["id"],))
+    db.commit(); cur.close()
+    return render_template("notifications.html", items=rows)
+
+
+@app.route("/notifications/mark-all-read", methods=["POST"])
+@login_required
+def notifications_mark_all_read():
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    cur.execute("UPDATE notifications SET read_at=NOW() WHERE user_id=%s AND read_at IS NULL", (u["id"],))
+    db.commit(); cur.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/admin/notify", methods=["GET", "POST"])
+@admin_required
+def admin_notify():
+    db = get_db(); cur = db.cursor()
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        body  = (request.form.get("body") or "").strip()
+        url   = (request.form.get("url") or "").strip()
+        target = request.form.get("target", "all")
+        if not title:
+            flash("لازم تكتب عنوان للإشعار", "error")
+            return redirect(url_for("admin_notify"))
+        if target == "all":
+            cur.execute("SELECT id FROM users")
+            user_ids = [r["id"] for r in cur.fetchall()]
+        else:
+            raw = request.form.getlist("user_ids")
+            user_ids = [int(x) for x in raw if x]
+            if not user_ids:
+                flash("اختر عامل واحد على الأقل", "error")
+                return redirect(url_for("admin_notify"))
+        cur.close()
+        _notify_users(user_ids, title, body, url=url, type_="admin_broadcast")
+        flash(f"تم إرسال الإشعار لـ {len(user_ids)} مستخدم ✓", "success")
+        return redirect(url_for("admin_notify"))
+    cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
+    users = cur.fetchall()
+    cur.close()
+    return render_template("admin_notify.html", users=users)
+
+
+@app.route("/api/fcm/register", methods=["POST"])
+@login_required
+def api_fcm_register():
+    u = current_user()
+    token = (request.form.get("token") or (request.json or {}).get("token") if request.is_json else request.form.get("token") or "").strip()
+    if not token or len(token) < 20:
+        return jsonify({"ok": False, "error": "bad_token"}), 400
+    platform = (request.form.get("platform") or "android").strip()[:20]
+    db = get_db(); cur = db.cursor()
+    cur.execute("""INSERT INTO fcm_tokens(user_id, token, platform) VALUES(%s,%s,%s)
+                   ON CONFLICT (token) DO UPDATE SET user_id=EXCLUDED.user_id, last_seen=NOW()""",
+                (u["id"], token, platform))
+    db.commit(); cur.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/fcm/unregister", methods=["POST"])
+@login_required
+def api_fcm_unregister():
+    token = (request.form.get("token") or "").strip()
+    if token:
+        db = get_db(); cur = db.cursor()
+        cur.execute("DELETE FROM fcm_tokens WHERE token=%s", (token,))
+        db.commit(); cur.close()
+    return jsonify({"ok": True})
 
 
 from werkzeug.exceptions import HTTPException as _HTTPException
