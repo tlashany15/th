@@ -1619,7 +1619,7 @@ a{ color:inherit; text-decoration:none; }
 /* Chats header cover */
 .tg-chats-head{ position:relative; overflow:hidden; padding-top:14px; }
 .tg-head-cover{
-  position:absolute; inset:0 0 auto 0; height:120px;
+  position:absolute; inset:0;
   background: linear-gradient(160deg, rgba(245,185,80,.18), rgba(239,68,68,.10));
   z-index:0;
 }
@@ -1628,10 +1628,11 @@ a{ color:inherit; text-decoration:none; }
 }
 .tg-chats-head.has-cover .tg-head-cover::after{
   content:""; position:absolute; inset:0;
-  background: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.65) 100%);
 }
 .tg-chats-head .tg-me-av,
 .tg-chats-head .tg-head-title{ position:relative; z-index:2; }
+.tg-chats-head.has-cover .tg-head-name{ color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6); }
 .tg-chats-head .tg-me-av{ margin-top:60px; }
 .tg-me-av-edit{
   position:absolute; right:2px; bottom:2px; width:26px; height:26px;
@@ -1691,3 +1692,58 @@ a{ color:inherit; text-decoration:none; }
 .tl-edit-form button:hover{ filter:brightness(1.06); }
 .tl-edit-form button:active{ transform:scale(.97); }
 .tl-edit-form button svg{ width:13px; height:13px; }
+
+/* ============================================================
+   Clickable group members + sender name/avatar → private chat
+   ============================================================ */
+.tg-mem-row-link{ padding:0; }
+.tg-mem-link{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:12px;
+  color:inherit; text-decoration:none;
+  transition:background .15s;
+  width:100%;
+}
+.tg-mem-link:hover{ background:rgba(255,255,255,.05); }
+.tg-mem-link:active{ background:rgba(255,255,255,.08); }
+.tg-mem-you{ color:var(--text-mute); font-size:11px; font-weight:600; }
+
+.wa-sender-link{ cursor:pointer; }
+.wa-sender-link:hover{ opacity:.85; }
+.wa-msg-av.wa-sender-link{ transition:transform .12s; }
+.wa-msg-av.wa-sender-link:active{ transform:scale(.92); }
+
+/* ============================================================
+   History: edit attendance chips (per-day)
+   ============================================================ */
+.tl-att-edit{
+  margin-top:10px; padding:8px 10px; border-radius:12px;
+  background:rgba(255,255,255,.02); border:1px dashed var(--line-strong);
+}
+.tl-att-edit > summary{
+  cursor:pointer; font-size:12px; font-weight:800; color:var(--gold);
+  list-style:none; padding:2px 0;
+  display:flex; align-items:center; gap:6px;
+}
+.tl-att-edit > summary::-webkit-details-marker{ display:none; }
+.tl-att-edit > summary::before{ content:"✎"; }
+.tl-att-list{
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;
+}
+.tl-att-form{ margin:0; padding:0; }
+.tl-att-chip{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:5px 10px; border-radius:99px; cursor:pointer;
+  font-size:12px; font-weight:700;
+  border:1px solid var(--line-strong);
+  transition:filter .15s, transform .12s, background .15s, color .15s;
+}
+.tl-att-chip.is-on{
+  background:linear-gradient(160deg, rgba(34,197,94,.28), rgba(34,197,94,.15));
+  color:#bbf7d0; border-color:rgba(34,197,94,.5);
+}
+.tl-att-chip.is-off{
+  background:rgba(255,255,255,.04); color:var(--text-3);
+}
+.tl-att-chip:hover{ filter:brightness(1.12); }
+.tl-att-chip:active{ transform:scale(.96); }

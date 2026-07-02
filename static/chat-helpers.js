@@ -264,6 +264,77 @@ window.ChatHelpers = (function(){
     });
   }
 
+  // ======== ضغط الصور قبل الرفع ========
+  // يقلل حجم الصورة قدر الإمكان مع الحفاظ على جودة معقولة
+  function compressImage(file, opts){
+    opts = opts || {};
+    var maxDim = opts.maxDim || 1280;      // أقصى بُعد (عرض/ارتفاع)
+    var quality = opts.quality || 0.72;    // جودة JPEG
+    var mime = opts.mime || 'image/jpeg';
+    return new Promise(function(resolve, reject){
+      if (!file || !file.type || file.type.indexOf('image/') !== 0) {
+        return resolve(file);
+      }
+      // ملفات GIF نتركها كما هي (متحركة)
+      if (file.type === 'image/gif') return resolve(file);
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight;
+          if (!w || !h) { URL.revokeObjectURL(url); return resolve(file); }
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var nw = Math.max(1, Math.round(w * scale));
+          var nh = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = nw; canvas.height = nh;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, nw, nh);
+          URL.revokeObjectURL(url);
+          canvas.toBlob(function(blob){
+            if (!blob) return resolve(file);
+            // لو الأصل أصغر من الناتج، سيبه كما هو
+            if (blob.size >= file.size) return resolve(file);
+            var name = (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg';
+            try {
+              var out = new File([blob], name, {type: mime, lastModified: Date.now()});
+              resolve(out);
+            } catch(e){
+              blob.name = name; blob.lastModified = Date.now();
+              resolve(blob);
+            }
+          }, mime, quality);
+        } catch(e){ URL.revokeObjectURL(url); resolve(file); }
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
+  // يضغط ملف داخل <input type=file> ثم يستدعي callback (أو يقدّم form تلقائيًا)
+  function attachImageAutoCompress(input, opts){
+    if (!input || input.dataset.compressBound) return;
+    input.dataset.compressBound = '1';
+    var onDone = (opts && opts.onDone) || null;
+    var autoSubmit = opts && opts.autoSubmitForm;
+    input.addEventListener('change', function(){
+      var f = input.files && input.files[0];
+      if (!f) return;
+      compressImage(f, opts).then(function(nf){
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(nf);
+          input.files = dt.files;
+        } catch(e){}
+        if (onDone) onDone(nf);
+        if (autoSubmit) {
+          var form = autoSubmit === true ? input.form : document.getElementById(autoSubmit);
+          if (form) form.submit();
+        }
+      });
+    });
+  }
+
   return {
     escape: escape,
     linkify: linkify,
@@ -276,6 +347,8 @@ window.ChatHelpers = (function(){
     bindCopy: bindCopy,
     copyText: copyText,
     toast: toast,
-    attachRecorder: attachRecorder
+    attachRecorder: attachRecorder,
+    compressImage: compressImage,
+    attachImageAutoCompress: attachImageAutoCompress
   };
 })();
