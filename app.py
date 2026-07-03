@@ -2064,27 +2064,71 @@ def media_msg(scope, msg_id):
 
 # ==================== نظام الإشعارات + FCM ====================
 
-FCM_SERVER_KEY = os.environ.get("FCM_SERVER_KEY", "")
+_FIREBASE_APP = None
+
+def _get_firebase_app():
+    """يهيّئ Firebase Admin SDK مرة واحدة فقط (lazy init)."""
+    global _FIREBASE_APP
+    if _FIREBASE_APP is not None:
+        return _FIREBASE_APP
+    try:
+        import firebase_admin
+        from firebase_admin import credentials
+        project_id = os.environ.get("FIREBASE_PROJECT_ID", "")
+        client_email = os.environ.get("FIREBASE_CLIENT_EMAIL", "")
+        private_key = os.environ.get("FIREBASE_PRIVATE_KEY", "")
+        if not (project_id and client_email and private_key):
+            return None
+        cred = credentials.Certificate({
+            "type": "service_account",
+            "project_id": project_id,
+            "client_email": client_email,
+            "private_key": private_key.replace("\\n", "\n"),
+            "token_uri": "https://oauth2.googleapis.com/token",
+        })
+        _FIREBASE_APP = firebase_admin.initialize_app(cred)
+        return _FIREBASE_APP
+    except Exception as e:
+        print("Firebase init error:", e)
+        return None
+
 
 def _send_fcm(tokens, title, body, url=""):
-    """يبعث إشعار FCM لقائمة توكنات. صامت لو مفيش FCM_SERVER_KEY."""
-    if not FCM_SERVER_KEY or not tokens:
+    """يبعث إشعار FCM لقائمة توكنات عن طريق HTTP v1 API (Firebase Admin SDK).
+    صامت لو مفيش إعدادات Firebase أو مفيش توكنات."""
+    tokens = [t for t in (tokens or []) if t]
+    if not tokens:
         return
-    payload = {
-        "registration_ids": list(tokens),
-        "priority": "high",
-        "notification": {"title": title, "body": (body or "")[:200], "sound": "default"},
-        "data": {"title": title, "body": body or "", "url": url or "", "click_action": "FLUTTER_NOTIFICATION_CLICK"},
-    }
+    app_fb = _get_firebase_app()
+    if app_fb is None:
+        print("FCM skipped: Firebase not configured")
+        return
     try:
-        req = urllib.request.Request(
-            "https://fcm.googleapis.com/fcm/send",
-            data=_json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json",
-                     "Authorization": "key=" + FCM_SERVER_KEY},
-            method="POST",
-        )
-        urllib.request.urlopen(req, timeout=8).read()
+        from firebase_admin import messaging
+        invalid_tokens = []
+        # multicast v1 API - نرسل لحد 500 توكن في المرة الواحدة
+        for i in range(0, len(tokens), 500):
+            batch = tokens[i:i + 500]
+            message = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=title[:200], body=(body or "")[:200]
+                ),
+                data={"title": title, "body": body or "", "url": url or ""},
+                tokens=batch,
+            )
+            response = messaging.send_each_for_multicast(message)
+            for idx, resp in enumerate(response.responses):
+                if not resp.success:
+                    err = str(resp.exception)
+                    if "UNREGISTERED" in err or "INVALID_ARGUMENT" in err or "NOT_FOUND" in err:
+                        invalid_tokens.append(batch[idx])
+        if invalid_tokens:
+            try:
+                db = get_db(); cur = db.cursor()
+                cur.execute("DELETE FROM fcm_tokens WHERE token = ANY(%s)", (invalid_tokens,))
+                db.commit(); cur.close()
+            except Exception as ce:
+                print("FCM cleanup error:", ce)
     except Exception as e:
         print("FCM error:", e)
 
