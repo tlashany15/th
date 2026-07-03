@@ -198,7 +198,7 @@
                '</div>';
     }
     var senderClickable = (!m.mine && m.sender_id);
-    var senderLine = (!m.mine) ? '<div class="wa-sender'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+' style="color:hsl('+((m.sender_id||0)*47%360)+',70%,70%)">'+ChatHelpers.escape(m.sender_name)+(m.sender_role==='admin'?' <span class="wa-adm">مسؤول</span>':'')+'</div>' : '';
+    var senderLine = (!m.mine) ? '<div class="wa-sender'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+' style="color:hsl('+((m.sender_id||0)*47%360)+',70%,70%)">'+ChatHelpers.escape(m.sender_name)+'</div>' : '';
     var delBtn = canDel ? '<button class="wa-del" data-id="'+m.id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>' : '';
     var editBtn = (m.mine && m.kind === 'text') ? '<button type="button" class="wa-edit-btn" data-edit-id="'+m.id+'" aria-label="تعديل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg></button>' : '';
     var avatar = (!m.mine) ? '<div class="wa-msg-av'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+'>'+avatarHTML(m)+'</div>' : '';
@@ -460,7 +460,7 @@
       ? '<span class="tg-mem-status is-online">متصل الآن</span>'
       : '<span class="tg-mem-status">'+fmtLastSeen(m.last_seen)+'</span>';
     var isMe = (m.id === ME_ID);
-    var badge = (m.role === 'admin' && !isMe) ? '<span class="wa-adm">مسؤول</span>' : '';
+    var badge = '';
     var dot = m.online ? '<span class="tg-mem-dot"></span>' : '';
     var openTag  = isMe ? '<li class="tg-mem-row">' : '<li class="tg-mem-row tg-mem-row-link"><a class="tg-mem-link" href="/chat/'+m.id+'">';
     var closeTag = isMe ? '</li>' : '</a></li>';

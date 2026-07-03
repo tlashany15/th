@@ -30,11 +30,90 @@
       <div class="kpi-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.25 0-4-1.007-4-2.25S9.75 7.5 12 7.5c.725 0 1.45.22 2.003.659L15 8.818"/></svg>
       </div>
-      <div class="kpi-v">{{ '{:,}'.format(total_share|round(0, 'common')|int) }}</div>
+      <div class="kpi-v">{{ '{:,}'.format(share_int) }}</div>
       <div class="kpi-l">نصيبه الكامل</div>
     </div>
+    {% if is_admin_view %}
+    <div class="kpi kpi-money">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 12h19.5M2.25 15.75h19.5M4.5 4.5h15A2.25 2.25 0 0121.75 6.75v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V6.75A2.25 2.25 0 014.5 4.5z"/></svg>
+      </div>
+      <div class="kpi-v">{{ '{:,}'.format(money_egp) }} <span style="font-size:14px;opacity:.75">ج</span></div>
+      <div class="kpi-l">النصيب × 55ج</div>
+    </div>
+    {% endif %}
   </div>
 </section>
+
+{% if is_admin_view %}
+<!-- ===== ملخّص المحاسبة (للمسؤول فقط) ===== -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 17.25V6.75z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">تصفية الحساب</div>
+        <div class="sec-h-s">النصيب بالجنيه + الإضافي والخصم</div>
+      </div>
+    </div>
+  </div>
+  <div class="settle-grid">
+    <div class="settle-cell"><div class="settle-l">النصيب</div><div class="settle-v">{{ '{:,}'.format(money_egp) }} ج</div></div>
+    <div class="settle-cell pos"><div class="settle-l">إضافي</div><div class="settle-v">+ {{ '{:,}'.format(bonus_total) }} ج</div></div>
+    <div class="settle-cell neg"><div class="settle-l">خصم</div><div class="settle-v">- {{ '{:,}'.format(deduct_total) }} ج</div></div>
+    <div class="settle-cell net"><div class="settle-l">الصافي</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
+  </div>
+
+  {% if bonus_list %}
+  <div class="adj-block">
+    <div class="adj-h pos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      إضافي ({{ bonus_list|length }})
+    </div>
+    {% for it in bonus_list %}
+    <div class="adj-item"><span class="adj-day">{{ it.date }} · {{ it.weekday }}</span><span class="adj-amt pos">+ {{ '{:,}'.format(it.amount) }} ج</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if deduct_list %}
+  <div class="adj-block">
+    <div class="adj-h neg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15"/></svg>
+      خصم ({{ deduct_list|length }})
+    </div>
+    {% for it in deduct_list %}
+    <div class="adj-item"><span class="adj-day">{{ it.date }} · {{ it.weekday }}</span><span class="adj-amt neg">- {{ '{:,}'.format(it.amount) }} ج</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if not bonus_list and not deduct_list %}
+  <div class="empty" style="margin-top:8px;">مفيش تعديلات على النصيب في {{ month_label }}.</div>
+  {% endif %}
+</div>
+
+<style>
+.kpi-money{background:linear-gradient(135deg,rgba(120,170,255,.12),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
+.settle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+@media(min-width:640px){.settle-grid{grid-template-columns:repeat(4,1fr)}}
+.settle-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.settle-cell.pos{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.32)}
+.settle-cell.neg{background:rgba(255,99,99,.10);border-color:rgba(255,99,99,.30)}
+.settle-cell.net{background:linear-gradient(135deg,rgba(212,175,55,.14),rgba(255,255,255,.02));border-color:rgba(212,175,55,.35)}
+.settle-l{font-size:11px;color:var(--text-3);font-weight:700}
+.settle-v{font-size:16px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
+.adj-block{margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.adj-h{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;margin-bottom:6px}
+.adj-h svg{width:14px;height:14px}
+.adj-h.pos{color:#7ff0c1}.adj-h.neg{color:#ffb0b0}
+.adj-item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;font-size:12.5px}
+.adj-item + .adj-item{border-top:1px dashed rgba(255,255,255,.06)}
+.adj-day{color:var(--text-3);font-family:monospace}
+.adj-amt{font-weight:800;font-variant-numeric:tabular-nums}
+.adj-amt.pos{color:#7ff0c1}.adj-amt.neg{color:#ffb0b0}
+</style>
+{% endif %}
 
 <!-- ===== تفاصيل الأيام ===== -->
 <div class="card">

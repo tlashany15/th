@@ -149,18 +149,20 @@
   </div>
   {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-      <div class="flash {{ cat }}">
-        {% if cat == 'success' %}
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-        {% elif cat == 'error' %}
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-        {% else %}
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
-        {% endif %}
-        <span>{{ msg }}</span>
-      </div>
-    {% endfor %}
+    {% if messages %}
+    <script>
+      (function(){
+        var msgs = {{ messages|tojson }};
+        function fire(){
+          if (!window.appAlert) { setTimeout(fire, 60); return; }
+          msgs.forEach(function(m, i){
+            setTimeout(function(){ window.appAlert(m[1], m[0]); }, i*350);
+          });
+        }
+        fire();
+      })();
+    </script>
+    {% endif %}
   {% endwith %}
   {% block content %}{% endblock %}
 </div>

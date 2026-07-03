@@ -47,7 +47,7 @@
   </div>
 </div>
 
-<!-- ============ الأعداد + زر الإغلاق — في الأعلى ============ -->
+<!-- ============ الأعداد + زر الإغلاق ============ -->
 <div class="card close-card">
   {% if day_closed %}
     <div class="closed-hero">
@@ -62,48 +62,29 @@
         </div>
       </div>
     </div>
-    <div class="reedit-note">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
-      <span>عايز تعدّل الأرقام؟ عدّلها وادوس "تحديث الإغلاق" — من غير ما تفتح اليوم تاني.</span>
-    </div>
-  {% else %}
-    {% if day_total or no_deduct_total %}
-    <div class="reedit-note" style="background:rgba(212,175,55,.10);border-color:rgba(212,175,55,.30);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gold);"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <span>الأرقام اللي كنت كتبتها محفوظة — عدّلها لو حابب واقفل تاني.</span>
-    </div>
-    {% endif %}
   {% endif %}
 
   <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
     <input type="hidden" name="day" value="{{ day }}">
 
     <div class="close-grid">
-      <div class="close-block close-block-gold">
-        <div class="close-block-head">
-          <div class="close-block-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-          </div>
-          <div>
-            <div class="close-block-t">إجمالي التحصين لليوم</div>
-            <div class="close-block-s">هيتوزع على الحاضرين تحت</div>
-          </div>
-        </div>
-        <input id="closeTotalInput" name="total_count" type="number" inputmode="numeric" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}" class="close-big-input">
-      </div>
+      <label class="field-wrap field-gold">
+        <span class="field-lbl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
+          إجمالي التحصين
+        </span>
+        <input id="closeTotalInput" name="total_count" type="number" inputmode="numeric" min="0" required placeholder="0" value="{{ day_total or '' }}" class="field-input">
+        <span class="field-hint">هيتوزع على الحاضرين</span>
+      </label>
 
-      <div class="close-block close-block-blue">
-        <div class="close-block-head">
-          <div class="close-block-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
-          </div>
-          <div>
-            <div class="close-block-t">الأعداد بدون خصم</div>
-            <div class="close-block-s">للمحاسبة فقط</div>
-          </div>
-        </div>
-        <input id="closeNoDeductInput" name="no_deduct_total" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_total or '' }}" class="close-big-input">
-      </div>
+      <label class="field-wrap field-blue">
+        <span class="field-lbl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
+          الأعداد بدون خصم
+        </span>
+        <input id="closeNoDeductInput" name="no_deduct_total" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_total or '' }}" class="field-input">
+        <span class="field-hint">للمحاسبة فقط</span>
+      </label>
     </div>
 
     <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose" style="margin-top:14px;width:100%;">
@@ -121,7 +102,7 @@
   {% endif %}
 </div>
 
-<!-- ============ قائمة الحضور — تحت مع أدوات سريعة ============ -->
+<!-- ============ قائمة الحضور + إضافي/خصم ============ -->
 <div class="card" id="attCard" data-day="{{ day }}">
   <div class="sec-head">
     <div class="sec-h-l">
@@ -129,8 +110,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
       </div>
       <div>
-        <div class="sec-h-t">قائمة حضور اليوم</div>
-        <div class="sec-h-s">راجع الأسماء قبل الإغلاق</div>
+        <div class="sec-h-t">قائمة اليوم</div>
+        <div class="sec-h-s">حضور + إضافي/خصم لكل عامل</div>
       </div>
     </div>
     {% if not day_closed %}
@@ -141,34 +122,40 @@
     {% endif %}
   </div>
 
+  <div class="att-scroll">
   <div class="att-list" id="attList">
     {% for p in all_people %}
     <div class="att-row {% if p.present %}is-on{% endif %}" data-uid="{{ p.id }}">
-      <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{% if p.avatar %}<img src="{{ p.avatar }}" alt="">{% else %}{{ (p.full_name or '?')[:1] }}{% endif %}</div>
-      <div class="att-body">
-        <div class="att-name">
-          {{ p.full_name }}
-          {% if p.role == 'admin' and is_super_admin %}<span class="att-tag att-tag-gold">مسؤول</span>{% endif %}
+      <div class="att-main">
+        <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{% if p.avatar %}<img src="{{ p.avatar }}" alt="">{% else %}{{ (p.full_name or '?')[:1] }}{% endif %}</div>
+        <div class="att-body">
+          <div class="att-name">{{ p.full_name }}</div>
+          <div class="att-sub att-sub-txt">{% if p.present %}حاضر{% else %}غير مُحضَّر{% endif %}</div>
         </div>
-        <div class="att-sub att-sub-txt">{% if p.present %}حاضر — سيأخذ نصيبه{% else %}غير مُحضَّر{% endif %}</div>
-      </div>
-      {% if not day_closed %}
-      <button type="button" class="att-toggle {% if p.present %}on{% else %}off{% endif %} js-att-toggle" data-uid="{{ p.id }}">
-        {% if p.present %}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-          <span>حاضر</span>
+        {% if not day_closed %}
+        <button type="button" class="att-toggle {% if p.present %}on{% else %}off{% endif %} js-att-toggle" data-uid="{{ p.id }}">
+          {% if p.present %}✓ حاضر{% else %}+ حضّر{% endif %}
+        </button>
         {% else %}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-          <span>حضّر</span>
+        <span class="att-toggle {% if p.present %}on{% else %}off{% endif %}" style="pointer-events:none;">{% if p.present %}حاضر{% else %}غائب{% endif %}</span>
         {% endif %}
-      </button>
-      {% else %}
-      <span class="att-toggle {% if p.present %}on{% else %}off{% endif %}" style="pointer-events:none;">
-        {% if p.present %}حاضر{% else %}غائب{% endif %}
-      </span>
+      </div>
+
+      {% if not day_closed %}
+      <div class="adj-row">
+        <span class="adj-lbl">إضافي / خصم (جنيه):</span>
+        <input type="number" class="adj-input" data-uid="{{ p.id }}" value="{{ p.adjust or '' }}" placeholder="0" step="1" inputmode="numeric">
+        <span class="adj-hint">مثال: 20 = إضافي · -15 = خصم</span>
+      </div>
+      {% elif p.adjust %}
+      <div class="adj-row is-locked">
+        <span class="adj-lbl">{{ 'إضافي' if p.adjust > 0 else 'خصم' }}:</span>
+        <strong class="adj-val {% if p.adjust > 0 %}pos{% else %}neg{% endif %}">{{ '{:,}'.format(p.adjust|abs) }} ج</strong>
+      </div>
       {% endif %}
     </div>
     {% endfor %}
+  </div>
   </div>
 </div>
 
@@ -177,37 +164,40 @@
 </div>
 
 <style>
-.att-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-.att-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.2s}
-.att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.35)}
-.att-av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;overflow:hidden}
+.close-grid{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:640px){.close-grid{grid-template-columns:1fr 1fr}}
+.field-wrap{position:relative;display:block;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);transition:.18s}
+.field-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.field-gold{background:linear-gradient(140deg,rgba(212,175,55,.09),rgba(255,255,255,.02))}
+.field-blue{background:linear-gradient(140deg,rgba(80,150,255,.07),rgba(255,255,255,.02))}
+.field-lbl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text-2);opacity:.9}
+.field-lbl svg{width:14px;height:14px}
+.field-input{width:100%;background:transparent;border:0;color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:.5px;outline:none;margin-top:6px;padding:6px 0;font-variant-numeric:tabular-nums}
+.field-hint{display:block;font-size:10.5px;color:var(--text-3);text-align:center;margin-top:4px}
+
+.att-scroll{max-height:60vh;overflow:auto;padding-inline-end:2px;margin-top:6px}
+.att-scroll::-webkit-scrollbar{width:6px}.att-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}
+.att-list{display:flex;flex-direction:column;gap:8px}
+.att-row{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.18s}
+.att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.32)}
+.att-main{display:flex;align-items:center;gap:10px}
+.att-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;overflow:hidden}
 .att-av img{width:100%;height:100%;object-fit:cover}
 .att-body{flex:1;min-width:0}
-.att-name{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:6px}
-.att-sub{font-size:11.5px;color:var(--text-3);margin-top:2px}
-.att-tag{padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800}
-.att-tag-gold{background:var(--gold-soft);color:var(--gold-2)}
-.att-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:99px;font-size:12.5px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s}
-.att-toggle svg{width:14px;height:14px}
+.att-name{font-weight:800;font-size:14px;line-height:1.2}
+.att-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.att-toggle{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-2);border-color:rgba(255,255,255,.1)}
 .att-toggle.on{background:rgba(56,178,102,.18);color:#7ee2a1;border-color:rgba(56,178,102,.4)}
-.att-toggle.off{background:rgba(255,255,255,.05);color:var(--text-2);border-color:rgba(255,255,255,.1)}
-.att-toggle.on:hover{background:rgba(56,178,102,.28)}
-.att-toggle.off:hover{background:rgba(255,255,255,.09)}
-.close-grid{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:640px){.close-grid{grid-template-columns:1fr 1fr}}
-.close-block{padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
-.close-block-gold{background:linear-gradient(135deg,rgba(212,175,55,.10),rgba(255,255,255,.02));border-color:rgba(212,175,55,.30)}
-.close-block-blue{background:linear-gradient(135deg,rgba(80,150,255,.08),rgba(255,255,255,.02));border-color:rgba(80,150,255,.25)}
-.close-block-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.close-block-ic{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;flex-shrink:0}
-.close-block-ic svg{width:18px;height:18px}
-.close-block-t{font-weight:800;font-size:14px}
-.close-block-s{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
-.close-big-input{width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;color:#fff;font-size:22px;font-weight:800;text-align:center;letter-spacing:.5px;outline:none;transition:.15s}
-.close-big-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.adj-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.08);flex-wrap:wrap}
+.adj-lbl{font-size:11.5px;color:var(--text-3);font-weight:700}
+.adj-input{flex:1;min-width:80px;max-width:120px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 10px;color:#fff;font-size:14px;font-weight:800;text-align:center;outline:none;transition:.15s;font-variant-numeric:tabular-nums}
+.adj-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.adj-input.pos{color:#7ff0c1;border-color:rgba(52,211,153,.35)}
+.adj-input.neg{color:#ffb0b0;border-color:rgba(255,99,99,.35)}
+.adj-hint{font-size:10px;color:var(--text-3);width:100%}
+.adj-val.pos{color:#7ff0c1}
+.adj-val.neg{color:#ffb0b0}
 .nav-arr-disabled{opacity:.35;pointer-events:none}
-.reedit-note{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(80,150,255,.08);border:1px solid rgba(80,150,255,.22);font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.6}
-.reedit-note svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#7fb0ff}
 .sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 </style>
 
@@ -230,7 +220,6 @@
     });
   }
 
-  // ==== AJAX: توجل الحضور من غير reload ====
   var card = document.getElementById('attCard');
   if (!card) return;
   var day = card.dataset.day;
@@ -241,28 +230,19 @@
     if (btn){
       btn.classList.toggle('on', isOn);
       btn.classList.toggle('off', !isOn);
-      btn.innerHTML = isOn
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg><span>حاضر</span>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg><span>حضّر</span>';
+      btn.innerHTML = isOn ? '✓ حاضر' : '+ حضّر';
     }
     var sub = row.querySelector('.att-sub-txt');
-    if (sub) sub.textContent = isOn ? 'حاضر — سيأخذ نصيبه' : 'غير مُحضَّر';
+    if (sub) sub.textContent = isOn ? 'حاضر' : 'غير مُحضَّر';
     var kpi = document.getElementById('kpiPresentTop');
-    if (kpi){
-      var n = document.querySelectorAll('#attList .att-row.is-on').length;
-      kpi.textContent = n;
-    }
+    if (kpi) kpi.textContent = document.querySelectorAll('#attList .att-row.is-on').length;
   }
 
   function sendToggle(uid){
     var fd = new FormData();
-    fd.append('day', day);
-    fd.append('user_id', uid);
-    fd.append('next', 'close-page');
+    fd.append('day', day); fd.append('user_id', uid); fd.append('next', 'close-page');
     return fetch("{{ url_for('admin_mark_attendance') }}", {
-      method: 'POST', body: fd,
-      headers: { 'X-Requested-With': 'fetch' },
-      credentials: 'same-origin'
+      method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}, credentials:'same-origin'
     });
   }
 
@@ -291,6 +271,35 @@
   }
   if (bAll)  bAll.addEventListener('click', function(){ bulk(true); });
   if (bNone) bNone.addEventListener('click', function(){ bulk(false); });
+
+  // ==== حفظ التعديل (إضافي/خصم) لحظة تغيير الحقل ====
+  function paint(inp){
+    var v = parseInt(inp.value||'0',10) || 0;
+    inp.classList.toggle('pos', v>0);
+    inp.classList.toggle('neg', v<0);
+  }
+  function saveAdj(uid, amount){
+    var fd = new FormData();
+    fd.append('user_id', uid); fd.append('day', day); fd.append('amount', amount);
+    return fetch("{{ url_for('admin_worker_adjust') }}", {
+      method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}, credentials:'same-origin'
+    }).then(function(r){ return r.json(); });
+  }
+  var timers = {};
+  document.querySelectorAll('.adj-input').forEach(function(inp){
+    paint(inp);
+    inp.addEventListener('input', function(){
+      paint(inp);
+      var uid = inp.dataset.uid;
+      clearTimeout(timers[uid]);
+      timers[uid] = setTimeout(function(){
+        var amt = parseInt(inp.value||'0',10) || 0;
+        saveAdj(uid, amt).then(function(res){
+          if (res && res.ok && window.appAlert) window.appAlert('اتحفظ ✓','success');
+        }).catch(function(){ if (window.appAlert) window.appAlert('فشل الحفظ','error'); });
+      }, 600);
+    });
+  });
 })();
 </script>
 {% endblock %}

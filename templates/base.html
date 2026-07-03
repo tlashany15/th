@@ -109,8 +109,9 @@
     requestAnimationFrame(function(){ t.classList.add('is-show'); });
     setTimeout(function(){
       t.classList.remove('is-show');
-      setTimeout(function(){ t.remove(); }, 250);
-    }, 2400);
+      t.classList.add('is-hide');
+      setTimeout(function(){ t.remove(); }, 380);
+    }, 2600);
   };
 
   function openModal(opts){

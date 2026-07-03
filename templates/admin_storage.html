@@ -131,6 +131,56 @@
   {% endif %}
 </div>
 
+<!-- ============ معلومات السيرفر ============ -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3V6a3 3 0 013-3h13.5A3 3 0 0121.75 6v5.25a3 3 0 01-3 3M5.25 14.25L4.5 21m14.25-6.75L19.5 21M12 3v11.25"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">معلومات السيرفر</div>
+        <div class="sec-h-s">قيَم فعلية مقروءة مباشرة من Runtime وقاعدة البيانات · <span class="sv-live"><span class="sv-dot {% if server_info.db_ok %}ok{% else %}bad{% endif %}"></span>{% if server_info.db_ok %}قاعدة البيانات تعمل{% else %}خطأ في القاعدة{% endif %}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="sv-grid">
+    <div class="sv-cell"><div class="sv-l">Python</div><div class="sv-v">{{ server_info.python }}</div></div>
+    <div class="sv-cell"><div class="sv-l">Flask</div><div class="sv-v">{{ server_info.flask }}</div></div>
+    <div class="sv-cell"><div class="sv-l">psycopg2</div><div class="sv-v">{{ server_info.psycopg2 }}</div></div>
+    <div class="sv-cell"><div class="sv-l">البيئة</div><div class="sv-v">{{ server_info.env }}</div></div>
+    <div class="sv-cell"><div class="sv-l">المنطقة</div><div class="sv-v">{{ server_info.region }}</div></div>
+    <div class="sv-cell"><div class="sv-l">المضيف</div><div class="sv-v mono">{{ server_info.host }}</div></div>
+    <div class="sv-cell"><div class="sv-l">المعمارية</div><div class="sv-v">{{ server_info.machine }}</div></div>
+    <div class="sv-cell"><div class="sv-l">مدة التشغيل</div><div class="sv-v">{{ server_info.uptime }}</div></div>
+  </div>
+
+  <div class="sv-sep">قاعدة البيانات</div>
+  {% if server_info.db_ok %}
+  <div class="sv-grid">
+    <div class="sv-cell"><div class="sv-l">إصدار PostgreSQL</div><div class="sv-v mono">{{ server_info.db_version }}</div></div>
+    <div class="sv-cell"><div class="sv-l">اسم القاعدة</div><div class="sv-v mono">{{ server_info.db_name }}</div></div>
+    <div class="sv-cell"><div class="sv-l">مستخدم الاتصال</div><div class="sv-v mono">{{ server_info.db_user }}</div></div>
+    <div class="sv-cell"><div class="sv-l">وقت السيرفر</div><div class="sv-v mono">{{ server_info.db_time }}</div></div>
+    <div class="sv-cell"><div class="sv-l">حجم القاعدة</div><div class="sv-v"><strong>{{ server_info.db_size_pretty }}</strong></div></div>
+    <div class="sv-cell"><div class="sv-l">الاتصالات النشطة</div><div class="sv-v">{{ server_info.db_connections }}</div></div>
+    <div class="sv-cell"><div class="sv-l">عدد المستخدمين</div><div class="sv-v">{{ server_info.users_count }}</div></div>
+    <div class="sv-cell"><div class="sv-l">التطابق مع الحجم أعلاه</div>
+      <div class="sv-v">
+        {% if server_info.db_size_bytes == stats.db_size %}
+          <span class="sv-ok">✓ متطابق</span>
+        {% else %}
+          <span class="sv-warn">فرق: {{ (server_info.db_size_bytes - stats.db_size)|abs }} بايت</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty" style="color:#ffb0b0;">تعذر قراءة معلومات القاعدة: {{ server_info.db_error }}</div>
+  {% endif %}
+</div>
+
+
 <style>
 .usage-bar{width:100%;height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
 .usage-bar-fill{height:100%;border-radius:99px;transition:width .4s ease}
@@ -151,6 +201,20 @@
 .bk-name{font-weight:700;font-size:13px;word-break:break-all}
 .bk-sub{font-size:11px;color:var(--text-3);margin-top:2px}
 .bk-actions{display:flex;gap:6px;flex-shrink:0}
+/* server info */
+.sv-live{display:inline-flex;align-items:center;gap:5px;margin-inline-start:6px}
+.sv-dot{width:8px;height:8px;border-radius:50%;display:inline-block;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+.sv-dot.ok{background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.18)}
+.sv-dot.bad{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.18)}
+.sv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+@media(min-width:640px){.sv-grid{grid-template-columns:repeat(4,1fr)}}
+.sv-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+.sv-l{font-size:11px;color:var(--text-3);font-weight:700}
+.sv-v{font-size:13.5px;font-weight:800;margin-top:3px;word-break:break-word;line-height:1.35}
+.sv-v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600}
+.sv-sep{margin-top:14px;margin-bottom:2px;font-size:12px;font-weight:800;color:var(--text-2);letter-spacing:.3px}
+.sv-ok{color:#7ff0c1}.sv-warn{color:#fbbf24;font-size:12px}
+
 </style>
 
 <script>
