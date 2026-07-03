@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}">
+  <script>window.CURRENT_USER_ID = {{ (current_user.id if current_user else 'guest')|tojson }};</script>
   <script src="{{ url_for('static', filename='themes.js') }}" defer></script>
   <script src="{{ url_for('static', filename='reply-swipe.js') }}" defer></script>
   <script src="{{ url_for('static', filename='msg-actions.js') }}" defer></script>

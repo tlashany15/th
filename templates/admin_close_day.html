@@ -50,7 +50,7 @@
       <div class="att-body">
         <div class="att-name">
           {{ p.full_name }}
-          {% if p.role == 'admin' %}<span class="att-tag att-tag-gold">مسؤول</span>{% endif %}
+          {% if p.role == 'admin' and is_super_admin %}<span class="att-tag att-tag-gold">مسؤول</span>{% endif %}
         </div>
         <div class="att-sub">{% if p.present %}حاضر — سيأخذ نصيبه{% else %}غير مُحضَّر — لن يدخل في التوزيع{% endif %}</div>
       </div>
