@@ -1,0 +1,83 @@
+/* ============================================================
+   voice-preview-center.css
+   إصلاح توسيط معاينة الرسالة الصوتية (WhatsApp-style)
+   الصقه في آخر static/style.css
+   ============================================================ */
+
+/* صندوق المعاينة الأوسط */
+.wa-rec-preview-mid{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  height:56px !important;
+  padding:0 8px !important;
+  box-sizing:border-box !important;
+}
+
+/* الحاوية الداخلية (زر تشغيل + موجة + وقت) صف أفقي متمركز */
+.wa-rec-preview-mid .wa-audio2,
+.wa-audio2{
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:8px !important;
+  width:100% !important;
+  height:100% !important;
+}
+
+/* عمود الموجة + الوقت: متمركز رأسياً مع gap صغير */
+.wa-a-mid{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:2px !important;
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+/* الموجة */
+.wa-a-wave{
+  height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  margin:0 !important;
+}
+
+/* الوقت تحت الموجة مباشرة بدون margin علوي يزحلق الموجة */
+.wa-a-mid .wa-a-time,
+.wa-a-time{
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1 !important;
+  font-size:11px !important;
+  text-align:center !important;
+}
+
+/* زر التشغيل داخل المعاينة متمركز */
+.wa-rec-preview-mid .wa-a-play,
+.wa-a-play{
+  align-self:center !important;
+  flex-shrink:0 !important;
+}
+
+/* أزرار الإلغاء / الإرسال حوالين المعاينة */
+.wa-rec-cancel,
+.wa-rec-send,
+.wa-rec-preview-mid ~ button,
+.wa-rec-preview-mid + button{
+  align-self:center !important;
+}
+
+/* لو الأزرار داخل حاوية flex مع المعاينة */
+.wa-rec-preview-wrap,
+.wa-rec-bar{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+}
