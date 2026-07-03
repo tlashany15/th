@@ -89,6 +89,7 @@ def init_db():
         );
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE;
 
         -- ملاحظات المسؤول (سلف / تنويهات)
         CREATE TABLE IF NOT EXISTS admin_notes (
@@ -989,11 +990,13 @@ def admin_close_day():
     cur = db.cursor()
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
     cur.execute(
-        """INSERT INTO day_closures(day, closed_by, total_count, no_deduct_total)
-           VALUES(%s,%s,%s,%s)
+        """INSERT INTO day_closures(day, closed_by, total_count, no_deduct_total, reopened)
+           VALUES(%s,%s,%s,%s,FALSE)
            ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count,
                                             no_deduct_total = EXCLUDED.no_deduct_total,
+                                            reopened = FALSE,
                                             closed_by = EXCLUDED.closed_by""",
         (day, u["id"], total, no_deduct_total),
     )
@@ -1085,7 +1088,9 @@ def admin_reopen_day():
     nxt = (request.form.get("next") or "").strip()
     db = get_db()
     cur = db.cursor()
-    cur.execute("DELETE FROM day_closures WHERE day=%s", (day,))
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
+    # نحتفظ بالأرقام (total_count / no_deduct_total) عشان متضيعش لما المسؤول يفتح اليوم تاني
+    cur.execute("UPDATE day_closures SET reopened=TRUE WHERE day=%s", (day,))
     db.commit()
     cur.close()
     flash("تم إعادة فتح اليوم", "info")
@@ -1139,8 +1144,12 @@ def admin_mark_attendance():
         cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s)", (user_id, day))
     db.commit()
     cur.close()
+    if request.headers.get("X-Requested-With") == "fetch":
+        return ("", 204)
     if nxt == "history":
         return redirect(url_for("history") + "#day-" + day)
+    if nxt == "close-page":
+        return redirect(url_for("admin_close_page", day=day))
     return redirect(url_for("admin_panel", day=day))
 
 
@@ -1162,11 +1171,12 @@ def admin_delete_entry(entry_id):
 @admin_required
 def admin_announce_tomorrow():
     u = current_user()
-    day = request.form.get("day") or (date.today() + timedelta(days=1)).isoformat()
+    raw_day = request.form.get("day") or (date.today() + timedelta(days=1)).isoformat()
+    day = _parse_day(raw_day).isoformat()
     ids = request.form.getlist("user_ids")
     if not ids:
         flash("اختر عامل واحد على الأقل", "error")
-        return redirect(url_for("admin_panel"))
+        return redirect(url_for("admin_tomorrow_page", day=day))
     db = get_db()
     cur = db.cursor()
     id_ints = [int(x) for x in ids]
@@ -1179,14 +1189,14 @@ def admin_announce_tomorrow():
                    VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body))
     db.commit()
     cur.close()
-    # 🔔 إشعار لكل عامل مدرج في حضور بكرة
+    # 🔔 إشعار لكل عامل مدرج في القائمة
     _notify_users(id_ints,
-                  "🗓️ حضورك مطلوب بكرة",
-                  f"يوم {day} — اضغط لعرض التفاصيل",
+                  "🗓️ حضورك مطلوب يوم " + day,
+                  f"اضغط لعرض التفاصيل في الجروب",
                   url=url_for("group_room"),
                   type_="attendance")
-    flash("تم نشر قائمة حضور الغد + إرسال إشعار لكل عامل ✓", "success")
-    return redirect(url_for("admin_panel"))
+    flash(f"تم نشر قائمة حضور يوم {day} + إرسال إشعار لكل عامل ✓", "success")
+    return redirect(url_for("admin_tomorrow_page", day=day))
 
 
 @app.route("/admin/users", methods=["GET", "POST"])
@@ -1250,13 +1260,16 @@ def admin_close_page():
     is_today = (day_s == _date.today().isoformat())
     db = get_db()
     cur = db.cursor()
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
     day_total = cur.fetchone()["s"]
-    cur.execute("SELECT total_count, no_deduct_total FROM day_closures WHERE day=%s", (day_s,))
+    cur.execute("SELECT total_count, no_deduct_total, reopened FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
-    closed = _row is not None
+    has_saved = _row is not None
+    closed = has_saved and not (_row.get("reopened") if isinstance(_row, dict) else _row["reopened"])
     no_deduct_total = 0
-    if closed:
+    # نعرض القيم المحفوظة حتى لو اليوم مفتوح تاني — عشان المسؤول ميعيدش كتابتها
+    if has_saved:
         day_total = _row["total_count"]
         no_deduct_total = _row["no_deduct_total"] or 0
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
@@ -1336,12 +1349,25 @@ def worker_profile():
 def admin_tomorrow_page():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT id, full_name FROM users WHERE role='worker' ORDER BY full_name")
+    # كل المستخدمين (بمن فيهم المسؤولين) يقدروا يظهروا في قائمة الحضور
+    cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
     all_workers = cur.fetchall()
     cur.close()
+    today_s = date.today().isoformat()
     tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    after_tomorrow = (date.today() + timedelta(days=2)).isoformat()
+    # اليوم المختار من الـ query string (لو موجود)، غير كده الافتراضي = بكرة
+    selected = (request.args.get("day") or tomorrow)
+    try:
+        _parse_day(selected)
+    except Exception:
+        selected = tomorrow
     return render_template("admin_tomorrow.html",
-                           all_workers=all_workers, tomorrow=tomorrow)
+                           all_workers=all_workers,
+                           tomorrow=tomorrow,
+                           today=today_s,
+                           after_tomorrow=after_tomorrow,
+                           selected=selected)
 
 
 # ---- بروفايل المسؤول: تغيير الاسم / كلمة السر ----
@@ -2597,3 +2623,233 @@ def _handle_any_exc(e):
         return ("<pre style='direction:ltr;text-align:left'>" + _tb.format_exc() + "</pre>", 500)
     return ("حدث خطأ غير متوقع. حاول تاني.", 500)
 
+
+
+# =========================================================================
+# =================== إدارة المساحة (Storage) — للمسؤول الرئيسي ===========
+# =========================================================================
+import json as _json_st
+from datetime import datetime as _dt_st
+
+_BACKUP_DIR = os.path.join(app.root_path, "backups")
+os.makedirs(_BACKUP_DIR, exist_ok=True)
+
+# الجداول اللي المسؤول ممكن يحذف منها لتفريغ مساحة
+_STORAGE_TABLES = [
+    ("chat_messages",     "رسائل الدردشة الخاصة",  "created_at"),
+    ("group_messages",    "رسائل الجروب",           "created_at"),
+    ("notifications",     "الإشعارات",              "created_at"),
+    ("admin_notes",       "ملاحظات المسؤول",        "created_at"),
+    ("vaccinations",      "تسجيلات اللقاحات",       "created_at"),
+    ("attendance",        "سجلات الحضور",           "checked_in_at"),
+    ("group_reads",       "قراءات الجروب",          None),
+    ("chat_reactions",    "تفاعلات الدردشة",        "created_at"),
+    ("group_reactions",   "تفاعلات الجروب",         "created_at"),
+    ("voice_signals",     "إشارات المكالمات",       "created_at"),
+    ("voice_participants","مشاركو المكالمات",       None),
+    ("fcm_tokens",        "توكنات الإشعارات",       "last_seen"),
+]
+
+def _fmt_bytes(n):
+    n = int(n or 0)
+    for u in ["B", "KB", "MB", "GB", "TB"]:
+        if n < 1024:
+            return f"{n:.1f} {u}" if u != "B" else f"{n} B"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
+def _table_stats():
+    """يرجّع حجم وعدد كل جدول من _STORAGE_TABLES."""
+    db = get_db(); cur = db.cursor()
+    rows = []
+    total_bytes = 0
+    for tname, label, date_col in _STORAGE_TABLES:
+        try:
+            cur.execute(f"SELECT pg_total_relation_size(%s) AS sz", (tname,))
+            sz = int(cur.fetchone()["sz"] or 0)
+            cur.execute(f"SELECT COUNT(*) AS c FROM {tname}")
+            cnt = int(cur.fetchone()["c"] or 0)
+            rows.append({
+                "table": tname, "label": label, "size": sz,
+                "size_h": _fmt_bytes(sz), "count": cnt,
+                "date_col": date_col,
+            })
+            total_bytes += sz
+        except Exception as e:
+            print(f"stats err {tname}:", e)
+    # حجم كل قاعدة البيانات
+    try:
+        cur.execute("SELECT pg_database_size(current_database()) AS db_sz")
+        db_size = int(cur.fetchone()["db_sz"] or 0)
+    except Exception:
+        db_size = total_bytes
+    cur.close()
+    rows.sort(key=lambda r: -r["size"])
+    return {"tables": rows, "total": total_bytes, "db_size": db_size,
+            "db_size_h": _fmt_bytes(db_size)}
+
+
+def _backup_before_delete(table, where_sql, params):
+    """يعمل export CSV/JSON للسطور المستهدفة قبل حذفها."""
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute(f"SELECT * FROM {table} {where_sql}", params)
+        rows = cur.fetchall()
+        cur.close()
+        if not rows:
+            return None, 0
+        ts = _dt_st.utcnow().strftime("%Y%m%d_%H%M%S")
+        fname = f"{table}_{ts}.json"
+        fpath = os.path.join(_BACKUP_DIR, fname)
+        # تحويل التواريخ لسترنج قابل للسريلَة
+        def _ser(o):
+            if hasattr(o, "isoformat"):
+                return o.isoformat()
+            return str(o)
+        with open(fpath, "w", encoding="utf-8") as f:
+            _json_st.dump([dict(r) for r in rows], f, ensure_ascii=False,
+                          default=_ser, indent=2)
+        return fname, len(rows)
+    except Exception as e:
+        print("backup err:", e)
+        return None, 0
+
+
+def _list_backups():
+    try:
+        files = []
+        for name in sorted(os.listdir(_BACKUP_DIR), reverse=True):
+            fpath = os.path.join(_BACKUP_DIR, name)
+            if os.path.isfile(fpath):
+                st = os.stat(fpath)
+                files.append({
+                    "name": name,
+                    "size": st.st_size,
+                    "size_h": _fmt_bytes(st.st_size),
+                    "at": _dt_st.utcfromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
+                })
+        return files
+    except Exception:
+        return []
+
+
+# حد المساحة (بايت) اللي بعده يبدأ الأرشيف التلقائي — افتراضي 400MB
+_AUTO_ARCHIVE_LIMIT = int(os.environ.get("AUTO_ARCHIVE_BYTES", str(400 * 1024 * 1024)))
+_AUTO_ARCHIVE_KEEP_DAYS = int(os.environ.get("AUTO_ARCHIVE_KEEP_DAYS", "90"))
+
+def _auto_archive_if_needed():
+    """لو حجم الـ DB عدّى الحد الأقصى، بيأرشف أقدم رسائل/إشعارات في ملف JSON ويحذفهم."""
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute("SELECT pg_database_size(current_database()) AS sz")
+        sz = int(cur.fetchone()["sz"] or 0)
+        if sz < _AUTO_ARCHIVE_LIMIT:
+            cur.close()
+            return None
+        # نأرشف الأقدم من X يوم من chat_messages ثم group_messages ثم notifications
+        archived_any = False
+        for tname in ("chat_messages", "group_messages", "notifications"):
+            where = f"WHERE created_at < NOW() - INTERVAL '{_AUTO_ARCHIVE_KEEP_DAYS} days'"
+            fname, n = _backup_before_delete(tname, where, ())
+            if n > 0:
+                cur.execute(f"DELETE FROM {tname} {where}")
+                db.commit()
+                archived_any = True
+                print(f"[auto-archive] {tname}: {n} rows -> {fname}")
+        cur.close()
+        return archived_any
+    except Exception as e:
+        print("auto-archive err:", e)
+        return None
+
+
+@app.route("/admin/storage")
+@super_admin_required
+def admin_storage():
+    stats = _table_stats()
+    backups = _list_backups()
+    limit_h = _fmt_bytes(_AUTO_ARCHIVE_LIMIT)
+    usage_pct = int(min(100, (stats["db_size"] / _AUTO_ARCHIVE_LIMIT) * 100)) if _AUTO_ARCHIVE_LIMIT > 0 else 0
+    return render_template("admin_storage.html",
+                           stats=stats, backups=backups,
+                           limit_h=limit_h, usage_pct=usage_pct,
+                           keep_days=_AUTO_ARCHIVE_KEEP_DAYS)
+
+
+@app.route("/admin/storage/cleanup", methods=["POST"])
+@super_admin_required
+def admin_storage_cleanup():
+    table = (request.form.get("table") or "").strip()
+    days_raw = request.form.get("days") or "0"
+    try:
+        days = max(0, int(days_raw))
+    except ValueError:
+        days = 0
+    valid = {t[0]: t for t in _STORAGE_TABLES}
+    if table not in valid:
+        flash("جدول غير معروف", "error")
+        return redirect(url_for("admin_storage"))
+    _tname, _label, date_col = valid[table]
+    db = get_db(); cur = db.cursor()
+    if days == 0:
+        where_sql, params = "", ()
+    elif date_col:
+        where_sql = f"WHERE {date_col} < NOW() - INTERVAL '{days} days'"
+        params = ()
+    else:
+        flash("الجدول ده مفيهوش عمود تاريخ يقدر يفلتر عليه", "error")
+        return redirect(url_for("admin_storage"))
+    # نسخة احتياطية أولاً
+    fname, n = _backup_before_delete(table, where_sql, params)
+    if n == 0:
+        cur.close()
+        flash("لا يوجد سطور مطابقة للحذف", "info")
+        return redirect(url_for("admin_storage"))
+    cur.execute(f"DELETE FROM {table} {where_sql}", params)
+    db.commit(); cur.close()
+    flash(f"تم حذف {n} سطر من ({_label}) وحفظهم في ملف: {fname}", "success")
+    return redirect(url_for("admin_storage"))
+
+
+@app.route("/admin/storage/download/<name>")
+@super_admin_required
+def admin_storage_download(name):
+    from flask import send_from_directory
+    # نمنع الخروج بره المجلد
+    if "/" in name or "\\" in name or ".." in name:
+        abort(400)
+    fpath = os.path.join(_BACKUP_DIR, name)
+    if not os.path.isfile(fpath):
+        abort(404)
+    return send_from_directory(_BACKUP_DIR, name, as_attachment=True)
+
+
+@app.route("/admin/storage/delete-backup", methods=["POST"])
+@super_admin_required
+def admin_storage_delete_backup():
+    name = (request.form.get("name") or "").strip()
+    if "/" in name or "\\" in name or ".." in name or not name:
+        flash("اسم ملف غير صالح", "error")
+        return redirect(url_for("admin_storage"))
+    fpath = os.path.join(_BACKUP_DIR, name)
+    if os.path.isfile(fpath):
+        try:
+            os.remove(fpath)
+            flash("تم حذف الملف الاحتياطي", "success")
+        except Exception as e:
+            flash(f"خطأ في الحذف: {e}", "error")
+    return redirect(url_for("admin_storage"))
+
+
+@app.route("/admin/storage/auto-archive", methods=["POST"])
+@super_admin_required
+def admin_storage_auto_archive():
+    r = _auto_archive_if_needed()
+    if r is None:
+        flash("لسه المساحة تحت الحد — مفيش داعي للأرشيف", "info")
+    elif r:
+        flash("تم أرشفة السطور القديمة وحذفها ✓", "success")
+    else:
+        flash("مفيش سطور قديمة تتأرشف", "info")
+    return redirect(url_for("admin_storage"))
