@@ -81,7 +81,7 @@
     <a href="{{ url_for('admin_panel') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>اللوحة الرئيسية</span></a>
     <a href="{{ url_for('admin_close_page', day=today) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
     <a href="{{ url_for('admin_tomorrow_page') }}"><span class="snav-ico">{{ snav_icon('tomorrow') }}</span><span>تحضير بكرة</span></a>
-    <a href="{{ url_for('admin_users') }}"><span class="snav-ico">{{ snav_icon('users') }}</span><span>إدارة المستخدمين</span></a>
+    {% if is_super_admin %}<a href="{{ url_for('admin_users') }}"><span class="snav-ico">{{ snav_icon('users') }}</span><span>إدارة المستخدمين</span></a>{% endif %}
     <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>السجلات</span></a>
     <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>تقرير فترة مخصّصة</span></a>
@@ -141,10 +141,12 @@
       {{ snav_icon('dashboard') }}
       اللوحة
     </a>
+    {% if is_super_admin %}
     <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
       {{ snav_icon('users') }}
       المستخدمون
     </a>
+    {% endif %}
     <a href="{{ url_for('admin_range_report') }}" class="{% if request.endpoint == 'admin_range_report' %}active{% endif %}">
       {{ snav_icon('range') }}
       تقرير
