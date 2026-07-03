@@ -278,11 +278,18 @@
       .then(function(d){
         appendMessages(d.messages || []);
         removeDeleted(d.deleted_ids || []);
+        (d.messages || []).forEach(function(m){
+          if (m.reactions && m.reactions.length && window.__renderReactions)
+            window.__renderReactions(m.id, m.reactions);
+        });
+        if (window.__applyReactionsUpdates) window.__applyReactionsUpdates(d.reactions_updates);
       }).catch(function(){})
       .finally(function(){ pollBusy = false; });
   }
+  window.__MsgReactionsScope = { type:'group' };
   poll();
   setInterval(poll, 3000);
+
 
   textInput.addEventListener('input', function(){
     var hasText = textInput.value.trim().length > 0;

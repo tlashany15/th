@@ -75,7 +75,7 @@
     </li>
 
     {% for c in contacts %}
-    <li class="tg-contact-item" hidden>
+    <li class="tg-contact-item {% if not c.last_time %}tg-contact-hidden{% endif %}" {% if not c.last_time %}hidden{% endif %}>
       <a class="tg-row" href="{{ url_for('chat_room', other_id=c.id) }}" data-name="{{ c.full_name|lower }}">
         <div class="tg-av-wrap">
           {% if c.avatar %}<img class="tg-av" src="{{ c.avatar }}" alt="">
@@ -99,6 +99,8 @@
     {% endfor %}
     <li class="tg-empty" id="chatsSearchEmpty" hidden>مفيش نتائج مطابقة</li>
 
+
+
   </ul>
 </div>
 
@@ -116,9 +118,14 @@
     var q = (s.value || '').trim().toLowerCase();
     var anyVisible = false;
     contactItems.forEach(function(li){
-      if (!q){ li.hidden = true; return; }
       var row = li.querySelector('.tg-row');
       var name = (row && row.dataset.name) || '';
+      var isDefaultHidden = li.classList.contains('tg-contact-hidden');
+      if (!q){
+        // بدون بحث: أظهر فقط الدردشات ال ليها سجل
+        li.hidden = isDefaultHidden;
+        return;
+      }
       var match = name.indexOf(q) !== -1;
       li.hidden = !match;
       if (match) anyVisible = true;
@@ -127,6 +134,7 @@
   }
   s && s.addEventListener('input', applyFilter);
   applyFilter();
+
 
   function relTime(iso){
     var d = new Date(iso); if (isNaN(d)) return '';

@@ -200,11 +200,21 @@
         appendMessages(d.messages || []);
         refreshReadTicks(d.read_ids || []);
         updateStatus(!!d.other_online, d.other_last_seen);
+        // ارسم التفاعلات للرسائل الجديدة
+        (d.messages || []).forEach(function(m){
+          if (m.reactions && m.reactions.length && window.__renderReactions)
+            window.__renderReactions(m.id, m.reactions);
+        });
+        // حدّث التفاعلات على الرسائل الظاهرة
+        if (window.__applyReactionsUpdates) window.__applyReactionsUpdates(d.reactions_updates);
       }).catch(function(){})
       .finally(function(){ pollBusy = false; });
   }
+  // نطاق التفاعلات للـ msg-actions.js
+  window.__MsgReactionsScope = { type:'chat', otherId: OTHER_ID };
   poll();
   pollTimer = setInterval(poll, 2500);
+
 
   // Faster refresh + presence ping on visibility change
   document.addEventListener('visibilitychange', function(){
