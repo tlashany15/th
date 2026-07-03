@@ -271,6 +271,19 @@ def init_db():
             can_delete BOOLEAN NOT NULL DEFAULT FALSE,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+
+        -- ==== تعديلات (إضافي / خصم) لكل عامل في يوم معيّن ====
+        CREATE TABLE IF NOT EXISTS worker_adjustments (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day DATE NOT NULL,
+            amount INTEGER NOT NULL,       -- + إضافي / - خصم (بالجنيه)
+            reason TEXT,
+            created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(user_id, day)
+        );
+        CREATE INDEX IF NOT EXISTS idx_wadj_user ON worker_adjustments(user_id, day DESC);
     """)
     # نتأكد إن فيه مسؤول برقم "1"
     cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
@@ -854,6 +867,14 @@ def worker_stats(worker_id):
         ORDER BY c.day ASC
     """, (worker_id, start_d, end_d))
     rows = cur.fetchall()
+
+    # ==== جلب تعديلات (إضافي/خصم) لهذا العامل خلال الشهر ====
+    cur.execute("""
+        SELECT day, amount, reason FROM worker_adjustments
+        WHERE user_id=%s AND day BETWEEN %s AND %s
+        ORDER BY day ASC
+    """, (worker_id, start_d, end_d))
+    adj_rows = cur.fetchall()
     cur.close()
 
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
@@ -882,13 +903,37 @@ def worker_stats(worker_id):
             "share": round(share, 2),
         })
 
+    share_int = int(round(total_share))
+    money_egp = share_int * 55  # جنيه بدون سنتات
+    bonus_list = []
+    deduct_list = []
+    bonus_total = 0
+    deduct_total = 0
+    for a in adj_rows:
+        d = a["day"]
+        d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
+        wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
+        amt = int(a["amount"] or 0)
+        item = {"date": d_s, "weekday": wd, "amount": abs(amt), "reason": a["reason"] or ""}
+        if amt >= 0:
+            bonus_list.append(item); bonus_total += amt
+        else:
+            deduct_list.append(item); deduct_total += -amt
+    net_money = money_egp + bonus_total - deduct_total
+
     month_label = f"{AR_MONTHS[m-1]} {y}"
     return render_template("worker_stats.html",
                            worker=worker, days=days_list,
                            total_share=round(total_share, 2),
+                           share_int=share_int,
+                           money_egp=money_egp,
+                           bonus_list=bonus_list, deduct_list=deduct_list,
+                           bonus_total=bonus_total, deduct_total=deduct_total,
+                           net_money=net_money,
                            total_month=total_month,
                            days_attended=days_attended,
                            month_label=month_label,
+                           is_admin_view=(me["role"] == "admin"),
                            is_self=(me["id"] == worker_id))
 
 
@@ -1078,6 +1123,44 @@ def admin_close_day():
     except Exception as _e:
         print("period summary error:", _e)
     flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
+    return redirect(url_for("admin_close_page", day=day))
+
+
+
+# ---- إضافي/خصم لكل عامل في يوم معيّن (للمسؤول فقط) ----
+@app.route("/admin/worker-adjust", methods=["POST"])
+@admin_required
+def admin_worker_adjust():
+    u = current_user()
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+    except (TypeError, ValueError):
+        user_id = 0
+    day = _parse_day(request.form.get("day")).isoformat()
+    try:
+        amount = int(request.form.get("amount") or 0)
+    except (TypeError, ValueError):
+        amount = 0
+    reason = (request.form.get("reason") or "").strip() or None
+    if not user_id:
+        return jsonify({"ok": False, "err": "user_id"}), 400
+    db = get_db(); cur = db.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS worker_adjustments (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, day DATE NOT NULL, amount INTEGER NOT NULL, reason TEXT, created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(user_id, day))")
+    if amount == 0:
+        cur.execute("DELETE FROM worker_adjustments WHERE user_id=%s AND day=%s", (user_id, day))
+    else:
+        cur.execute(
+            """INSERT INTO worker_adjustments(user_id, day, amount, reason, created_by)
+               VALUES(%s,%s,%s,%s,%s)
+               ON CONFLICT (user_id, day) DO UPDATE SET
+                 amount=EXCLUDED.amount, reason=EXCLUDED.reason,
+                 created_by=EXCLUDED.created_by, created_at=NOW()""",
+            (user_id, day, amount, reason, u["id"]),
+        )
+    db.commit(); cur.close()
+    if request.headers.get("X-Requested-With") == "fetch":
+        return jsonify({"ok": True, "amount": amount})
+    flash("تم حفظ التعديل ✓", "success")
     return redirect(url_for("admin_close_page", day=day))
 
 
@@ -1278,13 +1361,15 @@ def admin_close_page():
     _admin_u = current_user()
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (_admin_u["id"], day_s))
     admin_checked_in = cur.fetchone() is not None
-    # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور
+    # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور + التعديل
     cur.execute("""
         SELECT u.id, u.full_name, u.role, u.avatar,
-               EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present
+               EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present,
+               COALESCE((SELECT amount FROM worker_adjustments wa
+                          WHERE wa.user_id=u.id AND wa.day=%s), 0) AS adjust
         FROM users u
         ORDER BY (u.role='admin') DESC, u.full_name
-    """, (day_s,))
+    """, (day_s, day_s))
     all_people = cur.fetchall()
     cur.close()
     return render_template("admin_close_day.html",
@@ -2782,6 +2867,55 @@ def _auto_archive_if_needed():
         return None
 
 
+def _server_info():
+    """معلومات فعلية 100% عن السيرفر — كل قيمة مقروءة من مصدرها المباشر."""
+    import sys as _sys, platform as _plat, time as _time, socket as _sock
+    info = {}
+    # Runtime
+    info["python"] = _sys.version.split()[0]
+    info["platform"] = _plat.platform()
+    info["machine"] = _plat.machine() or "-"
+    try:
+        import flask as _flk; info["flask"] = _flk.__version__
+    except Exception:
+        info["flask"] = "-"
+    try:
+        info["psycopg2"] = psycopg2.__version__.split(" ")[0]
+    except Exception:
+        info["psycopg2"] = "-"
+    # Hosting
+    info["host"] = _sock.gethostname()
+    info["region"] = os.environ.get("VERCEL_REGION") or os.environ.get("AWS_REGION") or "-"
+    info["env"] = os.environ.get("VERCEL_ENV") or ("vercel" if os.environ.get("VERCEL") else ("lambda" if os.environ.get("AWS_LAMBDA_FUNCTION_NAME") else "local"))
+    # Uptime (منذ استيراد الموديول — دقيق للـ instance الحالي)
+    info["boot_at"] = getattr(app, "_boot_time", None)
+    if info["boot_at"] is None:
+        info["boot_at"] = _time.time(); app._boot_time = info["boot_at"]
+    up = max(0, int(_time.time() - info["boot_at"]))
+    h, r = divmod(up, 3600); m, s = divmod(r, 60)
+    info["uptime"] = f"{h}س {m}د {s}ث" if h else f"{m}د {s}ث"
+    # DB
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute("SELECT version() AS v, current_database() AS d, NOW() AS n, current_user AS u")
+        r = cur.fetchone()
+        info["db_version"] = (r["v"] or "").split(" on ")[0]
+        info["db_name"] = r["d"]; info["db_user"] = r["u"]
+        info["db_time"] = r["n"].isoformat(timespec="seconds") if hasattr(r["n"],"isoformat") else str(r["n"])
+        cur.execute("SELECT pg_size_pretty(pg_database_size(current_database())) AS s, pg_database_size(current_database()) AS b")
+        r = cur.fetchone()
+        info["db_size_pretty"] = r["s"]; info["db_size_bytes"] = int(r["b"] or 0)
+        cur.execute("SELECT COUNT(*) AS c FROM pg_stat_activity WHERE datname = current_database()")
+        info["db_connections"] = int(cur.fetchone()["c"] or 0)
+        cur.execute("SELECT COUNT(*) AS c FROM users")
+        info["users_count"] = int(cur.fetchone()["c"] or 0)
+        cur.close()
+        info["db_ok"] = True
+    except Exception as e:
+        info["db_ok"] = False; info["db_error"] = str(e)[:180]
+    return info
+
+
 @app.route("/admin/storage")
 @super_admin_required
 def admin_storage():
@@ -2792,7 +2926,8 @@ def admin_storage():
     return render_template("admin_storage.html",
                            stats=stats, backups=backups,
                            limit_h=limit_h, usage_pct=usage_pct,
-                           keep_days=_AUTO_ARCHIVE_KEEP_DAYS)
+                           keep_days=_AUTO_ARCHIVE_KEEP_DAYS,
+                           server_info=_server_info())
 
 
 @app.route("/admin/storage/cleanup", methods=["POST"])
