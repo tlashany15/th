@@ -64,7 +64,7 @@
   <div class="att-list">
     {% for p in all_people %}
     <div class="att-row {% if p.present %}is-on{% endif %}">
-      <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{{ (p.full_name or '?')[:1] }}</div>
+      <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{% if p.avatar %}<img src="{{ p.avatar }}" alt="">{% else %}{{ (p.full_name or '?')[:1] }}{% endif %}</div>
       <div class="att-body">
         <div class="att-name">
           {{ p.full_name }}
@@ -170,7 +170,8 @@
 .att-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .att-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.2s}
 .att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.35)}
-.att-av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0}
+.att-av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;overflow:hidden}
+.att-av img{width:100%;height:100%;object-fit:cover}
 .att-body{flex:1;min-width:0}
 .att-name{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:6px}
 .att-sub{font-size:11.5px;color:var(--text-3);margin-top:2px}

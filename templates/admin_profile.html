@@ -9,11 +9,40 @@
         بياناتي الشخصية
       </span>
       <h1 class="hero-h1">تعديل بياناتي</h1>
-      <p class="hero-sub">غيّر اسمك أو كلمة السر بتاعتك.</p>
+      {% if me.role == 'admin' %}
+      <p class="hero-sub">غيّر اسمك أو صورتك أو كلمة السر بتاعتك.</p>
+      {% else %}
+      <p class="hero-sub">تقدر تغيّر صورتك وكلمة السر بس.</p>
+      {% endif %}
     </div>
   </div>
 </section>
 
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">صورتك الشخصية</div>
+        <div class="sec-h-s">هتظهر بدل الحرف في كل مكان</div>
+      </div>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:flex;align-items:center;gap:14px;">
+    <div class="tg-me-av" style="width:64px;height:64px;">
+      {% if me.avatar %}<img src="{{ me.avatar }}" alt="">
+      {% else %}<div class="tg-me-av-fb" style="font-size:24px;">{{ (me.full_name or '?')[:1] }}</div>{% endif %}
+    </div>
+    <div style="flex:1;">
+      <input type="file" name="file" accept="image/*" required>
+      <button class="btn btn-primary" style="margin-top:8px;" type="submit">حفظ الصورة</button>
+    </div>
+  </form>
+</div>
+
+{% if me.role == 'admin' %}
 <div class="card">
   <div class="sec-head">
     <div class="sec-h-l">
@@ -39,6 +68,7 @@
     <button class="btn btn-primary btn-lg">حفظ التعديلات</button>
   </form>
 </div>
+{% endif %}
 
 <div class="card">
   <div class="sec-head">

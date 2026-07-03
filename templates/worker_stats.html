@@ -6,7 +6,7 @@
   <div class="hero-mesh"></div>
   <div class="hero-row" style="align-items:center;gap:14px;">
     <div class="sidebar-avatar" style="width:56px;height:56px;font-size:24px;flex-shrink:0;">
-      {{ (worker.full_name or '?')[:1] }}
+      {% if worker.avatar %}<img src="{{ worker.avatar }}" alt="">{% else %}{{ (worker.full_name or '?')[:1] }}{% endif %}
     </div>
     <div style="min-width:0;flex:1;">
       <span class="hero-chip">
