@@ -462,8 +462,9 @@ a{ color:inherit; text-decoration:none; }
   display:grid; place-items:center;
   font-weight:800; color:#fff; font-size:16px;
   background:linear-gradient(135deg,#3b82f6,#6366f1);
-  flex-shrink:0;
+  flex-shrink:0; overflow:hidden;
 }
+.wavatar img{ width:100%; height:100%; object-fit:cover; }
 .wavatar-0{ background:linear-gradient(135deg,#f97316,#ef4444); }
 .wavatar-1{ background:linear-gradient(135deg,#22c55e,#16a34a); }
 .wavatar-2{ background:linear-gradient(135deg,#3b82f6,#6366f1); }
@@ -1296,7 +1297,9 @@ a{ color:inherit; text-decoration:none; }
   background:linear-gradient(135deg,#ffbe57,#ef4444);
   color:#1a0800; font-weight:800; font-size:20px;
   display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
 }
+.sidebar-avatar img{ width:100%; height:100%; object-fit:cover; }
 .sidebar-name{ font-weight:700; font-size:15px; }
 .sidebar-role{ font-size:12px; opacity:0.75; margin-top:2px; }
 .sidebar-close{
@@ -1330,11 +1333,13 @@ a{ color:inherit; text-decoration:none; }
 }
 .sidebar-worker:hover{ background:rgba(255,190,87,0.08); }
 .sw-badge{
-  min-width:28px; height:28px; padding:0 8px; border-radius:14px;
+  min-width:28px; width:28px; height:28px; padding:0; border-radius:50%;
   background:linear-gradient(135deg,#ffbe57,#ef4444);
   color:#1a0800; font-weight:800; font-size:13px;
   display:inline-flex; align-items:center; justify-content:center;
+  overflow:hidden;
 }
+.sw-badge img{ width:100%; height:100%; object-fit:cover; }
 .sw-name{ font-size:14px; }
 
 /* إخفاء الـFAB القديم لو ظهر في أي صفحة */
