@@ -26,8 +26,10 @@
     var box = bubble.querySelector('.wa-reactions');
     if (!reactions || !reactions.length){
       if (box) box.remove();
+      bubble.classList.remove('has-reactions');
       return;
     }
+    bubble.classList.add('has-reactions');
     if (!box){
       box = document.createElement('div');
       box.className = 'wa-reactions';

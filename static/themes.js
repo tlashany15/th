@@ -28,17 +28,27 @@
     catch(e){ return defaultCustom(); }
   }
   function defaultCustom(){
-    return { bgColor:'#0e1621', bgImage:'', me:'#2b5278', meText:'#ffffff', them:'#182533', themText:'#ffffff' };
+    return { bgColor:'#0e1621', bgImage:'', bgBlur:0, me:'#2b5278', meText:'#ffffff', them:'#182533', themText:'#ffffff' };
   }
   function saveCustom(obj){ try{ localStorage.setItem(KEY_CUSTOM, JSON.stringify(obj)); }catch(e){} }
 
   function applyCustomStyle(){
     var c = getCustom();
+    var blur = Math.max(0, Math.min(30, parseInt(c.bgBlur || 0, 10) || 0));
     var bg = c.bgImage
       ? "url('"+c.bgImage+"') center/cover no-repeat, "+c.bgColor
       : c.bgColor;
+    // We render bg on ::before so we can blur ONLY the background layer, not the messages.
     var css =
-      'html[data-chat-theme="custom"] .wa-msgs{ background:'+bg+' !important; }'+
+      'html[data-chat-theme="custom"] .wa-msgs{ background:'+c.bgColor+' !important; position:relative; isolation:isolate; }'+
+      'html[data-chat-theme="custom"] .wa-msgs::before{'+
+        ' content:""; position:absolute; inset:0;'+
+        ' background:'+bg+';'+
+        ' filter: blur('+blur+'px);'+
+        ' transform: scale('+(blur>0?1.06:1)+');'+
+        ' z-index:0; pointer-events:none;'+
+      '}'+
+      'html[data-chat-theme="custom"] .wa-msgs > *{ position:relative; z-index:1; }'+
       'html[data-chat-theme="custom"] .wa-head,'+
       'html[data-chat-theme="custom"] .wa-composer{ background:'+c.bgColor+'; border-color:rgba(0,0,0,.3); }'+
       'html[data-chat-theme="custom"] .wa-me .wa-bubble{ background:'+c.me+' !important; color:'+c.meText+' !important; border:none; }'+
@@ -105,7 +115,8 @@
       if (ev.target.closest('[data-th-close]')){ closeModal(); return; }
       if (ev.target.closest('[data-edit-custom]')){
         ev.stopPropagation(); ev.preventDefault();
-        m.querySelector('.th-custom-editor').classList.add('is-open');
+        var ed = m.querySelector('.th-custom-editor');
+        ed.classList.add('is-open'); m.classList.add('is-editing');
         return;
       }
       var card = ev.target.closest('.th-card');
@@ -114,7 +125,8 @@
         apply(id);
         m.querySelectorAll('.th-card').forEach(function(c){ c.classList.toggle('is-active', c.dataset.theme === id); });
         if (id === 'custom'){
-          m.querySelector('.th-custom-editor').classList.add('is-open');
+          var ed = m.querySelector('.th-custom-editor');
+          ed.classList.add('is-open'); m.classList.add('is-editing');
         } else {
           setTimeout(closeModal, 180);
         }
@@ -127,13 +139,20 @@
   function buildCustomEditor(){
     var c = getCustom();
     return '<div class="th-custom-editor">'+
-      '<div class="th-custom-title">تخصيص الثيم</div>'+
+      '<div class="th-custom-title">'+
+        '<button type="button" class="th-custom-back" data-c-back aria-label="رجوع">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>'+
+        '</button>'+
+        '<span>تخصيص الثيم</span>'+
+      '</div>'+
       '<div class="th-custom-row"><label>لون الخلفية</label><input type="color" data-c="bgColor" value="'+c.bgColor+'"></div>'+
       '<div class="th-custom-row"><label>صورة الخلفية</label>'+
         '<div class="th-custom-imgctrls">'+
           '<label class="th-custom-file"><input type="file" accept="image/*" data-c-file="bgImage" hidden>اختر صورة</label>'+
           '<button type="button" class="th-custom-clear" data-c-clear="bgImage">مسح</button>'+
         '</div></div>'+
+      '<div class="th-custom-row"><label>ضبابية الخلفية <span class="th-blur-val" data-blur-val>'+(c.bgBlur||0)+'px</span></label>'+
+        '<input type="range" min="0" max="30" step="1" data-c="bgBlur" value="'+(c.bgBlur||0)+'" class="th-custom-range"></div>'+
       '<div class="th-custom-row"><label>لون فقاعتي</label><input type="color" data-c="me" value="'+c.me+'"></div>'+
       '<div class="th-custom-row"><label>لون النص عندي</label><input type="color" data-c="meText" value="'+c.meText+'"></div>'+
       '<div class="th-custom-row"><label>لون فقاعة الآخر</label><input type="color" data-c="them" value="'+c.them+'"></div>'+
@@ -153,6 +172,7 @@
         var c = getCustom(); c[el.dataset.c] = el.value; saveCustom(c);
       }
     });
+    editor.addEventListener('input', function(ev){ if(ev.target && ev.target.dataset && ev.target.dataset.c==='bgBlur'){ var lbl=editor.querySelector('[data-blur-val]'); if(lbl) lbl.textContent = ev.target.value + 'px'; var c=getCustom(); c.bgBlur=ev.target.value; saveCustom(c); applyCustomStyle(); } });
     editor.addEventListener('change', function(ev){
       var el = ev.target;
       if (el.dataset.cFile){

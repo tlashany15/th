@@ -140,11 +140,16 @@
     function positionPop(){
       if (!pop || pop.style.display === 'none') return;
       var r = composer.getBoundingClientRect();
-      pop.style.left = Math.max(8, r.left) + 'px';
-      pop.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+      pop.style.left = r.left + 'px';
+      pop.style.width = r.width + 'px';
       pop.style.bottom = (window.innerHeight - r.top + 6) + 'px';
-      pop.style.top = 'auto';
-      pop.style.maxHeight = Math.min(240, r.top - 20) + 'px';
+    }
+    function ensureMembers(cb){
+      if (window.__GroupMembers && window.__GroupMembers.length){ cb(); return; }
+      fetch('/group/members', {credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){ window.__GroupMembers = (d.members || []); cb(); })
+        .catch(function(){ cb(); });
     }
     function hidePop(){ if (pop){ pop.style.display='none'; pop.innerHTML=''; } popItems=[]; popStart=-1; }
     function render(){
@@ -157,8 +162,7 @@
               +  av + '<span class="wmp-name">' + esc(m.full_name) + '</span>'
               +'</div>';
       }).join('');
-      pop.style.display = 'block';
-      positionPop();
+      pop.style.display = 'block'; positionPop();
       Array.from(pop.querySelectorAll('.wa-mention-pop-item')).forEach(function(el){
         el.addEventListener('mousedown', function(ev){
           ev.preventDefault();
@@ -170,8 +174,6 @@
         }, {passive:false});
       });
     }
-    window.addEventListener('resize', positionPop);
-    window.addEventListener('scroll', positionPop, true);
     function insertMention(m){
       if (!m) return;
       var v = textInput.value;
@@ -183,31 +185,19 @@
       hidePop();
       textInput.focus();
     }
-    var _membersFetching = false;
-    function ensureMembers(cb){
-      if (window.__GroupMembers && window.__GroupMembers.length){ cb(); return; }
-      if (_membersFetching) { setTimeout(function(){ ensureMembers(cb); }, 200); return; }
-      _membersFetching = true;
-      fetch('/group/members', {credentials:'same-origin'})
-        .then(function(r){ return r.json(); })
-        .then(function(d){ window.__GroupMembers = (d.members || []); _membersFetching = false; cb(); })
-        .catch(function(){ _membersFetching = false; });
-    }
     textInput.addEventListener('input', function(){
       var v = textInput.value, pos = textInput.selectionStart;
       var upto = v.slice(0, pos);
       var atMatch = /@([^\s@]{0,20})$/.exec(upto);
       if (!atMatch){ hidePop(); return; }
+      if (!window.__GroupMembers){ ensureMembers(function(){ textInput.dispatchEvent(new Event('input')); }); return; }
       popStart = pos - atMatch[0].length;
       var q = (atMatch[1] || '').toLowerCase();
-      ensureMembers(function(){
-        var list = window.__GroupMembers || [];
-        popItems = list.filter(function(m){
-          return m && m.full_name && (q === '' || m.full_name.toLowerCase().indexOf(q) !== -1);
-        }).slice(0, 8);
-        popIdx = 0;
-        ensurePop(); render();
-      });
+      popItems = window.__GroupMembers.filter(function(m){
+        return m && m.full_name && m.full_name.toLowerCase().indexOf(q) !== -1;
+      }).slice(0, 6);
+      popIdx = 0;
+      ensurePop(); render();
     });
     textInput.addEventListener('keydown', function(e){
       if (!pop || pop.style.display === 'none' || !popItems.length) return;
@@ -219,3 +209,5 @@
     textInput.addEventListener('blur', function(){ setTimeout(hidePop, 150); });
   }
 })();
+
+// (mention popup repositioning handled inline via positionPop)

@@ -301,3 +301,25 @@ html[data-chat-theme="mint"] .wa-composer{ background:#163a34; border-color:#1e4
 html[data-chat-theme="mint"] .wa-me .wa-bubble{ background:linear-gradient(160deg,#6ee7b7,#10b981); color:#052e26; border:none; }
 html[data-chat-theme="mint"] .wa-them .wa-bubble{ background:#1e4d43; color:#d1fae5; border:none; }
 html[data-chat-theme="mint"] .tg-chats-head{ background:#163a34; }
+
+
+/* --- Solo edit mode: hide grid when custom editor is open --- */
+.th-modal.is-editing .th-grid{ display:none; }
+.th-modal.is-editing .th-custom-editor{ margin-top:0; }
+.th-custom-title{ display:flex; align-items:center; gap:8px; }
+.th-custom-back{
+  width:32px; height:32px; border-radius:50%;
+  display:grid; place-items:center;
+  background:rgba(255,255,255,.08); color:inherit;
+  border:none; cursor:pointer;
+}
+.th-custom-back svg{ width:16px; height:16px; }
+html[dir="rtl"] .th-custom-back svg,
+[dir="rtl"] .th-custom-back svg{ transform:scaleX(-1); }
+.th-blur-val{
+  font-weight:700; font-size:12px; opacity:.75; margin-inline-start:6px;
+}
+.th-custom-range{
+  flex:1.4; max-width:180px; accent-color:var(--gold,#f5b950);
+  height:4px;
+}
