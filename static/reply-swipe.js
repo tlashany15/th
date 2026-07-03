@@ -115,10 +115,18 @@
     start = null; active = null;
   });
 
-  // --------- منشن (Autocomplete) ---------
+  // --------- منشن (Autocomplete) — يشتغل في الجروب وفي الدردشة الخاصة ---------
   var textInput = document.getElementById('textInput');
   var composer  = document.getElementById('composer');
-  if (textInput && composer && window.location.pathname.indexOf('/group') === 0){
+  if (textInput && composer){
+    var isGroup = window.location.pathname.indexOf('/group') === 0;
+    // في الدردشة الخاصة: نجيب قائمة المستخدمين مرة واحدة
+    if (!isGroup && !window.__GroupMembers){
+      fetch('/group/members', {credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){ window.__GroupMembers = (d.members || []); })
+        .catch(function(){});
+    }
     var pop = null, popItems = [], popIdx = 0, popStart = -1;
     function ensurePop(){
       if (pop) return pop;
@@ -132,8 +140,11 @@
     function render(){
       if (!pop || !popItems.length){ hidePop(); return; }
       pop.innerHTML = popItems.map(function(m,i){
+        var av = m.avatar
+          ? '<img class="wmp-av" src="'+m.avatar+'" alt="">'
+          : '<div class="wmp-av wmp-av-fb" style="background:hsl('+((m.id||0)*47%360)+',60%,45%)">'+esc((m.full_name||'?').charAt(0))+'</div>';
         return '<div class="wa-mention-pop-item'+(i===popIdx?' is-active':'')+'" data-i="'+i+'">'
-              +  esc(m.full_name)
+              +  av + '<span class="wmp-name">' + esc(m.full_name) + '</span>'
               +'</div>';
       }).join('');
       pop.style.display = 'block';
@@ -142,6 +153,10 @@
           ev.preventDefault();
           insertMention(popItems[parseInt(el.dataset.i,10)]);
         });
+        el.addEventListener('touchstart', function(ev){
+          ev.preventDefault();
+          insertMention(popItems[parseInt(el.dataset.i,10)]);
+        }, {passive:false});
       });
     }
     function insertMention(m){

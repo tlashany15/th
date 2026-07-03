@@ -2107,3 +2107,121 @@ a{ color:inherit; text-decoration:none; }
 }
 .wa-mention-pop-item.is-active,
 .wa-mention-pop-item:hover{ background:rgba(245,185,80,.15); }
+
+/* ================ Mention avatars في القائمة ================ */
+.wmp-av{ width:26px; height:26px; border-radius:50%; object-fit:cover; flex:none; }
+.wmp-av-fb{ display:grid; place-items:center; color:#fff; font-weight:800; font-size:12px; }
+.wmp-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ================ Reactions on bubbles ================ */
+.wa-bubble{ position:relative; }
+.wa-reactions{
+  display:flex; flex-wrap:wrap; gap:4px;
+  margin-top:6px; margin-bottom:-2px;
+}
+.wa-react-chip{
+  display:inline-flex; align-items:center; gap:3px;
+  padding:2px 7px; border-radius:99px;
+  background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.12);
+  color:inherit; font: inherit; cursor:pointer;
+  font-size:12px; line-height:1;
+  transition:transform .1s, background .15s;
+}
+.wa-react-chip:active{ transform:scale(.92); }
+.wa-react-chip.is-mine{
+  background:rgba(245,185,80,.22); border-color:rgba(245,185,80,.55);
+}
+.wa-react-e{ font-size:14px; line-height:1; }
+.wa-react-c{ font-size:11px; font-weight:700; opacity:.85; }
+.wa-react-c:empty{ display:none; }
+
+/* ================ Reaction picker (long press popup) ================ */
+.wa-react-picker{
+  position:absolute; z-index:9998;
+  display:none; align-items:center; gap:2px;
+  padding:6px 8px; border-radius:99px;
+  background:#1a2036; border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 12px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+  animation:waReactPop .18s ease-out;
+}
+.wa-react-picker.is-open{ display:flex; }
+@keyframes waReactPop{
+  0%{ transform:translateY(6px) scale(.85); opacity:0; }
+  100%{ transform:translateY(0) scale(1); opacity:1; }
+}
+.wa-react-pick-btn{
+  width:38px; height:38px; border-radius:50%;
+  display:grid; place-items:center;
+  background:transparent; border:none; cursor:pointer;
+  font-size:22px; line-height:1;
+  transition:transform .12s, background .12s;
+}
+.wa-react-pick-btn:hover{ background:rgba(255,255,255,.08); transform:scale(1.15); }
+.wa-react-pick-btn:active{ transform:scale(.9); }
+
+/* ================ Notifications page — redesigned ================ */
+.notif-page{ padding:12px 4px; max-width:640px; margin:0 auto; }
+.notif-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:8px 0 14px; gap:12px;
+}
+.notif-page-title{ font-size:20px; font-weight:800; margin:0; }
+.notif-clear-all{
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(239,68,68,.12); color:#ef6b57;
+  border:1px solid rgba(239,68,68,.28);
+  padding:7px 12px; border-radius:99px;
+  font: inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+}
+.notif-clear-all svg{ width:14px; height:14px; }
+.notif-clear-all:active{ transform:scale(.97); }
+
+.notif-empty{
+  text-align:center; padding:60px 20px;
+  color:rgba(255,255,255,.55);
+}
+.notif-empty-ic{
+  width:64px; height:64px; margin:0 auto 14px;
+  border-radius:50%; display:grid; place-items:center;
+  background:rgba(255,255,255,.05); color:rgba(255,255,255,.35);
+}
+.notif-empty-ic svg{ width:32px; height:32px; }
+.notif-empty-t{ font-size:15px; font-weight:700; margin-bottom:4px; color:rgba(255,255,255,.75); }
+.notif-empty-s{ font-size:12.5px; opacity:.7; }
+
+.notif-list{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+.notif-item{
+  position:relative;
+  display:flex; align-items:flex-start; gap:12px;
+  background:rgba(255,255,255,.04); border-radius:14px; padding:12px 14px;
+  border:1px solid rgba(255,255,255,.06);
+  transition:opacity .2s, transform .2s;
+}
+.notif-item.is-removing{ opacity:0; transform:translateX(20px); }
+.notif-item.is-unread{
+  border-color:rgba(245,185,80,.4);
+  background:linear-gradient(180deg, rgba(245,185,80,.08), rgba(245,185,80,.03));
+}
+.notif-item.is-unread::before{
+  content:''; position:absolute; inset-inline-start:0; top:12px; bottom:12px;
+  width:3px; border-radius:2px; background:#f5b950;
+}
+.notif-ic{
+  flex:none; width:36px; height:36px; border-radius:10px;
+  display:grid; place-items:center;
+  background:rgba(245,185,80,.15); color:#f5b950;
+}
+.notif-ic svg{ width:18px; height:18px; }
+.notif-main{ flex:1; min-width:0; }
+.notif-item .notif-link{ display:block; color:inherit; text-decoration:none; }
+.notif-title{ font-weight:800; font-size:14.5px; margin-bottom:3px; line-height:1.35; }
+.notif-body{ font-size:13px; opacity:.85; line-height:1.5; word-break:break-word; }
+.notif-time{ margin-top:6px; font-size:11px; opacity:.55; }
+.notif-del{
+  flex:none; width:30px; height:30px; border-radius:8px;
+  display:grid; place-items:center;
+  background:transparent; border:none; color:rgba(255,255,255,.5);
+  cursor:pointer; transition:background .15s, color .15s;
+}
+.notif-del:hover{ background:rgba(239,68,68,.12); color:#ef6b57; }
+.notif-del svg{ width:16px; height:16px; }

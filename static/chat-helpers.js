@@ -231,11 +231,11 @@ window.ChatHelpers = (function(){
     } catch(e){ return Promise.resolve(false); }
   }
 
-  // ضغط طويل / نقرة مزدوجة على الفقاعات لنسخ محتوى النص
+  // نقرة مزدوجة على الفقاعات لنسخ محتوى النص
+  // (تم إزالة الضغط المطوّل عشان يفتح قائمة التفاعلات بدل النسخ)
   function bindCopy(root){
     (root || document).querySelectorAll('.wa-bubble:not([data-copybound])').forEach(function(b){
       b.dataset.copybound = '1';
-      var timer = null, longPressed = false;
       function getText(){
         var t = b.querySelector('.wa-text');
         return t ? t.innerText : '';
@@ -245,24 +245,10 @@ window.ChatHelpers = (function(){
         if (!txt) return;
         copyText(txt).then(function(ok){ toast(ok ? 'تم نسخ الرسالة ✓' : 'تعذّر النسخ'); });
       }
-      b.addEventListener('touchstart', function(){
-        longPressed = false;
-        timer = setTimeout(function(){ longPressed = true; trigger(); }, 550);
-      }, {passive:true});
-      b.addEventListener('touchend', function(e){
-        clearTimeout(timer);
-        if (longPressed) { e.preventDefault(); }
-      });
-      b.addEventListener('touchmove', function(){ clearTimeout(timer); });
       b.addEventListener('dblclick', trigger);
-      b.addEventListener('mousedown', function(e){
-        if (e.button !== 0) return;
-        timer = setTimeout(function(){ trigger(); }, 550);
-      });
-      b.addEventListener('mouseup', function(){ clearTimeout(timer); });
-      b.addEventListener('mouseleave', function(){ clearTimeout(timer); });
     });
   }
+
 
   // ======== ضغط الصور قبل الرفع ========
   // يقلل حجم الصورة قدر الإمكان مع الحفاظ على جودة معقولة
