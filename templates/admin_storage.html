@@ -1,0 +1,177 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2 6a4 4 0 014-4h12a4 4 0 014 4v3a4 4 0 01-4 4H6a4 4 0 01-4-4V6zM2 15a4 4 0 014-4h12a4 4 0 014 4v3a4 4 0 01-4 4H6a4 4 0 01-4-4v-3z"/><circle cx="6" cy="7.5" r="1" fill="currentColor"/><circle cx="6" cy="16.5" r="1" fill="currentColor"/></svg>
+        إدارة المساحة
+      </span>
+      <h1 class="hero-h1">مساحة قاعدة البيانات</h1>
+      <p class="hero-sub">راجع حجم كل جدول، احذف اللي مش محتاجه، والملفات بتتحفظ قبل الحذف.</p>
+    </div>
+  </div>
+  <div class="kpi-grid kpi-grid-2">
+    <div class="kpi kpi-gold">
+      <div class="kpi-v">{{ stats.db_size_h }}</div>
+      <div class="kpi-l">حجم الـ DB الحالي</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-v">{{ limit_h }}</div>
+      <div class="kpi-l">حد الأرشيف التلقائي</div>
+    </div>
+  </div>
+
+  <div class="usage-bar" style="margin-top:12px;">
+    <div class="usage-bar-fill" style="width: {{ usage_pct }}%; background: {% if usage_pct > 85 %}#ef4444{% elif usage_pct > 60 %}#f59e0b{% else %}#38b26a{% endif %};"></div>
+  </div>
+  <div style="text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;">
+    {{ usage_pct }}% من الحد المسموح — لو عدّى الحد، أقدم رسائل/إشعارات هتتأرشف تلقائيًا (أقدم من {{ keep_days }} يوم).
+  </div>
+</section>
+
+<!-- ============ جداول قاعدة البيانات ============ -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18v4H3zM3 10h18v4H3zM3 16h18v4H3z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">جداول قاعدة البيانات</div>
+        <div class="sec-h-s">اختر جدول واحذف السطور القديمة — هتتحفظ في ملف قبل الحذف</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-list">
+    {% for t in stats.tables %}
+    <div class="tbl-row">
+      <div class="tbl-info">
+        <div class="tbl-label">{{ t.label }}</div>
+        <div class="tbl-sub">{{ t.count }} سطر · <strong>{{ t.size_h }}</strong></div>
+      </div>
+      {% if t.date_col %}
+      <form method="post" action="{{ url_for('admin_storage_cleanup') }}" class="tbl-form js-cleanup-form">
+        <input type="hidden" name="table" value="{{ t.table }}">
+        <select name="days" class="tbl-select">
+          <option value="180">أقدم من 6 شهور</option>
+          <option value="90" selected>أقدم من 3 شهور</option>
+          <option value="60">أقدم من شهرين</option>
+          <option value="30">أقدم من شهر</option>
+          <option value="7">أقدم من أسبوع</option>
+          <option value="0">حذف الكل</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-danger">حذف مع أرشفة</button>
+      </form>
+      {% else %}
+      <span class="tbl-mute">لا يمكن الفلترة بالتاريخ</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ============ الأرشيف التلقائي ============ -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7l8-4 8 4M4 7v10l8 4 8-4V7M4 7l8 4 8-4M12 11v10"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">تشغيل الأرشيف التلقائي</div>
+        <div class="sec-h-s">يشيل السطور الأقدم من {{ keep_days }} يوم لو المساحة عدّت الحد — من غير ما تضيع حاجة</div>
+      </div>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('admin_storage_auto_archive') }}" style="margin-top:8px;">
+    <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">شغّل الأرشيف الآن</button>
+  </form>
+</div>
+
+<!-- ============ الملفات الاحتياطية ============ -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m-3-3l3 3 3-3M4 4h16v16H4z"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">الملفات الاحتياطية</div>
+        <div class="sec-h-s">حمّل أي ملف قبل الحذف النهائي</div>
+      </div>
+    </div>
+  </div>
+
+  {% if backups %}
+  <div class="bk-list">
+    {% for b in backups %}
+    <div class="bk-row">
+      <div class="bk-info">
+        <div class="bk-name">{{ b.name }}</div>
+        <div class="bk-sub">{{ b.size_h }} · {{ b.at }}</div>
+      </div>
+      <div class="bk-actions">
+        <a class="btn btn-sm btn-ghost" href="{{ url_for('admin_storage_download', name=b.name) }}">تحميل</a>
+        <form method="post" action="{{ url_for('admin_storage_delete_backup') }}" class="js-del-bk" style="display:inline;">
+          <input type="hidden" name="name" value="{{ b.name }}">
+          <button class="btn btn-sm btn-danger" type="submit">حذف</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <div>لا توجد ملفات احتياطية بعد.</div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.usage-bar{width:100%;height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.usage-bar-fill{height:100%;border-radius:99px;transition:width .4s ease}
+.tbl-list{display:flex;flex-direction:column;gap:10px}
+.tbl-row{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
+.tbl-info{flex:1;min-width:150px}
+.tbl-label{font-weight:800;font-size:14px}
+.tbl-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+.tbl-sub strong{color:#8ec2ff}
+.tbl-form{display:flex;gap:6px;align-items:center;margin:0}
+.tbl-select{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:7px 10px;font-size:12.5px;font-weight:700}
+.tbl-mute{font-size:11.5px;color:var(--text-3);font-style:italic}
+.btn-danger{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.bk-list{display:flex;flex-direction:column;gap:8px}
+.bk-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.bk-info{flex:1;min-width:0}
+.bk-name{font-weight:700;font-size:13px;word-break:break-all}
+.bk-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.bk-actions{display:flex;gap:6px;flex-shrink:0}
+</style>
+
+<script>
+(function(){
+  document.querySelectorAll('.js-cleanup-form').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      var sel = f.querySelector('select[name=days]');
+      var lbl = sel.options[sel.selectedIndex].text;
+      if (!window.appConfirm) return;
+      e.preventDefault();
+      window.appConfirm('تأكيد حذف السطور ("'+lbl+'") مع حفظها في ملف احتياطي؟',
+        {okText:'تأكيد الحذف'}).then(function(ok){ if (ok) f.submit(); });
+    });
+  });
+  document.querySelectorAll('.js-del-bk').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      if (!window.appConfirm) return;
+      e.preventDefault();
+      window.appConfirm('حذف الملف الاحتياطي نهائيًا؟', {okText:'حذف'}).then(function(ok){ if (ok) f.submit(); });
+    });
+  });
+})();
+</script>
+{% endblock %}

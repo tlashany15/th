@@ -6,34 +6,49 @@
     <div>
       <span class="hero-chip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25"/></svg>
-        تحضير الغد
+        تحضير الحضور
       </span>
-      <h1 class="hero-h1">قائمة عمال {{ tomorrow }}</h1>
-      <p class="hero-sub">اختر الأسماء وانشرها في الدردشة الجماعية.</p>
+      <h1 class="hero-h1">قائمة حضور يوم <span id="dayLabel">{{ selected }}</span></h1>
+      <p class="hero-sub">اختر التاريخ + الأسماء وانشرها في الجروب.</p>
     </div>
   </div>
 </section>
 
 <div class="card">
   <form method="post" action="{{ url_for('admin_announce_tomorrow') }}">
-    <input type="hidden" name="day" value="{{ tomorrow }}">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div class="sec-h-t">اختر العمال</div>
+    <!-- الاختيار السريع للتاريخ -->
+    <div class="date-chips">
+      <button type="button" class="date-chip {% if selected == today %}is-active{% endif %}" data-d="{{ today }}">اليوم</button>
+      <button type="button" class="date-chip {% if selected == tomorrow %}is-active{% endif %}" data-d="{{ tomorrow }}">بكرة</button>
+      <button type="button" class="date-chip {% if selected == after_tomorrow %}is-active{% endif %}" data-d="{{ after_tomorrow }}">بعد بكرة</button>
+    </div>
+    <label class="date-pick">
+      <span>تاريخ مخصّص</span>
+      <input type="date" id="dayInput" name="day" value="{{ selected }}" min="{{ today }}" required>
+    </label>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
+      <div class="sec-h-t">اختر الأشخاص</div>
       <button type="button" class="btn btn-ghost btn-sm" id="selAll">تحديد الكل</button>
     </div>
+
     <div class="tomorrow-grid">
       {% for w in all_workers %}
       <label class="tom-chk">
         <input type="checkbox" name="user_ids" value="{{ w.id }}">
-        <span class="tom-name">{{ w.full_name }}</span>
+        <span class="tom-name">
+          {{ w.full_name }}
+          {% if w.role == 'admin' %}<em class="tom-role">مسؤول</em>{% endif %}
+        </span>
       </label>
       {% else %}
-      <div class="empty"><div>لا يوجد عمال مسجلين</div></div>
+      <div class="empty"><div>لا يوجد مستخدمون</div></div>
       {% endfor %}
     </div>
-    <button class="btn btn-primary btn-lg" type="submit" style="margin-top:12px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
-      نشر القائمة في الجروب
+
+    <button class="btn btn-primary btn-lg" type="submit" style="margin-top:14px;width:100%;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:18px;height:18px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+      نشر القائمة + إرسال إشعار
     </button>
   </form>
   <div style="margin-top:10px;">
@@ -41,15 +56,44 @@
   </div>
 </div>
 
+<style>
+.date-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.date-chip{padding:8px 14px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text-2);font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
+.date-chip:hover{background:rgba(255,255,255,.09)}
+.date-chip.is-active{background:var(--gold-soft);color:var(--gold-2);border-color:var(--gold)}
+.date-pick{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08)}
+.date-pick span{font-size:12.5px;color:var(--text-3);font-weight:700;flex-shrink:0}
+.date-pick input{flex:1;background:transparent;border:0;color:#fff;font-size:15px;font-weight:700;outline:none;text-align:center}
+.tom-role{font-style:normal;font-size:10.5px;padding:2px 6px;border-radius:99px;background:var(--gold-soft);color:var(--gold-2);margin-inline-start:4px;font-weight:800}
+</style>
+
 <script>
 (function(){
-  var b = document.getElementById('selAll');
-  if (!b) return;
-  b.addEventListener('click', function(){
-    var boxes = document.querySelectorAll('.tom-chk input[type=checkbox]');
-    var allOn = Array.prototype.every.call(boxes, function(x){ return x.checked; });
-    boxes.forEach(function(x){ x.checked = !allOn; });
+  var input = document.getElementById('dayInput');
+  var label = document.getElementById('dayLabel');
+  var chips = document.querySelectorAll('.date-chip');
+  function syncLabel(){ if (label) label.textContent = input.value; }
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      input.value = c.dataset.d;
+      chips.forEach(function(x){ x.classList.remove('is-active'); });
+      c.classList.add('is-active');
+      syncLabel();
+    });
   });
+  if (input) input.addEventListener('change', function(){
+    chips.forEach(function(x){ x.classList.toggle('is-active', x.dataset.d === input.value); });
+    syncLabel();
+  });
+
+  var b = document.getElementById('selAll');
+  if (b){
+    b.addEventListener('click', function(){
+      var boxes = document.querySelectorAll('.tom-chk input[type=checkbox]');
+      var allOn = Array.prototype.every.call(boxes, function(x){ return x.checked; });
+      boxes.forEach(function(x){ x.checked = !allOn; });
+    });
+  }
 })();
 </script>
 {% endblock %}

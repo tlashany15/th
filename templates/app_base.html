@@ -78,17 +78,29 @@
 
   <nav class="sidebar-nav">
     {% if current_user.role == 'admin' %}
+    <div class="snav-group">اليومي</div>
     <a href="{{ url_for('admin_panel') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>اللوحة الرئيسية</span></a>
     <a href="{{ url_for('admin_close_page', day=today) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
-    <a href="{{ url_for('admin_tomorrow_page') }}"><span class="snav-ico">{{ snav_icon('tomorrow') }}</span><span>تحضير بكرة</span></a>
-    {% if is_super_admin %}<a href="{{ url_for('admin_users') }}"><span class="snav-ico">{{ snav_icon('users') }}</span><span>إدارة المستخدمين</span></a>{% endif %}
-    <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
-    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>السجلات</span></a>
+    <a href="{{ url_for('admin_tomorrow_page') }}"><span class="snav-ico">{{ snav_icon('tomorrow') }}</span><span>تحضير حضور</span></a>
+
+    <div class="snav-group">السجلات والتقارير</div>
+    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>أعداد بعد الخصم</span></a>
+    <a href="{{ url_for('admin_gross_log') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>أعداد بدون خصم</span></a>
     <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>تقرير فترة مخصّصة</span></a>
-    <a href="{{ url_for('admin_gross_log') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>سجل الأعداد بدون خصم</span></a>
-    <a href="{{ url_for('admin_notes') }}"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظاتي</span></a>
-    <a href="{{ url_for('admin_notify') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></span><span>إرسال إشعار</span></a>
+
+    <div class="snav-group">التواصل</div>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
+    <a href="{{ url_for('admin_notify') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></span><span>إرسال إشعار</span></a>
+    <a href="{{ url_for('admin_notes') }}"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظاتي</span></a>
+
+    {% if is_super_admin %}
+    <div class="snav-group">إدارة النظام</div>
+    <a href="{{ url_for('admin_users') }}"><span class="snav-ico">{{ snav_icon('users') }}</span><span>إدارة المستخدمين</span></a>
+    <a href="{{ url_for('admin_storage') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/></svg></span><span>إدارة المساحة</span></a>
+    {% endif %}
+
+    <div class="snav-group">حسابي</div>
+    <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
     {% else %}
     <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية</span></a>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>اجمالي اعداد الشهر</span></a>
@@ -157,34 +169,40 @@
 {% if current_user %}
 <nav class="bottom-nav">
   {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('admin_panel') }}" class="{% if request.endpoint in ['admin_panel','admin_add_for_worker','admin_mark_attendance','admin_close_day','admin_reopen_day'] %}active{% endif %}">
+    <a href="{{ url_for('admin_panel') }}" class="{% if request.endpoint in ['admin_panel','admin_add_for_worker','admin_mark_attendance'] %}active{% endif %}">
       {{ snav_icon('dashboard') }}
       اللوحة
     </a>
-    {% if is_super_admin %}
-    <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
-      {{ snav_icon('users') }}
-      المستخدمون
+    <a href="{{ url_for('admin_close_page', day=today) }}" class="{% if request.endpoint in ['admin_close_page','admin_close_day','admin_reopen_day'] %}active{% endif %}">
+      {{ snav_icon('close') }}
+      إغلاق
     </a>
-    {% endif %}
-    <a href="{{ url_for('admin_range_report') }}" class="{% if request.endpoint == 'admin_range_report' %}active{% endif %}">
-      {{ snav_icon('range') }}
-      تقرير
+    <a href="{{ url_for('admin_tomorrow_page') }}" class="{% if request.endpoint in ['admin_tomorrow_page','admin_announce_tomorrow'] %}active{% endif %}">
+      {{ snav_icon('tomorrow') }}
+      تحضير
+    </a>
+    <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
+      {{ snav_icon('chat') }}
+      دردشة
     </a>
   {% else %}
     <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
       {{ snav_icon('dashboard') }}
       الرئيسية
     </a>
+    <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">
+      {{ snav_icon('history') }}
+      السجل
+    </a>
+    <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
+      {{ snav_icon('chat') }}
+      دردشة
+    </a>
+    <a href="{{ url_for('logout') }}">
+      {{ snav_icon('logout') }}
+      خروج
+    </a>
   {% endif %}
-  <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room'] %}active{% endif %}">
-    {{ snav_icon('chat') }}
-    دردشة
-  </a>
-  <a href="{{ url_for('logout') }}">
-    {{ snav_icon('logout') }}
-    خروج
-  </a>
 </nav>
 {% endif %}
 
