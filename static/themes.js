@@ -42,7 +42,9 @@
     var css =
       'html[data-chat-theme="custom"] .wa-msgs{ background:'+c.bgColor+' !important; position:relative; isolation:isolate; }'+
       'html[data-chat-theme="custom"] .wa-msgs::before{'+
-        ' content:""; position:absolute; inset:0;'+
+        ' content:""; position:sticky; top:0; left:0;'+
+        ' display:block; width:100%; height:100%;'+
+        ' margin-bottom:-100%; flex-shrink:0;'+
         ' background:'+bg+';'+
         ' filter: blur('+blur+'px);'+
         ' transform: scale('+(blur>0?1.06:1)+');'+
