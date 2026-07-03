@@ -1727,7 +1727,7 @@ def group_messages_api():
             "sender_id": r["sender_id"],
             "sender_name": r["sender_name"] or "محذوف",
             "sender_avatar": r["sender_avatar"],
-            "sender_role": r["sender_role"] or "",
+            "sender_role": (r["sender_role"] if _is_super_admin(u) else "") or "",
             "kind": r["kind"],
             "body": r["body"],
             "pinned": r["pinned"],
