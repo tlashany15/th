@@ -240,6 +240,27 @@ def init_db():
         ALTER TABLE chat_messages  ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
         ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
         ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS mentions    TEXT;  -- JSON list of user ids
+
+        -- ==== تفاعلات (Reactions) على الرسائل ====
+        CREATE TABLE IF NOT EXISTS chat_reactions (
+            id SERIAL PRIMARY KEY,
+            message_id INTEGER NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            emoji TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(message_id, user_id, emoji)
+        );
+        CREATE INDEX IF NOT EXISTS idx_chat_reactions_msg ON chat_reactions(message_id);
+
+        CREATE TABLE IF NOT EXISTS group_reactions (
+            id SERIAL PRIMARY KEY,
+            message_id INTEGER NOT NULL REFERENCES group_messages(id) ON DELETE CASCADE,
+            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            emoji TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(message_id, user_id, emoji)
+        );
+        CREATE INDEX IF NOT EXISTS idx_group_reactions_msg ON group_reactions(message_id);
     """)
     # نتأكد إن فيه مسؤول برقم "1"
     cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
@@ -328,6 +349,58 @@ def _iso_utc(dt):
     if getattr(dt, "tzinfo", None) is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# ---------- تفاعلات الرسائل ----------
+ALLOWED_REACTIONS = {"👍", "❤️", "😂", "😮", "😢", "🙏"}
+
+def _reactions_for(cur, table, msg_ids, me_id):
+    """يرجّع dict: msg_id -> [{emoji, count, mine}] مرتب حسب أول تفاعل"""
+    if not msg_ids:
+        return {}
+    cur.execute(
+        f"SELECT message_id, emoji, user_id FROM {table} "
+        f"WHERE message_id = ANY(%s) ORDER BY id ASC",
+        (list(msg_ids),),
+    )
+    agg = {}
+    for r in cur.fetchall():
+        mid = r["message_id"]; emo = r["emoji"]
+        bucket = agg.setdefault(mid, {})
+        e = bucket.get(emo)
+        if not e:
+            e = {"emoji": emo, "count": 0, "mine": False, "_order": len(bucket)}
+            bucket[emo] = e
+        e["count"] += 1
+        if r["user_id"] == me_id:
+            e["mine"] = True
+    out = {}
+    for mid, bucket in agg.items():
+        arr = sorted(bucket.values(), key=lambda x: x["_order"])
+        for x in arr: x.pop("_order", None)
+        out[mid] = arr
+    return out
+
+
+def _toggle_reaction(table, message_id, user_id, emoji):
+    if emoji not in ALLOWED_REACTIONS:
+        return None, "bad_emoji"
+    db = get_db(); cur = db.cursor()
+    cur.execute(
+        f"DELETE FROM {table} WHERE message_id=%s AND user_id=%s AND emoji=%s",
+        (message_id, user_id, emoji),
+    )
+    removed = cur.rowcount > 0
+    if not removed:
+        cur.execute(
+            f"INSERT INTO {table}(message_id, user_id, emoji) VALUES(%s,%s,%s) "
+            f"ON CONFLICT DO NOTHING",
+            (message_id, user_id, emoji),
+        )
+    db.commit()
+    reactions = _reactions_for(cur, table, [message_id], user_id).get(message_id, [])
+    cur.close()
+    return reactions, None
 
 
 def is_day_closed(day_s):
@@ -1450,6 +1523,15 @@ def chat_messages_api(other_id):
     read_ids = [row["id"] for row in cur.fetchall()]
     cur.execute("SELECT last_seen FROM users WHERE id=%s", (other_id,))
     other_row = cur.fetchone()
+    # تفاعلات: للرسائل الجديدة + آخر 100 رسالة (عشان تحديث التفاعلات القديمة)
+    new_ids = [r["id"] for r in rows]
+    cur.execute("""SELECT id FROM chat_messages
+                   WHERE ((sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s))
+                   ORDER BY id DESC LIMIT 100""",
+                (u["id"], other_id, other_id, u["id"]))
+    recent_ids = [r["id"] for r in cur.fetchall()]
+    all_ids = list(set(new_ids) | set(recent_ids))
+    reactions_map = _reactions_for(cur, "chat_reactions", all_ids, u["id"])
     cur.close()
     msgs = []
     for r in rows:
@@ -1462,12 +1544,15 @@ def chat_messages_api(other_id):
             "mine": r["sender_id"] == u["id"],
             "read": r["read_at"] is not None,
             "reply_to": replies_map.get(r["reply_to_id"]) if r["reply_to_id"] else None,
+            "reactions": reactions_map.get(r["id"], []),
         })
+    reactions_updates = {str(mid): reactions_map.get(mid, []) for mid in recent_ids}
     return jsonify({
         "messages": msgs,
         "read_ids": read_ids,
         "other_online": _is_online(other_row["last_seen"]) if other_row else False,
         "other_last_seen": _iso_utc(other_row["last_seen"]) if other_row else None,
+        "reactions_updates": reactions_updates,
     })
 
 
@@ -1596,6 +1681,13 @@ def group_messages_api():
                        ON CONFLICT (user_id) DO UPDATE SET last_read_id=GREATEST(group_reads.last_read_id, EXCLUDED.last_read_id), updated_at=NOW()""",
                     (u["id"], rows[-1]["id"]))
         db.commit()
+    # تفاعلات: للرسائل الجديدة + آخر 100 رسالة
+    new_ids = [r["id"] for r in rows]
+    cur.execute("""SELECT id FROM group_messages WHERE deleted=FALSE
+                   ORDER BY id DESC LIMIT 100""")
+    recent_ids = [r["id"] for r in cur.fetchall()]
+    all_ids = list(set(new_ids) | set(recent_ids))
+    reactions_map = _reactions_for(cur, "group_reactions", all_ids, u["id"])
     cur.close()
     msgs = []
     for r in rows:
@@ -1617,11 +1709,14 @@ def group_messages_api():
             "mine": r["sender_id"] == u["id"],
             "reply_to": replies_map.get(r["reply_to_id"]) if r["reply_to_id"] else None,
             "mentions": mentions,
+            "reactions": reactions_map.get(r["id"], []),
         })
+    reactions_updates = {str(mid): reactions_map.get(mid, []) for mid in recent_ids}
     return jsonify({
         "messages": msgs,
         "pinned": ({"id": pinned["id"], "body": pinned["body"], "kind": pinned["kind"]} if pinned else None),
         "deleted_ids": deleted_ids,
+        "reactions_updates": reactions_updates,
     })
 
 
@@ -1771,6 +1866,40 @@ def group_members_api():
     members.sort(key=lambda m: (not m["online"], m["full_name"]))
     online_count = sum(1 for m in members if m["online"])
     return jsonify({"members": members, "online": online_count, "total": len(members)})
+
+
+# ================== تفاعلات (Reactions) ==================
+@app.route("/chat/<int:other_id>/react/<int:msg_id>", methods=["POST"])
+@login_required
+def chat_react(other_id, msg_id):
+    u = current_user()
+    emoji = (request.form.get("emoji") or "").strip()
+    # تحقّق: الرسالة تخص المحادثة بين u و other_id
+    db = get_db(); cur = db.cursor()
+    cur.execute("""SELECT id FROM chat_messages
+                   WHERE id=%s AND ((sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s))""",
+                (msg_id, u["id"], other_id, other_id, u["id"]))
+    if not cur.fetchone():
+        cur.close(); return jsonify({"ok": False, "error": "not_found"}), 404
+    cur.close()
+    reactions, err = _toggle_reaction("chat_reactions", msg_id, u["id"], emoji)
+    if err: return jsonify({"ok": False, "error": err}), 400
+    return jsonify({"ok": True, "message_id": msg_id, "reactions": reactions})
+
+
+@app.route("/group/react/<int:msg_id>", methods=["POST"])
+@login_required
+def group_react(msg_id):
+    u = current_user()
+    emoji = (request.form.get("emoji") or "").strip()
+    db = get_db(); cur = db.cursor()
+    cur.execute("SELECT id FROM group_messages WHERE id=%s AND deleted=FALSE", (msg_id,))
+    if not cur.fetchone():
+        cur.close(); return jsonify({"ok": False, "error": "not_found"}), 404
+    cur.close()
+    reactions, err = _toggle_reaction("group_reactions", msg_id, u["id"], emoji)
+    if err: return jsonify({"ok": False, "error": err}), 400
+    return jsonify({"ok": True, "message_id": msg_id, "reactions": reactions})
 
 
 @app.route("/me/avatar", methods=["POST"])
@@ -2191,6 +2320,26 @@ def notifications_mark_all_read():
     u = current_user()
     db = get_db(); cur = db.cursor()
     cur.execute("UPDATE notifications SET read_at=NOW() WHERE user_id=%s AND read_at IS NULL", (u["id"],))
+    db.commit(); cur.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/notifications/<int:nid>/delete", methods=["POST"])
+@login_required
+def notification_delete(nid):
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    cur.execute("DELETE FROM notifications WHERE id=%s AND user_id=%s", (nid, u["id"]))
+    db.commit(); cur.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/notifications/delete-all", methods=["POST"])
+@login_required
+def notifications_delete_all():
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    cur.execute("DELETE FROM notifications WHERE user_id=%s", (u["id"],))
     db.commit(); cur.close()
     return jsonify({"ok": True})
 
