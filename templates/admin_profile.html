@@ -30,14 +30,18 @@
       </div>
     </div>
   </div>
-  <form method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:flex;align-items:center;gap:14px;">
-    <div class="tg-me-av" style="width:64px;height:64px;">
+  <form id="avatarForm" method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" class="profile-avatar-row">
+    <label class="tg-me-av profile-avatar-pick" title="غيّر صورتك">
       {% if me.avatar %}<img src="{{ me.avatar }}" alt="">
-      {% else %}<div class="tg-me-av-fb" style="font-size:24px;">{{ (me.full_name or '?')[:1] }}</div>{% endif %}
-    </div>
-    <div style="flex:1;">
-      <input type="file" name="file" accept="image/*" required>
-      <button class="btn btn-primary" style="margin-top:8px;" type="submit">حفظ الصورة</button>
+      {% else %}<div class="tg-me-av-fb">{{ (me.full_name or '?')[:1] }}</div>{% endif %}
+      <span class="tg-me-av-edit" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+      </span>
+      <input type="file" name="file" id="avatarFile" accept="image/*" required>
+    </label>
+    <div class="profile-avatar-info">
+      <div class="profile-avatar-hint">اضغط على الصورة لاختيار صورة جديدة</div>
+      <div class="field-hint">هيتم حفظها وضغطها تلقائيًا</div>
     </div>
   </form>
 </div>
@@ -95,4 +99,12 @@
     <button class="btn btn-primary btn-lg">حفظ كلمة السر</button>
   </form>
 </div>
+
+<script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
+<script>
+(function(){
+  var avFile = document.getElementById('avatarFile');
+  if (avFile) ChatHelpers.attachImageAutoCompress(avFile, {maxDim:512, quality:0.8, autoSubmitForm:'avatarForm'});
+})();
+</script>
 {% endblock %}
