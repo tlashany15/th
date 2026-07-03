@@ -106,16 +106,22 @@
     ensurePicker();
     pickerFor = mid;
     picker.style.display = 'flex';
-    // احسب الموضع فوق الفقاعة
+    // احسب الموضع — دايماً فوق الفقاعة. لو الفقاعة قريبة من أعلى الشاشة نعمل scroll بسيط.
     var bubble = msgEl.querySelector('.wa-bubble') || msgEl;
-    var r = bubble.getBoundingClientRect();
     picker.style.visibility = 'hidden';
     picker.classList.add('is-open');
-    // انتظر لبعد الرندر عشان نقيس مقاسه
     requestAnimationFrame(function(){
       var pw = picker.offsetWidth, ph = picker.offsetHeight;
+      var msgsBox = document.getElementById('msgs');
+      var r = bubble.getBoundingClientRect();
+      var needed = ph + 16; // مساحة فوق الفقاعة
+      if (r.top < needed && msgsBox) {
+        // نزّل الرسالة لتحت شوية عشان يظهر السلكتور فوقها
+        msgsBox.scrollBy({top: -(needed - r.top + 4), behavior:'instant' in msgsBox.scrollBy ? 'instant' : 'auto'});
+        r = bubble.getBoundingClientRect();
+      }
       var top = r.top - ph - 8;
-      if (top < 8) top = r.bottom + 8; // لو مفيش مكان فوق، نحطها تحت
+      if (top < 6) top = 6; // دايماً من فوق
       var left = r.left + (r.width - pw) / 2;
       var vw = window.innerWidth;
       if (left < 8) left = 8;

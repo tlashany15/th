@@ -77,12 +77,13 @@
   msgs.addEventListener('touchmove', function(e){
     if (!start) return;
     var t = e.touches[0]; var dx = t.clientX - start.x; var dy = t.clientY - start.y;
-    if (Math.abs(dy) > 30) { finishReset(); start = null; return; }
-    // سحب لليمين البصري: في RTL، dx موجب = يمين. في LTR كذلك.
-    if (dx < 4) return;
+    // لو الحركة عمودية أو مش يمينية بشكل واضح → اعتبرها scroll طبيعي (بدون اهتزاز)
+    if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { finishReset(); start = null; return; }
+    if (dx < 14) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.6) return;
     active = start.el;
     active.classList.add('wa-swiping');
-    var d = Math.min(dx, 80);
+    var d = Math.min(dx - 10, 80);
     active.style.transform = 'translateX(' + d + 'px)';
     if (!active.querySelector('.wa-swipe-hint')){
       var h = document.createElement('div');
@@ -133,16 +134,33 @@
       pop = document.createElement('div');
       pop.className = 'wa-mention-pop';
       pop.style.display = 'none';
-      pop.style.position = 'fixed';
       document.body.appendChild(pop);
+      window.addEventListener('resize', positionPop);
+      window.addEventListener('scroll', positionPop, true);
       return pop;
     }
     function positionPop(){
       if (!pop || pop.style.display === 'none') return;
       var r = composer.getBoundingClientRect();
-      pop.style.left = r.left + 'px';
-      pop.style.width = r.width + 'px';
-      pop.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+      var vw = window.innerWidth;
+      // اترك عرض القائمة auto (حسب المحتوى) واقفلها ضمن حدود الشاشة
+      pop.style.width = '';
+      var w = Math.min(pop.offsetWidth || 260, vw - 16);
+      pop.style.width = w + 'px';
+      // في RTL نحاذي مع طرف الـ composer اليمين، في LTR مع اليسار
+      var isRTL = (document.documentElement.dir === 'rtl') || (getComputedStyle(document.body).direction === 'rtl');
+      var left;
+      if (isRTL) {
+        left = r.right - w;
+      } else {
+        left = r.left;
+      }
+      // ثبّت داخل الشاشة (لا يتقطع من أي جهة)
+      if (left < 8) left = 8;
+      if (left + w > vw - 8) left = vw - w - 8;
+      pop.style.left = left + 'px';
+      pop.style.right = 'auto';
+      pop.style.bottom = (window.innerHeight - r.top + 8) + 'px';
     }
     function ensureMembers(cb){
       if (window.__GroupMembers && window.__GroupMembers.length){ cb(); return; }

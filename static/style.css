@@ -970,6 +970,7 @@ a{ color:inherit; text-decoration:none; }
 
 .wa-sender{ font-size:12px; font-weight:800; margin-bottom:3px; }
 .wa-adm{ display:none !important; }
+.sidebar-role{ display:none !important; }
 .wa-deleted{ font-style:italic; color:var(--text-mute); background:rgba(255,255,255,.03) !important; border:1px dashed var(--line-strong) !important; }
 
 .wa-del{
@@ -2092,14 +2093,15 @@ a{ color:inherit; text-decoration:none; }
   pointer-events:none;
 }
 .wa-msg.wa-swiping .wa-swipe-hint{ opacity:1; }
-.wa-msg{ position:relative; }
+.wa-msg{ position:relative; touch-action: pan-y; }
 
 /* ================ Mention autocomplete ================ */
-.wa-mention-pop{ z-index:99999;
-  position:absolute; bottom:100%; inset-inline-start:12px; margin-bottom:8px;
-  background:#1a2036; border:1px solid rgba(255,255,255,.1);
-  border-radius:10px; padding:6px; max-height:220px; overflow:auto;
-  box-shadow:0 -8px 24px rgba(0,0,0,.4); z-index:20; min-width:200px;
+.wa-mention-pop{
+  position:fixed; z-index:99999;
+  background:#1a2036; border:1px solid rgba(255,255,255,.12);
+  border-radius:14px; padding:6px; max-height:240px; overflow:auto;
+  box-shadow:0 -12px 32px rgba(0,0,0,.5), 0 6px 18px rgba(0,0,0,.35);
+  min-width:220px; max-width:min(360px, calc(100vw - 16px));
 }
 .wa-mention-pop-item{
   padding:8px 12px; border-radius:6px; cursor:pointer;
@@ -2133,7 +2135,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .wa-react-chip:active{ transform:scale(.9); }
 .wa-react-chip.is-mine .wa-react-e{ transform:scale(1.08); }
-.wa-react-e{ font-size:20px; line-height:1; }
+.wa-react-e{ font-size:15px; line-height:1; }
 .wa-react-c{
   font-size:11px; font-weight:800; opacity:.95;
   color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.7);
@@ -2145,7 +2147,7 @@ a{ color:inherit; text-decoration:none; }
 .wa-react-picker{
   position:absolute; z-index:9998;
   display:none; align-items:center; gap:2px;
-  padding:6px 8px; border-radius:99px;
+  padding:4px 6px; border-radius:99px;
   background:#1a2036; border:1px solid rgba(255,255,255,.12);
   box-shadow:0 12px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
   animation:waReactPop .18s ease-out;
@@ -2156,10 +2158,10 @@ a{ color:inherit; text-decoration:none; }
   100%{ transform:translateY(0) scale(1); opacity:1; }
 }
 .wa-react-pick-btn{
-  width:38px; height:38px; border-radius:50%;
+  width:32px; height:32px; border-radius:50%;
   display:grid; place-items:center;
   background:transparent; border:none; cursor:pointer;
-  font-size:22px; line-height:1;
+  font-size:17px; line-height:1;
   transition:transform .12s, background .12s;
 }
 .wa-react-pick-btn:hover{ background:rgba(255,255,255,.08); transform:scale(1.15); }
