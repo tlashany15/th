@@ -784,7 +784,7 @@ def history():
         months = set((d.year, d.month) for d in by_day.keys())
         months.add((today.year, today.month))
     else:
-        # العمال يشوفوا الفترة الحالية بس (نصف الشهر الجاري)
+        # العمال يشوفوا سجل الشهر الجاري بالكامل (النصفين) — يتصفّى تلقائيًا مع بداية كل شهر جديد
         months = {(today.year, today.month)}
     current_half = 1 if today.day <= 15 else 2
     periods = []
@@ -794,9 +794,6 @@ def history():
     for (y, m) in sorted(months, reverse=True):
         last_day = calendar.monthrange(y, m)[1]
         for half, (start, end) in enumerate([(1, 15), (16, last_day)], start=1):
-            # للعمال: لو الشهر الحالي، أظهر النصف الحالي بس
-            if (not is_admin) and (y, m) == (today.year, today.month) and half != current_half:
-                continue
             days_list = []
             for dnum in range(start, end + 1):
                 d = date(y, m, dnum)
