@@ -261,6 +261,13 @@ def init_db():
             UNIQUE(message_id, user_id, emoji)
         );
         CREATE INDEX IF NOT EXISTS idx_group_reactions_msg ON group_reactions(message_id);
+
+        -- ==== صلاحيات إضافية داخل الجروب ====
+        CREATE TABLE IF NOT EXISTS group_perms (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            can_delete BOOLEAN NOT NULL DEFAULT FALSE,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
     """)
     # نتأكد إن فيه مسؤول برقم "1"
     cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
@@ -1627,9 +1634,13 @@ def group_room():
     members = cur.fetchone()["c"]
     cur.close()
     is_admin = (u["role"] == "admin")
+    cur2 = db.cursor()
+    cur2.execute("SELECT can_delete FROM group_perms WHERE user_id=%s", (u["id"],))
+    _mp = cur2.fetchone(); cur2.close()
+    my_can_delete = bool(_mp and _mp["can_delete"])
     return render_template("group.html", group={
         "name": gs["name"], "avatar": gs["avatar"], "members": members
-    }, is_admin=is_admin)
+    }, is_admin=is_admin, my_can_delete=my_can_delete)
 
 
 @app.route("/group/messages")
@@ -1798,8 +1809,11 @@ def group_delete_msg(msg_id):
         cur.close()
         return jsonify({"ok": False, "error": "not_found"}), 404
     if u["role"] != "admin" and r["sender_id"] != u["id"]:
-        cur.close()
-        return jsonify({"ok": False, "error": "forbidden"}), 403
+        cur.execute("SELECT can_delete FROM group_perms WHERE user_id=%s", (u["id"],))
+        _pr = cur.fetchone()
+        if not (_pr and _pr["can_delete"]):
+            cur.close()
+            return jsonify({"ok": False, "error": "forbidden"}), 403
     cur.execute("UPDATE group_messages SET deleted=TRUE, body=NULL, pinned=FALSE WHERE id=%s", (msg_id,))
     db.commit()
     cur.close()
@@ -1849,7 +1863,10 @@ def group_rename():
 def group_members_api():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT id, full_name, username, avatar, role, last_seen FROM users ORDER BY full_name")
+    cur.execute("""SELECT u.id, u.full_name, u.username, u.avatar, u.role, u.last_seen,
+                          COALESCE(gp.can_delete, FALSE) AS can_delete
+                   FROM users u LEFT JOIN group_perms gp ON gp.user_id = u.id
+                   ORDER BY u.full_name""")
     rows = cur.fetchall()
     cur.close()
     members = []
@@ -1862,6 +1879,7 @@ def group_members_api():
             "role": r["role"],
             "online": _is_online(r["last_seen"]),
             "last_seen": _iso_utc(r["last_seen"]),
+            "can_delete": bool(r["can_delete"]),
         })
     members.sort(key=lambda m: (not m["online"], m["full_name"]))
     online_count = sum(1 for m in members if m["online"])
@@ -1885,6 +1903,22 @@ def chat_react(other_id, msg_id):
     reactions, err = _toggle_reaction("chat_reactions", msg_id, u["id"], emoji)
     if err: return jsonify({"ok": False, "error": err}), 400
     return jsonify({"ok": True, "message_id": msg_id, "reactions": reactions})
+
+
+@app.route("/group/perms/<int:uid>", methods=["POST"])
+@login_required
+def group_set_perm(uid):
+    u = current_user()
+    if u["role"] != "admin":
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    val = (request.form.get("can_delete") or "").strip().lower() in ("1","true","on","yes")
+    db = get_db(); cur = db.cursor()
+    cur.execute("""INSERT INTO group_perms(user_id, can_delete, updated_at)
+                   VALUES(%s,%s,NOW())
+                   ON CONFLICT (user_id) DO UPDATE SET can_delete=EXCLUDED.can_delete, updated_at=NOW()""",
+                (uid, val))
+    db.commit(); cur.close()
+    return jsonify({"ok": True, "user_id": uid, "can_delete": val})
 
 
 @app.route("/group/react/<int:msg_id>", methods=["POST"])
