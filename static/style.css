@@ -2501,3 +2501,208 @@ a{ color:inherit; text-decoration:none; }
   .notif-title{ font-size:14px; }
   .notif-body{ font-size:12.5px; -webkit-line-clamp:2; }
 }
+
+/* ============================================================
+   🎙️ Voice Recorder v3 — WhatsApp-typical clean layout
+   ============================================================ */
+.wa-rec-bar{
+  display:flex !important;
+  align-items:center;
+  gap:8px !important;
+  padding:10px 12px calc(10px + var(--safe-b,0px)) !important;
+  background:linear-gradient(180deg, rgba(28,36,60,.98), rgba(20,27,45,.98)) !important;
+  border-top:1px solid rgba(245,185,80,.18);
+  box-shadow:0 -6px 24px rgba(0,0,0,.4);
+  position:relative;
+  overflow:hidden;
+}
+.wa-rec-bar .wa-rec-cancel{ order:0; }
+.wa-rec-bar .wa-rec-mid   { order:1; }
+.wa-rec-bar .wa-rec-slide { order:2; }
+.wa-rec-bar .wa-rec-send  { order:3; }
+
+.wa-rec-mid{
+  flex:1 1 auto; min-width:0;
+  display:flex !important; align-items:center; gap:10px;
+  padding:0 14px !important; height:44px !important;
+  background:rgba(255,255,255,.05) !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  border-radius:22px !important;
+  color:var(--text-2, #d7d9e0);
+  font-size:13px; font-weight:700;
+  overflow:hidden;
+  box-shadow:none !important;
+}
+.wa-rec-mid::after,
+.wa-rec-mid::before{ display:none !important; content:none !important; }
+
+.wa-rec-dot{
+  width:10px; height:10px; border-radius:50%;
+  background:#ef4444; flex-shrink:0;
+  animation:recDotBlink 1s ease-in-out infinite;
+  box-shadow:0 0 0 0 rgba(239,68,68,.55);
+}
+.wa-rec-bar.is-active .wa-rec-dot{ animation:recDotBlink 1s ease-in-out infinite, recDotRing 1.2s ease-out infinite; }
+@keyframes recDotBlink{ 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes recDotRing { 0%{ box-shadow:0 0 0 0 rgba(239,68,68,.55);} 100%{ box-shadow:0 0 0 10px rgba(239,68,68,0);} }
+
+#recTime{
+  font-variant-numeric:tabular-nums; letter-spacing:.6px;
+  min-width:38px; text-align:start; color:var(--text-1,#f2f3f7);
+}
+
+.wa-rec-bars{
+  flex:1; display:inline-flex; align-items:center; gap:2px;
+  height:20px; min-width:0; overflow:hidden;
+  color:rgba(245,185,80,.9);
+}
+.wa-rec-bars i{
+  display:block; width:2px; border-radius:2px;
+  background:currentColor;
+  transform-origin:center;
+  animation:waRecBar 900ms ease-in-out infinite;
+}
+.wa-rec-bars i:nth-child(1){  height:30%; animation-delay:  0ms }
+.wa-rec-bars i:nth-child(2){  height:60%; animation-delay: 60ms }
+.wa-rec-bars i:nth-child(3){  height:45%; animation-delay:120ms }
+.wa-rec-bars i:nth-child(4){  height:85%; animation-delay:180ms }
+.wa-rec-bars i:nth-child(5){  height:55%; animation-delay:240ms }
+.wa-rec-bars i:nth-child(6){  height:70%; animation-delay:300ms }
+.wa-rec-bars i:nth-child(7){  height:35%; animation-delay:360ms }
+.wa-rec-bars i:nth-child(8){  height:80%; animation-delay:420ms }
+.wa-rec-bars i:nth-child(9){  height:50%; animation-delay:480ms }
+.wa-rec-bars i:nth-child(10){ height:65%; animation-delay:540ms }
+.wa-rec-bars i:nth-child(11){ height:40%; animation-delay:600ms }
+.wa-rec-bars i:nth-child(12){ height:75%; animation-delay:660ms }
+.wa-rec-bars i:nth-child(13){ height:45%; animation-delay:720ms }
+.wa-rec-bars i:nth-child(14){ height:60%; animation-delay:780ms }
+@keyframes waRecBar{ 0%,100%{ transform:scaleY(.3);} 50%{ transform:scaleY(1);} }
+
+/* Slide-to-cancel inline (override old absolute positioning) */
+.wa-rec-slide{
+  position:static !important;
+  inset:auto !important;
+  display:inline-flex !important; align-items:center; gap:6px;
+  padding:0 6px; flex-shrink:0;
+  color:var(--text-3,#a8a9b3);
+  font-size:12.5px; font-weight:600;
+  white-space:nowrap; opacity:.85;
+}
+.wa-rec-slide .wa-rec-arrow{ font-size:16px; opacity:.75; animation:slideNudge 1.2s ease-in-out infinite; display:inline-block; }
+@keyframes slideNudge{ 0%,100%{ transform:translateX(0); opacity:.5;} 50%{ transform:translateX(-4px); opacity:1;} }
+
+.wa-rec-cancel, .wa-rec-send{
+  width:44px; height:44px; border-radius:50%;
+  display:grid; place-items:center; flex-shrink:0;
+  border:none; cursor:pointer;
+}
+.wa-rec-cancel{
+  background:rgba(239,68,68,.14) !important;
+  color:#ff9a9a !important;
+  border:1px solid rgba(239,68,68,.28) !important;
+  transition:transform .12s, background .15s;
+}
+.wa-rec-cancel:active{ transform:scale(.9); }
+.wa-rec-send{
+  background:var(--grad-gold, linear-gradient(135deg,#ffcf6a,#ef6b57)) !important;
+  color:#1a1207 !important;
+  box-shadow:0 4px 14px rgba(245,185,80,.35), 0 1px 0 rgba(255,255,255,.35) inset !important;
+  transition:transform .12s;
+}
+.wa-rec-send:active{ transform:scale(.92); }
+.wa-rec-send:disabled{ opacity:.55; }
+
+/* Preview bar — clean */
+.wa-rec-preview{
+  gap:10px !important;
+  padding:10px 12px calc(10px + var(--safe-b,0px)) !important;
+  background:linear-gradient(180deg, rgba(28,36,60,.98), rgba(20,27,45,.98)) !important;
+  border-top:1px solid rgba(245,185,80,.18) !important;
+}
+.wa-rec-preview-mid{
+  height:44px !important; padding:4px 12px !important;
+  border-radius:22px !important;
+  background:rgba(255,255,255,.05) !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+}
+
+/* Mic button — remove noisy pulse ring, keep clean tap feedback */
+.wa-mic::after{ display:none !important; }
+.wa-mic:hover::after{ animation:none !important; }
+.wa-mic.is-recording{
+  background:linear-gradient(135deg,#ef4444,#b91c1c) !important;
+  color:#fff !important;
+  animation:micPulseSoft 1.1s ease-in-out infinite !important;
+}
+@keyframes micPulseSoft{
+  0%,100%{ box-shadow:0 0 0 0 rgba(239,68,68,.45);}
+  50%    { box-shadow:0 0 0 12px rgba(239,68,68,0);}
+}
+
+/* ============================================================
+   🔔 Notifications page — full screen width
+   ============================================================ */
+.notif-page{
+  max-width:none !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:12px 12px 32px !important;
+}
+.notif-page::before{ display:none !important; }
+.notif-list, .notify-page{ max-width:none !important; }
+
+/* ============================================================
+   👤 Admin self check-in card
+   ============================================================ */
+.admin-selfcheck{
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px;
+  margin:12px 0 14px;
+  border-radius:18px;
+  background:linear-gradient(140deg, rgba(245,185,80,.10), rgba(239,107,87,.08));
+  border:1px solid rgba(245,185,80,.22);
+  box-shadow:0 6px 20px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.05) inset;
+  position:relative; overflow:hidden;
+}
+.admin-selfcheck::before{
+  content:""; position:absolute; inset:-40% -20% auto auto;
+  width:180px; height:180px; border-radius:50%;
+  background:radial-gradient(circle, rgba(245,185,80,.22), transparent 65%);
+  pointer-events:none;
+}
+.admin-selfcheck.is-done{
+  background:linear-gradient(140deg, rgba(34,197,94,.10), rgba(16,185,129,.06));
+  border-color:rgba(34,197,94,.28);
+}
+.admin-selfcheck .asc-l{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+.admin-selfcheck .asc-ic{
+  width:44px; height:44px; border-radius:14px;
+  display:grid; place-items:center; flex-shrink:0;
+  background:linear-gradient(135deg,#ffcf6a,#ef6b57);
+  color:#1a1207;
+  box-shadow:0 4px 12px rgba(245,185,80,.35);
+}
+.admin-selfcheck.is-done .asc-ic{
+  background:linear-gradient(135deg,#22c55e,#10b981);
+  color:#04220f;
+  box-shadow:0 4px 12px rgba(34,197,94,.35);
+}
+.admin-selfcheck .asc-ic svg{ width:22px; height:22px; }
+.admin-selfcheck .asc-t{ font-weight:800; font-size:15.5px; color:var(--text-1,#f2f3f7); }
+.admin-selfcheck .asc-s{ font-size:12.5px; color:var(--text-3,#a8a9b3); margin-top:2px; }
+.admin-selfcheck .asc-btn{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:10px 16px; border-radius:14px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#ffcf6a,#ef6b57); color:#1a1207;
+  font-weight:800; font-size:14px;
+  box-shadow:0 6px 16px rgba(245,185,80,.35), 0 1px 0 rgba(255,255,255,.35) inset;
+  transition:transform .12s, filter .15s;
+}
+.admin-selfcheck .asc-btn:hover{ filter:brightness(1.05); }
+.admin-selfcheck .asc-btn:active{ transform:scale(.96); }
+.admin-selfcheck .asc-btn svg{ width:18px; height:18px; }
+@media (max-width:420px){
+  .admin-selfcheck{ flex-direction:row; padding:12px; gap:10px; }
+  .admin-selfcheck .asc-btn span{ display:none; }
+  .admin-selfcheck .asc-btn{ padding:10px 12px; }
+}
