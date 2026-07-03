@@ -2631,8 +2631,22 @@ def _handle_any_exc(e):
 import json as _json_st
 from datetime import datetime as _dt_st
 
-_BACKUP_DIR = os.path.join(app.root_path, "backups")
-os.makedirs(_BACKUP_DIR, exist_ok=True)
+# على Vercel/السيرفرلس نظام الملفات للقراءة فقط ما عدا /tmp
+# فبنستخدم /tmp/th_backups، ومنعملش المجلد إلا لما فعلاً نحتاج نكتب ملف
+# (يعني بس لما مساحة قاعدة البيانات تخلص ويشتغل الأرشيف التلقائي).
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or not os.access(app.root_path, os.W_OK):
+    _BACKUP_DIR = os.environ.get("BACKUP_DIR", "/tmp/th_backups")
+else:
+    _BACKUP_DIR = os.environ.get("BACKUP_DIR", os.path.join(app.root_path, "backups"))
+
+def _ensure_backup_dir():
+    """ينشئ مجلد النسخ الاحتياطي عند الحاجة فقط (بدل ما يفشل عند الاستيراد)."""
+    try:
+        os.makedirs(_BACKUP_DIR, exist_ok=True)
+        return True
+    except OSError as _e:
+        print(f"[backup] لا يمكن إنشاء {_BACKUP_DIR}: {_e}", flush=True)
+        return False
 
 # الجداول اللي المسؤول ممكن يحذف منها لتفريغ مساحة
 _STORAGE_TABLES = [
@@ -2699,6 +2713,8 @@ def _backup_before_delete(table, where_sql, params):
         cur.close()
         if not rows:
             return None, 0
+        if not _ensure_backup_dir():
+            return None, 0
         ts = _dt_st.utcnow().strftime("%Y%m%d_%H%M%S")
         fname = f"{table}_{ts}.json"
         fpath = os.path.join(_BACKUP_DIR, fname)
@@ -2718,6 +2734,8 @@ def _backup_before_delete(table, where_sql, params):
 
 def _list_backups():
     try:
+        if not os.path.isdir(_BACKUP_DIR):
+            return []
         files = []
         for name in sorted(os.listdir(_BACKUP_DIR), reverse=True):
             fpath = os.path.join(_BACKUP_DIR, name)
