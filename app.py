@@ -743,7 +743,8 @@ def check_in():
         flash("أنت مسجَّل حضورك بالفعل اليوم", "info")
     finally:
         cur.close()
-    return redirect(url_for("dashboard"))
+    nxt = request.form.get("next") or url_for("dashboard")
+    return redirect(nxt)
 
 
 @app.route("/history")
@@ -928,6 +929,12 @@ def admin_panel():
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
     present_count = cur.fetchone()["c"]
 
+    _admin_u = current_user()
+    cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (_admin_u["id"], day_s))
+    admin_checked_in = cur.fetchone() is not None
+    from datetime import date as _date
+    is_today = (day_s == _date.today().isoformat())
+
     cur.execute("""SELECT v.*, u.full_name FROM vaccinations v
                    JOIN users u ON u.id=v.user_id WHERE v.day=%s
                    ORDER BY v.created_at DESC""", (day_s,))
@@ -959,6 +966,7 @@ def admin_panel():
         day_total=day_total, present_count=present_count,
         days_bar=days_bar, day_closed=closed,
         all_workers=all_workers, tomorrow=tomorrow,
+        admin_checked_in=admin_checked_in, is_today=is_today,
     )
 
 
@@ -1249,6 +1257,12 @@ def admin_close_page():
         no_deduct_total = _row["no_deduct_total"] or 0
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
     present_count = cur.fetchone()["c"]
+
+    _admin_u = current_user()
+    cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (_admin_u["id"], day_s))
+    admin_checked_in = cur.fetchone() is not None
+    from datetime import date as _date
+    is_today = (day_s == _date.today().isoformat())
     # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور
     cur.execute("""
         SELECT u.id, u.full_name, u.role,
