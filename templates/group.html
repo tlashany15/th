@@ -56,11 +56,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
       <input id="imgInput" type="file" accept="image/*" hidden>
     </label>
-    <input id="textInput" type="text" placeholder="اكتب رسالة" autocomplete="off">
+    <textarea id="textInput" rows="1" placeholder="اكتب رسالة" autocomplete="off"></textarea>
     <button type="button" class="wa-mic" id="micBtn" aria-label="رسالة صوتية">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
     </button>
-    <button type="submit" class="wa-send" id="sendBtn" aria-label="إرسال" hidden>
+    <button type="submit" class="wa-send" id="sendBtn" aria-label="إرسال">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
     </button>
   </form>
@@ -369,10 +369,18 @@
   setInterval(poll, 3000);
 
 
-  textInput.addEventListener('input', function(){
-    var hasText = textInput.value.trim().length > 0;
-    sendBtn.hidden = !hasText;
-    micBtn.hidden = hasText;
+  function autoGrow(){
+    textInput.style.height = 'auto';
+    var max = 132;
+    textInput.style.height = Math.min(textInput.scrollHeight, max) + 'px';
+    composer.classList.toggle('has-text', textInput.value.trim().length > 0);
+  }
+  textInput.addEventListener('input', autoGrow);
+  textInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      composer.requestSubmit ? composer.requestSubmit() : composer.dispatchEvent(new Event('submit', {cancelable:true}));
+    }
   });
   var sending = false;
   composer.addEventListener('submit', function(e){
@@ -383,7 +391,7 @@
     sending = true;
     var fd = new FormData();
     fd.append('kind','text'); fd.append('body', v);
-    textInput.value = ''; sendBtn.hidden = true; micBtn.hidden = false;
+    textInput.value = ''; autoGrow();
     fetch('/group/send', {method:'POST', body:fd})
       .then(function(){ poll(); })
       .finally(function(){ sending = false; });
