@@ -2239,10 +2239,33 @@ def _send_fcm(tokens, title, body, url=""):
         for i in range(0, len(tokens), 500):
             batch = tokens[i:i + 500]
             message = messaging.MulticastMessage(
+                # notification payload => النظام يعرضه في شريط الحالة تلقائيًا لما التطبيق في الخلفية
                 notification=messaging.Notification(
                     title=title[:200], body=(body or "")[:200]
                 ),
-                data={"title": title, "body": body or "", "url": url or ""},
+                # data payload => يوصل حتى لو التطبيق مقفول، والـ FirebasePush block في Sketchware يقدر يقراه
+                data={
+                    "title": str(title or ""),
+                    "body":  str(body or ""),
+                    "url":   str(url or ""),
+                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                },
+                # إعدادات أندرويد: أولوية عالية + قناة إشعارات + صوت + عرض في شريط الحالة
+                android=messaging.AndroidConfig(
+                    priority="high",
+                    ttl=3600,
+                    notification=messaging.AndroidNotification(
+                        title=title[:200],
+                        body=(body or "")[:200],
+                        sound="default",
+                        channel_id="default_channel",
+                        priority="max",
+                        default_sound=True,
+                        default_vibrate_timings=True,
+                        visibility="public",
+                        notification_count=1,
+                    ),
+                ),
                 tokens=batch,
             )
             response = messaging.send_each_for_multicast(message)
