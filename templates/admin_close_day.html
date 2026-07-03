@@ -29,6 +29,24 @@
   </div>
 </section>
 
+<!-- ============ تنقل بين الأيام — للرجوع وإغلاق أيام فاتت ============ -->
+<div class="card">
+  <div class="daynav">
+    <a class="nav-arr" href="{{ url_for('admin_close_page', day=prev_day) }}" aria-label="اليوم السابق">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+    </a>
+    <div class="daynav-mid">
+      <div class="daynav-label">{% if day_closed %}اليوم مقفول{% else %}اليوم مفتوح{% endif %}{% if is_today %} · اليوم{% endif %}</div>
+      <div class="daynav-date">{{ day }}</div>
+    </div>
+    <a class="nav-arr {% if is_today %}nav-arr-disabled{% endif %}"
+       href="{% if not is_today %}{{ url_for('admin_close_page', day=next_day) }}{% else %}#{% endif %}"
+       aria-label="اليوم التالي">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+  </div>
+</div>
+
 <!-- ============ قائمة الحضور — تحكم كامل قبل الإغلاق ============ -->
 <div class="card">
   <div class="sec-head">
@@ -92,48 +110,57 @@
         </div>
       </div>
     </div>
-    <form method="post" action="{{ url_for('admin_reopen_day') }}">
-      <input type="hidden" name="day" value="{{ day }}">
-      <button class="btn btn-ghost">إعادة فتح اليوم</button>
-    </form>
-  {% else %}
-    <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
-      <input type="hidden" name="day" value="{{ day }}">
+    <div class="reedit-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+      <span>نسيت تقفل اليوم ده وقت وقته؟ تقدر تعدّل الأرقام وتحدّث الإغلاق من غير ما تفتحه تاني.</span>
+    </div>
+  {% endif %}
 
-      <div class="close-grid">
-        <div class="close-block close-block-gold">
-          <div class="close-block-head">
-            <div class="close-block-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-            </div>
-            <div>
-              <div class="close-block-t">إجمالي التحصين لليوم</div>
-              <div class="close-block-s">هيتوزع على الحاضرين فوق</div>
-            </div>
-          </div>
-          <input id="closeTotalInput" name="total_count" type="number" inputmode="numeric" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}" class="close-big-input">
-        </div>
+  <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
+    <input type="hidden" name="day" value="{{ day }}">
 
-        <div class="close-block close-block-blue">
-          <div class="close-block-head">
-            <div class="close-block-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
-            </div>
-            <div>
-              <div class="close-block-t">الأعداد بدون خصم</div>
-              <div class="close-block-s">للمحاسبة فقط — مش بتتوزع ومش بتنزل في الجروب</div>
-            </div>
+    <div class="close-grid">
+      <div class="close-block close-block-gold">
+        <div class="close-block-head">
+          <div class="close-block-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
           </div>
-          <input id="closeNoDeductInput" name="no_deduct_total" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_total or '' }}" class="close-big-input">
+          <div>
+            <div class="close-block-t">إجمالي التحصين لليوم</div>
+            <div class="close-block-s">هيتوزع على الحاضرين فوق</div>
+          </div>
         </div>
+        <input id="closeTotalInput" name="total_count" type="number" inputmode="numeric" min="0" required placeholder="مثال: 1500" value="{{ day_total or '' }}" class="close-big-input">
       </div>
 
-      <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose" style="margin-top:14px;width:100%;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-        إغلاق اليوم وتسجيل الإجمالي
-      </button>
+      <div class="close-block close-block-blue">
+        <div class="close-block-head">
+          <div class="close-block-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
+          </div>
+          <div>
+            <div class="close-block-t">الأعداد بدون خصم</div>
+            <div class="close-block-s">للمحاسبة فقط — مش بتتوزع ومش بتنزل في الجروب</div>
+          </div>
+        </div>
+        <input id="closeNoDeductInput" name="no_deduct_total" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_total or '' }}" class="close-big-input">
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose" style="margin-top:14px;width:100%;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      {% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}
+    </button>
+  </form>
+
+  {% if day_closed %}
+    <form method="post" action="{{ url_for('admin_reopen_day') }}" style="margin-top:10px;">
+      <input type="hidden" name="day" value="{{ day }}">
+      <input type="hidden" name="next" value="close-page">
+      <button class="btn btn-ghost">إعادة فتح اليوم بالكامل (تلغي القفل)</button>
     </form>
   {% endif %}
+
   <div style="margin-top:10px;">
     <a class="btn btn-ghost" href="{{ url_for('admin_panel', day=day) }}">← رجوع للوحة</a>
   </div>
@@ -167,6 +194,9 @@
 .close-block-s{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.4}
 .close-big-input{width:100%;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;color:#fff;font-size:22px;font-weight:800;text-align:center;letter-spacing:.5px;outline:none;transition:.15s}
 .close-big-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.nav-arr-disabled{opacity:.35;pointer-events:none}
+.reedit-note{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(80,150,255,.08);border:1px solid rgba(80,150,255,.22);font-size:12px;color:var(--text-2);margin-top:12px;line-height:1.6}
+.reedit-note svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#7fb0ff}
 </style>
 
 <script>
@@ -175,10 +205,14 @@
   var form = document.getElementById('closeDayForm');
   var input = document.getElementById('closeTotalInput');
   if (!b) return;
+  var isClosed = {{ 'true' if day_closed else 'false' }};
   b.addEventListener('click', function(){
     var v = parseInt((input.value||'0'), 10);
     if (isNaN(v) || v < 0){ (window.appAlert||alert)('ادخل رقم صحيح','error'); input.focus(); return; }
-    window.appConfirm('تسجيل ' + v.toLocaleString('ar-EG') + ' كتكوت كإجمالي نهائي لليوم؟', {okText:'تأكيد الإغلاق'}).then(function(ok){
+    var msg = isClosed
+      ? 'تحديث إغلاق يوم {{ day }} ليبقى الإجمالي ' + v.toLocaleString('ar-EG') + ' كتكوت؟'
+      : 'تسجيل ' + v.toLocaleString('ar-EG') + ' كتكوت كإجمالي نهائي لليوم؟';
+    window.appConfirm(msg, {okText: isClosed ? 'تأكيد التحديث' : 'تأكيد الإغلاق'}).then(function(ok){
       if (ok) form.submit();
     });
   });
