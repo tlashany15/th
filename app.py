@@ -240,6 +240,8 @@ def init_db():
         ALTER TABLE chat_messages  ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
         ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
         ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS mentions    TEXT;  -- JSON list of user ids
+        ALTER TABLE chat_messages  ADD COLUMN IF NOT EXISTS edited_at   TIMESTAMPTZ;
+        ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS edited_at   TIMESTAMPTZ;
 
         -- ==== تفاعلات (Reactions) على الرسائل ====
         CREATE TABLE IF NOT EXISTS chat_reactions (
@@ -315,8 +317,7 @@ def _next_free_userid(cur):
 
 
 # ---------- مساعدات ----------
-def current_user():
-    uid = session.get("user_id")
+def _load_user(uid):
     if not uid:
         return None
     db = get_db()
@@ -325,6 +326,24 @@ def current_user():
     row = cur.fetchone()
     cur.close()
     return row
+
+
+def current_user():
+    # المسؤول الرئيسي ممكن ينتحل شخصية عامل — نرجّع العامل ونحفظ الأصلي في real_user
+    imp = session.get("impersonate_id")
+    if imp:
+        u = _load_user(imp)
+        if u:
+            return u
+        # لو مش موجود نمسح الانتحال
+        session.pop("impersonate_id", None)
+    return _load_user(session.get("user_id"))
+
+
+def real_user():
+    """المستخدم الحقيقي المسجّل دخول (بدون انتحال)."""
+    return _load_user(session.get("user_id"))
+
 
 
 @app.before_request
@@ -483,7 +502,89 @@ def inject_user():
             cur.close()
         except Exception:
             sidebar_workers = []
-    return {"current_user": u, "today": date.today().isoformat(), "sidebar_workers": sidebar_workers, "is_super_admin": _is_super_admin(u)}
+    ru = real_user()
+    impersonator = ru if (ru and session.get("impersonate_id") and _is_super_admin(ru)) else None
+    return {
+        "current_user": u,
+        "today": date.today().isoformat(),
+        "sidebar_workers": sidebar_workers,
+        "is_super_admin": _is_super_admin(u),
+        "impersonator": impersonator,
+        "is_real_super_admin": _is_super_admin(ru),
+    }
+
+
+# ---------- انتحال شخصية (المسؤول الرئيسي فقط) ----------
+@app.route("/admin/impersonate/<int:uid>", methods=["POST", "GET"])
+@login_required
+def admin_impersonate(uid):
+    ru = real_user()
+    if not _is_super_admin(ru):
+        flash("هذه الميزة للمسؤول الرئيسي فقط", "error")
+        return redirect(url_for("dashboard"))
+    if uid == ru["id"]:
+        session.pop("impersonate_id", None)
+        return redirect(url_for("admin_panel"))
+    target = _load_user(uid)
+    if not target:
+        flash("المستخدم غير موجود", "error")
+        return redirect(url_for("admin_panel"))
+    session["impersonate_id"] = uid
+    flash("تم الدخول بحساب: " + (target["full_name"] or ""), "success")
+    if target["role"] == "admin":
+        return redirect(url_for("admin_panel"))
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/admin/unimpersonate", methods=["POST", "GET"])
+@login_required
+def admin_unimpersonate():
+    session.pop("impersonate_id", None)
+    flash("رجعت لحساب المسؤول ✓", "success")
+    return redirect(url_for("admin_panel"))
+
+
+# ---------- تعديل الرسائل (نص فقط، صاحبها فقط) ----------
+@app.route("/chat/edit/<int:msg_id>", methods=["POST"])
+@login_required
+def chat_edit_msg(msg_id):
+    u = current_user()
+    new_body = (request.form.get("body") or "").strip()
+    if not new_body:
+        return jsonify({"ok": False, "error": "empty"}), 400
+    if len(new_body) > 4000:
+        new_body = new_body[:4000]
+    db = get_db(); cur = db.cursor()
+    cur.execute("SELECT sender_id, kind FROM chat_messages WHERE id=%s", (msg_id,))
+    r = cur.fetchone()
+    if not r:
+        cur.close(); return jsonify({"ok": False, "error": "not_found"}), 404
+    if r["sender_id"] != u["id"] or r["kind"] != "text":
+        cur.close(); return jsonify({"ok": False, "error": "forbidden"}), 403
+    cur.execute("UPDATE chat_messages SET body=%s, edited_at=NOW() WHERE id=%s", (new_body, msg_id))
+    db.commit(); cur.close()
+    return jsonify({"ok": True, "id": msg_id, "body": new_body, "edited": True})
+
+
+@app.route("/group/edit/<int:msg_id>", methods=["POST"])
+@login_required
+def group_edit_msg(msg_id):
+    u = current_user()
+    new_body = (request.form.get("body") or "").strip()
+    if not new_body:
+        return jsonify({"ok": False, "error": "empty"}), 400
+    if len(new_body) > 4000:
+        new_body = new_body[:4000]
+    db = get_db(); cur = db.cursor()
+    cur.execute("SELECT sender_id, kind, deleted FROM group_messages WHERE id=%s", (msg_id,))
+    r = cur.fetchone()
+    if not r:
+        cur.close(); return jsonify({"ok": False, "error": "not_found"}), 404
+    if r["deleted"] or r["sender_id"] != u["id"] or r["kind"] != "text":
+        cur.close(); return jsonify({"ok": False, "error": "forbidden"}), 403
+    cur.execute("UPDATE group_messages SET body=%s, edited_at=NOW() WHERE id=%s", (new_body, msg_id))
+    db.commit(); cur.close()
+    return jsonify({"ok": True, "id": msg_id, "body": new_body, "edited": True})
 
 
 # ---------- مسارات أساسية ----------
@@ -1514,7 +1615,7 @@ def chat_messages_api(other_id):
     db = get_db()
     cur = db.cursor()
     cur.execute("""
-        SELECT id, sender_id, receiver_id, kind, body, created_at, read_at, reply_to_id
+        SELECT id, sender_id, receiver_id, kind, body, created_at, read_at, reply_to_id, edited_at
         FROM chat_messages
         WHERE ((sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s))
           AND id > %s
@@ -1568,6 +1669,7 @@ def chat_messages_api(other_id):
             "read": r["read_at"] is not None,
             "reply_to": replies_map.get(r["reply_to_id"]) if r["reply_to_id"] else None,
             "reactions": reactions_map.get(r["id"], []),
+            "edited": r["edited_at"] is not None,
         })
     reactions_updates = {str(mid): reactions_map.get(mid, []) for mid in recent_ids}
     return jsonify({
@@ -1672,7 +1774,7 @@ def group_messages_api():
     cur = db.cursor()
     cur.execute("""
         SELECT m.id, m.sender_id, m.kind, m.body, m.pinned, m.deleted, m.created_at,
-               m.reply_to_id, m.mentions,
+               m.reply_to_id, m.mentions, m.edited_at,
                u.full_name AS sender_name, u.avatar AS sender_avatar, u.role AS sender_role
         FROM group_messages m
         LEFT JOIN users u ON u.id = m.sender_id
@@ -1737,6 +1839,7 @@ def group_messages_api():
             "reply_to": replies_map.get(r["reply_to_id"]) if r["reply_to_id"] else None,
             "mentions": mentions,
             "reactions": reactions_map.get(r["id"], []),
+            "edited": r["edited_at"] is not None,
         })
     reactions_updates = {str(mid): reactions_map.get(mid, []) for mid in recent_ids}
     return jsonify({
