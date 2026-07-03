@@ -2527,6 +2527,8 @@ a{ color:inherit; text-decoration:none; }
   position:relative;
   overflow:hidden;
 }
+.wa-rec-bar[hidden],
+.wa-rec-preview[hidden]{ display:none !important; }
 .wa-rec-bar .wa-rec-cancel{ order:0; }
 .wa-rec-bar .wa-rec-mid   { order:1; }
 .wa-rec-bar .wa-rec-slide { order:2; }
