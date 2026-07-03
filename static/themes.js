@@ -2,8 +2,22 @@
    Persists in localStorage("tahsin_chat_theme"). Applied to <html data-chat-theme>.
    Also supports a "custom" theme editor (bubbles color + background color/image). */
 (function(){
-  var KEY = 'tahsin_chat_theme';
-  var KEY_CUSTOM = 'tahsin_chat_theme_custom';
+  // Per-account theme storage: keys are namespaced with the current user id so
+  // switching accounts on the same device shows each user's own theme.
+  var UID = (typeof window !== 'undefined' && window.CURRENT_USER_ID != null)
+    ? String(window.CURRENT_USER_ID) : 'guest';
+  var KEY = 'tahsin_chat_theme:' + UID;
+  var KEY_CUSTOM = 'tahsin_chat_theme_custom:' + UID;
+
+  // One-time migration from the old global keys (only for the first user that logs in).
+  try {
+    var legacy = localStorage.getItem('tahsin_chat_theme');
+    if (legacy && !localStorage.getItem(KEY)) localStorage.setItem(KEY, legacy);
+    var legacyC = localStorage.getItem('tahsin_chat_theme_custom');
+    if (legacyC && !localStorage.getItem(KEY_CUSTOM)) localStorage.setItem(KEY_CUSTOM, legacyC);
+    localStorage.removeItem('tahsin_chat_theme');
+    localStorage.removeItem('tahsin_chat_theme_custom');
+  } catch(e){}
 
   var THEMES = [
     { id:'default',  name:'فريق التحصين',  bg:'linear-gradient(180deg,#0b0f17,#141b2d)',  me:'linear-gradient(160deg,#f5b950,#ef6b57)', them:'#202a44', meText:'#1a0e02', themText:'#eef2fb' },
