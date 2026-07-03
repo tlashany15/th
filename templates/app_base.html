@@ -103,10 +103,17 @@
   <div class="sidebar-section-title">الفريق — اضغط لعرض نصيبه</div>
   <div class="sidebar-workers">
     {% for w in sidebar_workers %}
-      <a class="sidebar-worker" href="{{ url_for('worker_stats', worker_id=w.id) }}">
-        <span class="sw-badge">{{ (w.full_name or '?')[:1] }}</span>
-        <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">(مسؤول)</em>{% endif %}</span>
-      </a>
+      <div class="sidebar-worker-row">
+        <a class="sidebar-worker" href="{{ url_for('worker_stats', worker_id=w.id) }}">
+          <span class="sw-badge">{{ (w.full_name or '?')[:1] }}</span>
+          <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">(مسؤول)</em>{% endif %}</span>
+        </a>
+        {% if is_real_super_admin and w.id != current_user.id and not (w.role == 'admin' and w.username == '1') %}
+        <a class="sidebar-worker-imp" href="{{ url_for('admin_impersonate', uid=w.id) }}" title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9M12 21H6a2 2 0 01-2-2V5a2 2 0 012-2h6"/></svg>
+        </a>
+        {% endif %}
+      </div>
     {% endfor %}
   </div>
   {% endif %}
@@ -116,6 +123,18 @@
 
 <!-- CONTENT -->
 <div class="container">
+  {% if impersonator %}
+  <div class="impersonate-banner">
+    <div class="imp-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    </div>
+    <div class="imp-txt">
+      <b>أنت الآن بحساب: {{ current_user.full_name }}</b>
+      <span>الدخول تم بواسطة {{ impersonator.full_name }}</span>
+    </div>
+    <a href="{{ url_for('admin_unimpersonate') }}" class="imp-back">رجوع للمسؤول</a>
+  </div>
+  {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat, msg in messages %}
       <div class="flash {{ cat }}">

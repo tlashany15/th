@@ -200,13 +200,15 @@
     var senderClickable = (!m.mine && m.sender_id);
     var senderLine = (!m.mine) ? '<div class="wa-sender'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+' style="color:hsl('+((m.sender_id||0)*47%360)+',70%,70%)">'+ChatHelpers.escape(m.sender_name)+(m.sender_role==='admin'?' <span class="wa-adm">مسؤول</span>':'')+'</div>' : '';
     var delBtn = canDel ? '<button class="wa-del" data-id="'+m.id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>' : '';
+    var editBtn = (m.mine && m.kind === 'text') ? '<button type="button" class="wa-edit-btn" data-edit-id="'+m.id+'" aria-label="تعديل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg></button>' : '';
     var avatar = (!m.mine) ? '<div class="wa-msg-av'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+'>'+avatarHTML(m)+'</div>' : '';
+    var editedMark = m.edited ? '<span class="wa-edited">معدَّلة</span>' : '';
     return '<div class="wa-msg wa-'+side+' wa-has-av" data-id="'+m.id+'">'+
              avatar +
              '<div class="wa-bubble">'+ senderLine + quoted + inner +
-               '<div class="wa-meta"><span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span></div>'+
+               '<div class="wa-meta">'+editedMark+'<span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span></div>'+
              '</div>'+
-             delBtn +
+             editBtn + delBtn +
            '</div>';
   }
 
@@ -533,6 +535,33 @@
   msgsEl.addEventListener('click', function(ev){
     var img = ev.target.closest && ev.target.closest('.wa-img-tap');
     if (img) { ev.preventDefault(); openLB(img.src, img.dataset.msgId); return; }
+
+    var eb = ev.target.closest && ev.target.closest('.wa-edit-btn');
+    if (eb){
+      ev.preventDefault();
+      var mid = eb.dataset.editId;
+      var msgEl = msgsEl.querySelector('.wa-msg[data-id="'+mid+'"]');
+      var txtEl = msgEl && msgEl.querySelector('.wa-text');
+      var current = txtEl ? txtEl.innerText : '';
+      var val = window.prompt('عدّل الرسالة:', current);
+      if (val == null) return;
+      val = val.trim();
+      if (!val || val === current) return;
+      var fd = new FormData(); fd.append('body', val);
+      fetch('/group/edit/'+mid, {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.ok){
+            if (txtEl) txtEl.innerHTML = ChatHelpers.linkify(d.body);
+            var meta = msgEl.querySelector('.wa-meta');
+            if (meta && !meta.querySelector('.wa-edited')){
+              meta.insertAdjacentHTML('afterbegin','<span class="wa-edited">معدَّلة</span>');
+            }
+            ChatHelpers.toast('تم التعديل ✓');
+          } else { (window.appAlert||alert)('تعذّر التعديل','error'); }
+        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); });
+      return;
+    }
 
     var sys = ev.target.closest && ev.target.closest('.wa-sys-tap');
     if (sys && !(ev.target.closest && ev.target.closest('.wa-del'))) {
