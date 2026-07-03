@@ -8,10 +8,16 @@
     <div>
       <span class="hero-chip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        سجل التحصين
+        {{ 'سجل العمال' if not (current_user and current_user.role == 'admin') else 'سجل التحصين' }}
       </span>
       <h1 class="hero-h1">كل يوم بتفاصيله</h1>
-      <p class="hero-sub">مقسوم على فترات نصف الشهر • الجمعة إجازة 🌙</p>
+      <p class="hero-sub">
+        {% if current_user and current_user.role == 'admin' %}
+          مقسوم على فترات نصف الشهر • الجمعة إجازة 🌙
+        {% else %}
+          إجمالي الشهر الحالي • يتصفّى تلقائيًا مع بداية كل شهر جديد 🌙
+        {% endif %}
+      </p>
     </div>
   </div>
 
