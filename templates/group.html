@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 
-<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}">
+<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}" data-can-delete="{{ '1' if my_can_delete else '0' }}">
 
   <!-- HEADER -->
   <header class="wa-head">
@@ -100,6 +100,18 @@
   </div>
 </div>
 
+<!-- Member action sheet (admin only) -->
+<div class="modal-root" id="memberSheet" aria-hidden="true">
+  <div class="modal-backdrop" data-close-sheet></div>
+  <div class="modal-card" role="dialog" aria-modal="true" style="max-width:360px;">
+    <div class="modal-title" id="memberSheetName">عضو</div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+      <button type="button" class="btn btn-primary" id="memberSheetOpenChat">فتح المحادثة الخاصة</button>
+      <button type="button" class="btn btn-ghost" id="memberSheetTogglePerm">منح صلاحية حذف الرسائل</button>
+      <button type="button" class="btn btn-ghost" data-close-sheet>إلغاء</button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
 <script>
@@ -107,6 +119,7 @@
   var wrap = document.querySelector('.wa-wrap');
   var ME_ID = parseInt(wrap.dataset.meId, 10);
   var IS_ADMIN = wrap.dataset.isAdmin === '1';
+  var MY_CAN_DELETE = wrap.dataset.canDelete === '1';
   var msgsEl = document.getElementById('msgs');
   var textInput = document.getElementById('textInput');
   var imgInput = document.getElementById('imgInput');
@@ -125,7 +138,7 @@
   }
 
   function sysDelBtn(id){
-    if (!IS_ADMIN) return '';
+    if (!IS_ADMIN && !MY_CAN_DELETE) return '';
     return '<button class="wa-del wa-del-sys" data-id="'+id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>';
   }
   function renderSysBody(txt){
@@ -157,7 +170,7 @@
       return '<div class="wa-sys wa-sys-tap" data-id="'+m.id+'"><span class="wa-sys-pill">'+renderSysBody(m.body||'')+'</span>'+sysDelBtn(m.id)+'</div>';
     }
     var side = m.mine ? 'me' : 'them';
-    var canDel = (m.mine || IS_ADMIN);
+    var canDel = (m.mine || IS_ADMIN || MY_CAN_DELETE);
     var inner = '';
     if (m.kind === 'image') {
       inner = '<img class="wa-img wa-img-tap" data-msg-id="'+m.id+'" src="'+m.body+'" alt="" loading="lazy">';
@@ -242,9 +255,72 @@
       el.dataset.ocBound = '1';
       el.addEventListener('click', function(ev){
         ev.stopPropagation();
-        var id = el.dataset.openChat;
-        if (id && parseInt(id,10) !== ME_ID) window.location.href = '/chat/' + id;
+        var id = parseInt(el.dataset.openChat, 10);
+        if (!id || id === ME_ID) return;
+        if (IS_ADMIN) {
+          openMemberSheet(id, el.dataset.openName || '');
+        } else {
+          window.location.href = '/chat/' + id;
+        }
       });
+    });
+  }
+
+  // ===== قائمة الإجراءات عند الضغط على صورة عضو (المسؤول فقط) =====
+  var memberSheet = document.getElementById('memberSheet');
+  var memberSheetName = document.getElementById('memberSheetName');
+  var memberSheetOpenChat = document.getElementById('memberSheetOpenChat');
+  var memberSheetTogglePerm = document.getElementById('memberSheetTogglePerm');
+  var _currentSheetUid = 0;
+  function openMemberSheet(uid, name){
+    _currentSheetUid = uid;
+    memberSheetName.textContent = name || 'عضو';
+    memberSheetTogglePerm.textContent = 'جاري التحميل…';
+    memberSheetTogglePerm.dataset.state = '';
+    memberSheet.classList.add('is-open');
+    memberSheet.setAttribute('aria-hidden','false');
+    // اجلب حالة الصلاحية الحالية
+    fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+      var m = (d.members||[]).find(function(x){ return x.id === uid; });
+      if (m) {
+        memberSheetName.textContent = m.full_name || name || 'عضو';
+        var can = !!m.can_delete;
+        memberSheetTogglePerm.dataset.state = can ? '1' : '0';
+        memberSheetTogglePerm.textContent = can ? 'سحب صلاحية حذف الرسائل' : 'منح صلاحية حذف الرسائل';
+        memberSheetTogglePerm.classList.toggle('is-danger', can);
+      }
+    });
+  }
+  function closeMemberSheet(){
+    memberSheet.classList.remove('is-open');
+    memberSheet.setAttribute('aria-hidden','true');
+    _currentSheetUid = 0;
+  }
+  if (memberSheet) {
+    memberSheet.querySelectorAll('[data-close-sheet]').forEach(function(el){
+      el.addEventListener('click', closeMemberSheet);
+    });
+    memberSheetOpenChat.addEventListener('click', function(){
+      if (_currentSheetUid) window.location.href = '/chat/' + _currentSheetUid;
+    });
+    memberSheetTogglePerm.addEventListener('click', function(){
+      if (!_currentSheetUid) return;
+      var cur = memberSheetTogglePerm.dataset.state === '1';
+      var next = cur ? '0' : '1';
+      var fd = new FormData(); fd.append('can_delete', next);
+      memberSheetTogglePerm.disabled = true;
+      fetch('/group/perms/'+_currentSheetUid, {method:'POST', body:fd})
+        .then(function(r){return r.json();})
+        .then(function(d){
+          memberSheetTogglePerm.disabled = false;
+          if (d && d.ok) {
+            var can = !!d.can_delete;
+            memberSheetTogglePerm.dataset.state = can ? '1' : '0';
+            memberSheetTogglePerm.textContent = can ? 'سحب صلاحية حذف الرسائل' : 'منح صلاحية حذف الرسائل';
+            memberSheetTogglePerm.classList.toggle('is-danger', can);
+            if (window.appToast) window.appToast(can ? 'تم منح الصلاحية ✓' : 'تم سحب الصلاحية');
+          }
+        }).catch(function(){ memberSheetTogglePerm.disabled = false; });
     });
   }
 
@@ -373,9 +449,9 @@
     var status = m.online
       ? '<span class="tg-mem-status is-online">متصل الآن</span>'
       : '<span class="tg-mem-status">'+fmtLastSeen(m.last_seen)+'</span>';
-    var badge = (m.role === 'admin') ? '<span class="wa-adm">مسؤول</span>' : '';
-    var dot = m.online ? '<span class="tg-mem-dot"></span>' : '';
     var isMe = (m.id === ME_ID);
+    var badge = (m.role === 'admin' && !isMe) ? '<span class="wa-adm">مسؤول</span>' : '';
+    var dot = m.online ? '<span class="tg-mem-dot"></span>' : '';
     var openTag  = isMe ? '<li class="tg-mem-row">' : '<li class="tg-mem-row tg-mem-row-link"><a class="tg-mem-link" href="/chat/'+m.id+'">';
     var closeTag = isMe ? '</li>' : '</a></li>';
     return openTag +
