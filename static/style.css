@@ -2096,10 +2096,11 @@ a{ color:inherit; text-decoration:none; }
 
 /* ================ Mention autocomplete ================ */
 .wa-mention-pop{
-  position:absolute; bottom:100%; inset-inline-start:12px; margin-bottom:8px;
-  background:#1a2036; border:1px solid rgba(255,255,255,.1);
-  border-radius:10px; padding:6px; max-height:220px; overflow:auto;
-  box-shadow:0 -8px 24px rgba(0,0,0,.4); z-index:20; min-width:200px;
+  position:fixed; z-index:9999;
+  background:#1a2036; border:1px solid rgba(255,255,255,.12);
+  border-radius:12px; padding:6px; max-height:240px; overflow:auto;
+  box-shadow:0 12px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+  min-width:200px;
 }
 .wa-mention-pop-item{
   padding:8px 12px; border-radius:6px; cursor:pointer;
@@ -2113,26 +2114,33 @@ a{ color:inherit; text-decoration:none; }
 .wmp-av-fb{ display:grid; place-items:center; color:#fff; font-weight:800; font-size:12px; }
 .wmp-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-/* ================ Reactions on bubbles ================ */
+/* ================ Reactions on bubbles (Telegram-style: chip فوق الفقاعة) ================ */
 .wa-bubble{ position:relative; }
+.wa-msg:has(.wa-reactions){ margin-top:18px; }
 .wa-reactions{
+  position:absolute;
+  top:-14px;
+  inset-inline-start:10px;
   display:flex; flex-wrap:wrap; gap:4px;
-  margin-top:6px; margin-bottom:-2px;
+  margin:0; z-index:3;
+  pointer-events:auto;
 }
+.wa-me .wa-reactions{ inset-inline-start:auto; inset-inline-end:10px; }
 .wa-react-chip{
   display:inline-flex; align-items:center; gap:3px;
-  padding:2px 7px; border-radius:99px;
-  background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.12);
-  color:inherit; font: inherit; cursor:pointer;
+  padding:2px 8px; border-radius:99px;
+  background:#1a2036; border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 3px 10px rgba(0,0,0,.4);
+  color:#fff; font: inherit; cursor:pointer;
   font-size:12px; line-height:1;
   transition:transform .1s, background .15s;
 }
 .wa-react-chip:active{ transform:scale(.92); }
 .wa-react-chip.is-mine{
-  background:rgba(245,185,80,.22); border-color:rgba(245,185,80,.55);
+  background:#3a2c14; border-color:rgba(245,185,80,.7);
 }
 .wa-react-e{ font-size:14px; line-height:1; }
-.wa-react-c{ font-size:11px; font-weight:700; opacity:.85; }
+.wa-react-c{ font-size:11px; font-weight:700; opacity:.9; }
 .wa-react-c:empty{ display:none; }
 
 /* ================ Reaction picker (long press popup) ================ */
@@ -2162,10 +2170,10 @@ a{ color:inherit; text-decoration:none; }
 /* ================ Notifications page — redesigned ================ */
 .notif-page{ padding:12px 4px; max-width:640px; margin:0 auto; }
 .notif-head{
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:center; justify-content:flex-end;
   margin:8px 0 14px; gap:12px;
 }
-.notif-page-title{ font-size:20px; font-weight:800; margin:0; }
+.notif-page-title{ display:none; }
 .notif-clear-all{
   display:inline-flex; align-items:center; gap:6px;
   background:rgba(239,68,68,.12); color:#ef6b57;
