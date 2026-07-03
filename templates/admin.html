@@ -39,6 +39,34 @@
   </div>
 </section>
 
+{% if is_today %}
+<!-- ===== ADMIN SELF CHECK-IN ===== -->
+<div class="admin-selfcheck {% if admin_checked_in %}is-done{% endif %}">
+  <div class="asc-l">
+    <div class="asc-ic">
+      {% if admin_checked_in %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      {% else %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {% endif %}
+    </div>
+    <div>
+      <div class="asc-t">{% if admin_checked_in %}تم تسجيل حضورك اليوم{% else %}سجّل حضورك اليوم{% endif %}</div>
+      <div class="asc-s">{% if admin_checked_in %}أنت ضمن الحاضرين ✓{% else %}اضغط الزر لتضاف كحاضر مع الفريق{% endif %}</div>
+    </div>
+  </div>
+  {% if not admin_checked_in and not day_closed %}
+  <form method="post" action="{{ url_for('check_in') }}" class="asc-form">
+    <input type="hidden" name="next" value="{{ url_for('admin_panel', day=day) }}">
+    <button type="submit" class="asc-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      <span>حضور</span>
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
 <!-- ===== DAY NAV ===== -->
 <div class="card">
   <div class="daynav">
