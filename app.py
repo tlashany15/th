@@ -449,6 +449,22 @@ def admin_required(f):
     return w
 
 
+def _is_super_admin(u):
+    # المسؤول الرئيسي فقط (اللي username = '1') هو اللي يقدر يدير المستخدمين
+    return bool(u and u.get("role") == "admin" and str(u.get("username")) == "1")
+
+
+def super_admin_required(f):
+    @wraps(f)
+    def w(*a, **kw):
+        u = current_user()
+        if not _is_super_admin(u):
+            flash("هذه الصفحة للمسؤول الرئيسي فقط", "error")
+            return redirect(url_for("admin_panel") if u and u["role"] == "admin" else url_for("dashboard"))
+        return f(*a, **kw)
+    return w
+
+
 @app.context_processor
 def inject_user():
     u = current_user()
@@ -467,7 +483,7 @@ def inject_user():
             cur.close()
         except Exception:
             sidebar_workers = []
-    return {"current_user": u, "today": date.today().isoformat(), "sidebar_workers": sidebar_workers}
+    return {"current_user": u, "today": date.today().isoformat(), "sidebar_workers": sidebar_workers, "is_super_admin": _is_super_admin(u)}
 
 
 # ---------- مسارات أساسية ----------
@@ -1065,7 +1081,7 @@ def admin_announce_tomorrow():
 
 
 @app.route("/admin/users", methods=["GET", "POST"])
-@admin_required
+@super_admin_required
 def admin_users():
     db = get_db()
     cur = db.cursor()
