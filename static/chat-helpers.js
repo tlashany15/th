@@ -91,111 +91,274 @@ window.ChatHelpers = (function(){
     });
   }
 
-  // التسجيل الصوتي
+  // ========== التسجيل الصوتي — نمط واتساب (ضغط مطوّل + معاينة) ==========
   function attachRecorder(opts){
-    var micBtn = opts.micBtn;
+    var micBtn   = opts.micBtn;
     var composer = opts.composer;
-    var onSend = opts.onSend;
+    var onSend   = opts.onSend;
 
-    // أنشئ شريط التسجيل لو مش موجود
     var bar = document.getElementById('recBar');
     if (!bar) return;
-    var recTime = document.getElementById('recTime');
+    var recTime   = document.getElementById('recTime');
     var recCancel = document.getElementById('recCancel');
-    var recSend = document.getElementById('recSend');
+    var recSend   = document.getElementById('recSend');
+    var recMid    = bar.querySelector('.wa-rec-mid');
+    var recHint   = bar.querySelector('.wa-rec-hint');
 
-    var mediaRec=null, chunks=[], stream=null, startTs=0, tickId=null, cancelled=false, mimeUsed='audio/webm';
-    var isRecording=false, isStopping=false, isSending=false, sentOnce=false;
+    // نضيف طبقة "اسحب للإلغاء"
+    if (!bar.querySelector('.wa-rec-slide')){
+      var slide = document.createElement('div');
+      slide.className = 'wa-rec-slide';
+      slide.innerHTML = '<span class="wa-rec-arrow">‹</span><span>اسحب للإلغاء</span>';
+      bar.appendChild(slide);
+    }
+    var slideEl = bar.querySelector('.wa-rec-slide');
 
-    function start(){
-      if (isRecording || isStopping || isSending) return; // امنع بدء تسجيل مزدوج
-      if (!navigator.mediaDevices || !window.MediaRecorder) {
-        (window.appAlert||alert)('المتصفح ما يدعمش التسجيل','error');
-        return;
+    // مربّع معاينة (بيظهر بعد التسجيل)
+    var preview = null;
+    function ensurePreview(){
+      if (preview) return preview;
+      preview = document.createElement('div');
+      preview.className = 'wa-rec-preview';
+      preview.hidden = true;
+      preview.innerHTML =
+        '<button type="button" class="wa-rec-cancel" data-role="prev-del" aria-label="حذف">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9M4.772 5.79h14.456"/></svg>'+
+        '</button>'+
+        '<div class="wa-rec-preview-mid" data-role="prev-player"></div>'+
+        '<button type="button" class="wa-rec-send" data-role="prev-send" aria-label="إرسال">'+
+          '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>'+
+        '</button>';
+      bar.parentNode.insertBefore(preview, bar.nextSibling);
+      return preview;
+    }
+
+    var mediaRec=null, chunks=[], stream=null, startTs=0, tickId=null;
+    var mimeUsed='audio/webm';
+    var isRecording=false, cancelled=false, longPressed=false;
+    var pressTimer=null, startX=0, currentDX=0, activePointerId=null;
+    var lastBlob=null, previewURL=null;
+
+    function resetAll(){
+      if (mediaRec && mediaRec.state !== 'inactive'){ try{ mediaRec.stop(); }catch(_){}}
+      if (stream){ try{ stream.getTracks().forEach(function(t){t.stop();}); }catch(_){} }
+      if (tickId){ clearInterval(tickId); tickId=null; }
+      if (previewURL){ try{ URL.revokeObjectURL(previewURL); }catch(_){} previewURL=null; }
+      mediaRec=null; stream=null; chunks=[]; isRecording=false; cancelled=false;
+      longPressed=false; currentDX=0; activePointerId=null; lastBlob=null;
+      if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
+      bar.hidden = true;
+      bar.classList.remove('is-active');
+      if (slideEl){ slideEl.style.transform=''; slideEl.style.opacity=''; }
+      if (preview){ preview.hidden = true; preview.querySelector('[data-role=prev-player]').innerHTML=''; }
+      if (composer) composer.style.display = '';
+      recTime.textContent = '0:00';
+      micBtn.classList.remove('is-recording');
+    }
+
+    function showRecordingUI(){
+      bar.hidden = false;
+      bar.classList.add('is-active');
+      if (composer) composer.style.display = 'none';
+      if (preview) preview.hidden = true;
+      recTime.textContent = '0:00';
+      if (recHint) recHint.textContent = '';
+      micBtn.classList.add('is-recording');
+    }
+
+    function startRecording(){
+      if (isRecording) return;
+      if (!navigator.mediaDevices || !window.MediaRecorder){
+        (window.appAlert||alert)('المتصفح ما يدعمش التسجيل','error'); return;
       }
       isRecording = true;
+      showRecordingUI();
       navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
-        stream = s; chunks = []; cancelled = false; sentOnce = false;
+        if (!isRecording){ // اتلغى قبل ما يبدأ
+          try{ s.getTracks().forEach(function(t){t.stop();}); }catch(_){}
+          return;
+        }
+        stream = s; chunks = []; cancelled = false;
         var mime = '';
-        var candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg'];
+        var candidates = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/mpeg','audio/ogg'];
         for (var i=0;i<candidates.length;i++){
           if (MediaRecorder.isTypeSupported(candidates[i])){ mime = candidates[i]; break; }
         }
-        try {
-          mediaRec = mime ? new MediaRecorder(s, {mimeType:mime}) : new MediaRecorder(s);
-        } catch(e) {
-          mediaRec = new MediaRecorder(s);
-        }
+        try { mediaRec = mime ? new MediaRecorder(s,{mimeType:mime}) : new MediaRecorder(s); }
+        catch(e){ mediaRec = new MediaRecorder(s); }
         mimeUsed = mediaRec.mimeType || mime || 'audio/webm';
         mediaRec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
         mediaRec.onstop = function(){
-          try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
-          isRecording = false; isStopping = false;
-          if (cancelled || !chunks.length) { chunks = []; return; }
-          if (sentOnce) { chunks = []; return; } // امنع إرسال مكرر
-          sentOnce = true;
+          try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(_){}
+          stream = null;
+          var wasCancelled = cancelled;
+          isRecording = false;
+          if (tickId){ clearInterval(tickId); tickId=null; }
+          if (wasCancelled || !chunks.length){
+            chunks = [];
+            resetAll();
+            return;
+          }
           var blob = new Blob(chunks, {type: mimeUsed});
           chunks = [];
-          if (blob.size < 1000) { (window.appAlert||alert)('التسجيل قصير جدًا','error'); return; }
-          isSending = true;
-          try { onSend(blob, mimeUsed, function(){ isSending = false; }); }
-          catch(e){ isSending = false; }
+          if (blob.size < 1000){
+            (window.appAlert||alert)('التسجيل قصير جدًا','error');
+            resetAll();
+            return;
+          }
+          lastBlob = blob;
+          openPreview(blob);
         };
-        mediaRec.start();
+        try { mediaRec.start(); } catch(_){}
         startTs = Date.now();
-        bar.hidden = false;
-        bar.classList.add('is-active');
-        if (composer) composer.style.display = 'none';
-        recTime.textContent = '0:00';
         tickId = setInterval(function(){
           recTime.textContent = fmtSec(Math.floor((Date.now()-startTs)/1000));
         }, 250);
       }).catch(function(){
         isRecording = false;
+        resetAll();
         (window.appAlert||alert)('فعّل صلاحية الميكروفون من إعدادات المتصفح','error');
       });
     }
 
-    function stop(send){
-      if (isStopping) return;                 // امنع الاستدعاء المزدوج
-      if (!isRecording && !mediaRec) return;
-      isStopping = true;
-      cancelled = !send;
-      if (mediaRec && mediaRec.state !== 'inactive') {
-        try { mediaRec.stop(); } catch(e){}
-      } else if (stream) {
-        try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
-        isRecording = false; isStopping = false;
+    function stopRecording(sendAfter){
+      cancelled = !sendAfter;
+      if (mediaRec && mediaRec.state !== 'inactive'){
+        try { mediaRec.stop(); } catch(_){}
+      } else {
+        // ما كانش بدأ فعلاً
+        resetAll();
       }
-      clearInterval(tickId);
-      bar.hidden = true;
-      bar.classList.remove('is-active');
-      if (composer) composer.style.display = '';
-      recTime.textContent = '0:00';
     }
 
-    var lastMicTs = 0, lastSendTs = 0, lastCancelTs = 0;
-    micBtn.addEventListener('click', function(e){
-      var now = Date.now();
-      if (now - lastMicTs < 400) { e.preventDefault(); return; }
-      lastMicTs = now;
-      start();
-    });
-    recCancel.addEventListener('click', function(e){
-      var now = Date.now();
-      if (now - lastCancelTs < 400) { e.preventDefault(); return; }
-      lastCancelTs = now;
-      stop(false);
-    });
-    recSend.addEventListener('click', function(e){
-      var now = Date.now();
-      if (now - lastSendTs < 500) { e.preventDefault(); return; }
-      lastSendTs = now;
-      recSend.disabled = true;
-      stop(true);
-      setTimeout(function(){ recSend.disabled = false; }, 800);
+    function openPreview(blob){
+      var p = ensurePreview();
+      bar.hidden = true;
+      bar.classList.remove('is-active');
+      micBtn.classList.remove('is-recording');
+      if (composer) composer.style.display = 'none';
+      previewURL = URL.createObjectURL(blob);
+      var mid = p.querySelector('[data-role=prev-player]');
+      mid.innerHTML = audioPlayerHTML(previewURL);
+      bindAudio(p);
+      p.hidden = false;
+    }
+
+    // ==== أحداث الضغط على المايك ====
+    function onPress(e){
+      if (isRecording) return;
+      if (preview && !preview.hidden) return;
+      var pt = e.touches ? e.touches[0] : e;
+      activePointerId = e.pointerId != null ? e.pointerId : 1;
+      startX = pt.clientX;
+      currentDX = 0;
+      longPressed = false;
+      if (pressTimer) clearTimeout(pressTimer);
+      pressTimer = setTimeout(function(){
+        longPressed = true;
+        try { if (navigator.vibrate) navigator.vibrate(15); } catch(_){}
+        startRecording();
+      }, 220);
+    }
+    function onMove(e){
+      if (!isRecording && !pressTimer) return;
+      var pt = e.touches ? e.touches[0] : e;
+      currentDX = pt.clientX - startX;
+      // RTL: السحب لليمين = إلغاء (يمين في الشاشة العربية = عكس المايك)
+      // لكن نخلي أي سحب بعيد يعتبر إلغاء
+      var dist = Math.abs(currentDX);
+      if (slideEl && isRecording){
+        var off = Math.min(dist, 120);
+        slideEl.style.transform = 'translateX('+(currentDX>0?off:-off)+'px)';
+        slideEl.style.opacity = String(Math.max(0.3, 1 - dist/140));
+      }
+      if (dist > 110){
+        // ألغِ
+        if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
+        if (isRecording) stopRecording(false);
+        longPressed = false;
+      }
+    }
+    function onRelease(e){
+      if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
+      if (!longPressed && !isRecording){
+        // نقرة قصيرة
+        (window.ChatHelpers && ChatHelpers.toast) ? ChatHelpers.toast('اضغط مطوّلاً للتسجيل 🎤')
+                                                   : null;
+        return;
+      }
+      if (isRecording){
+        // لو مسحب بعيد يبقى إلغاء، غير كده معاينة
+        stopRecording(Math.abs(currentDX) <= 110);
+      }
+    }
+
+    // Pointer events (يشمل الماوس والمس)
+    if (window.PointerEvent){
+      micBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); onPress(e); try{micBtn.setPointerCapture(e.pointerId);}catch(_){} });
+      micBtn.addEventListener('pointermove', onMove);
+      micBtn.addEventListener('pointerup',   onRelease);
+      micBtn.addEventListener('pointercancel', function(){ if (isRecording) stopRecording(false); else resetAll(); });
+      micBtn.addEventListener('pointerleave', function(e){ /* نتجاهل */ });
+    } else {
+      micBtn.addEventListener('touchstart', function(e){ e.preventDefault(); onPress(e); }, {passive:false});
+      micBtn.addEventListener('touchmove', onMove, {passive:true});
+      micBtn.addEventListener('touchend', onRelease);
+      micBtn.addEventListener('touchcancel', function(){ if (isRecording) stopRecording(false); });
+      micBtn.addEventListener('mousedown', onPress);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onRelease);
+    }
+    // منع القائمة المنبثقة على الضغط المطوّل
+    micBtn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+    // زر إلغاء التسجيل (أثناء التسجيل)
+    if (recCancel){
+      recCancel.addEventListener('click', function(){ stopRecording(false); });
+    }
+    // زر إرسال أثناء التسجيل (يوقف ويبعت مباشرة بدون معاينة — سلوك اختصار)
+    if (recSend){
+      recSend.addEventListener('click', function(){
+        if (!isRecording) return;
+        // نبعت مباشرة بدون معاينة
+        var directSend = true;
+        cancelled = false;
+        // نستبدل onstop مؤقتاً بحيث يبعت فوراً
+        var origOnStop = mediaRec ? mediaRec.onstop : null;
+        if (mediaRec){
+          mediaRec.onstop = function(){
+            try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(_){}
+            stream = null;
+            if (tickId){ clearInterval(tickId); tickId=null; }
+            isRecording = false;
+            var blob = new Blob(chunks, {type: mimeUsed}); chunks=[];
+            if (blob.size < 1000){ (window.appAlert||alert)('التسجيل قصير جدًا','error'); resetAll(); return; }
+            try { onSend(blob, mimeUsed, function(){}); } catch(_){}
+            resetAll();
+          };
+          try { mediaRec.stop(); } catch(_){}
+        }
+      });
+    }
+
+    // أزرار المعاينة (حذف / إرسال)
+    bar.parentNode.addEventListener('click', function(ev){
+      var t = ev.target.closest && ev.target.closest('[data-role]');
+      if (!t || !preview || preview.hidden) return;
+      var role = t.dataset.role;
+      if (role === 'prev-del'){
+        resetAll();
+      } else if (role === 'prev-send'){
+        if (!lastBlob) { resetAll(); return; }
+        var b = lastBlob, m = mimeUsed;
+        // امنع الدبل-كليك
+        t.disabled = true;
+        try { onSend(b, m, function(){}); } catch(_){}
+        resetAll();
+      }
     });
   }
+
 
   // تحويل الروابط لروابط قابلة للضغط داخل نص الرسالة
   function linkify(text){

@@ -2279,3 +2279,225 @@ a{ color:inherit; text-decoration:none; }
   border-color:rgba(245,185,80,.5);
   background:linear-gradient(180deg, rgba(245,185,80,.14), rgba(30,32,40,.85));
 }
+
+/* ============================================================
+   ✨ إضافات جديدة: بانر انتحال + معاينة صوت + تعديل + إشعارات
+   ============================================================ */
+
+/* ---- بانر انتحال شخصية للمسؤول الرئيسي ---- */
+.impersonate-banner{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; margin:10px 0 14px;
+  background:linear-gradient(135deg, rgba(245,185,80,.14), rgba(239,68,68,.10));
+  border:1px solid rgba(245,185,80,.35);
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(0,0,0,.18);
+}
+.impersonate-banner .imp-ico{
+  width:38px; height:38px; border-radius:50%;
+  display:grid; place-items:center;
+  background:rgba(245,185,80,.20); color:#f5b950;
+  flex-shrink:0;
+}
+.impersonate-banner .imp-ico svg{ width:20px; height:20px; }
+.impersonate-banner .imp-txt{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35; }
+.impersonate-banner .imp-txt b{ font-size:13.5px; color:#ffd58a; }
+.impersonate-banner .imp-txt span{ font-size:11.5px; opacity:.75; }
+.impersonate-banner .imp-back{
+  padding:8px 14px; border-radius:99px;
+  background:var(--grad-gold, linear-gradient(135deg,#f5b950,#ef6b57));
+  color:#1a1207; font-weight:800; font-size:12.5px;
+  text-decoration:none; white-space:nowrap;
+  box-shadow:var(--shadow-gold, 0 6px 16px rgba(245,185,80,.28));
+}
+.impersonate-banner .imp-back:active{ transform:scale(.96); }
+
+/* ---- زر "دخول بحساب" داخل صف عامل في الشريط الجانبي ---- */
+.sidebar-worker-row{ display:flex; align-items:center; gap:6px; }
+.sidebar-worker-row .sidebar-worker{ flex:1; }
+.sidebar-worker-imp{
+  width:34px; height:34px; border-radius:10px;
+  display:grid; place-items:center;
+  color:#f5b950; background:rgba(245,185,80,.10);
+  border:1px solid rgba(245,185,80,.25);
+  flex-shrink:0; transition:transform .12s, background .15s;
+}
+.sidebar-worker-imp:hover{ background:rgba(245,185,80,.18); }
+.sidebar-worker-imp:active{ transform:scale(.94); }
+.sidebar-worker-imp svg{ width:16px; height:16px; }
+
+/* ---- المايك أثناء التسجيل ---- */
+.wa-mic.is-recording{
+  background:linear-gradient(135deg,#ef4444,#b91c1c);
+  color:#fff;
+  animation:micPulse .9s ease-in-out infinite;
+}
+@keyframes micPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(239,68,68,.45);} 50%{ box-shadow:0 0 0 10px rgba(239,68,68,0);} }
+
+/* ---- إشارة "اسحب للإلغاء" ---- */
+.wa-rec-slide{
+  position:absolute; inset-inline-start:60px;
+  display:inline-flex; align-items:center; gap:6px;
+  color:var(--text-3,#a8a9b3); font-size:12.5px; font-weight:600;
+  pointer-events:none;
+  transition:transform .12s ease-out, opacity .12s;
+}
+.wa-rec-bar{ position:relative; }
+.wa-rec-slide .wa-rec-arrow{ font-size:16px; opacity:.7; }
+
+/* ---- شريط معاينة الصوت قبل الإرسال ---- */
+.wa-rec-preview{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px;
+  background:linear-gradient(180deg, rgba(20,27,45,.95), rgba(20,27,45,.88));
+  border-top:1px solid var(--line, rgba(255,255,255,.08));
+  animation:previewIn .22s ease-out both;
+}
+@keyframes previewIn{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
+.wa-rec-preview[hidden]{ display:none; }
+.wa-rec-preview-mid{
+  flex:1; min-width:0;
+  padding:6px 12px; height:48px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--line-strong, rgba(255,255,255,.10));
+  border-radius:24px;
+  display:flex; align-items:center;
+}
+.wa-rec-preview-mid .wa-audio2{ width:100%; padding:0; background:transparent; border:none; box-shadow:none; }
+
+/* ---- زر تعديل + علامة "معدَّلة" ---- */
+.wa-edit-btn{
+  width:28px; height:28px; border-radius:50%;
+  display:grid; place-items:center;
+  background:rgba(255,255,255,.06);
+  color:var(--text-3,#a8a9b3);
+  border:1px solid rgba(255,255,255,.08);
+  cursor:pointer; align-self:center;
+  margin-inline:2px;
+  opacity:.55; transition:opacity .15s, background .15s, color .15s;
+}
+.wa-msg:hover .wa-edit-btn, .wa-edit-btn:focus{ opacity:1; }
+.wa-edit-btn:hover{ background:rgba(245,185,80,.14); color:#f5b950; }
+.wa-edit-btn svg{ width:14px; height:14px; }
+.wa-edited{
+  font-size:10.5px; opacity:.65; margin-inline-end:4px; font-style:italic;
+}
+
+/* ============================================================
+   🎨 إعادة تصميم صفحة الإشعارات — نسخة نهائية
+   ============================================================ */
+.notif-page{
+  padding:14px 12px 32px !important;
+  max-width:640px !important;
+  margin:0 auto;
+}
+.notif-page::before{ display:none !important; }
+
+.notif-head{
+  display:flex; justify-content:flex-end; align-items:center;
+  padding:2px 2px 14px !important; margin:0;
+}
+.notif-clear-all{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 14px; border-radius:99px;
+  background:rgba(239,68,68,.10); color:#ff9a86;
+  border:1px solid rgba(239,68,68,.22);
+  font-size:12.5px; font-weight:700; cursor:pointer;
+  transition:background .15s, transform .1s;
+}
+.notif-clear-all:hover{ background:rgba(239,68,68,.18); }
+.notif-clear-all:active{ transform:scale(.96); }
+.notif-clear-all svg{ width:14px; height:14px; }
+
+.notif-empty{
+  text-align:center; padding:60px 18px !important;
+  background:rgba(255,255,255,.03);
+  border:1px dashed rgba(255,255,255,.10);
+  border-radius:20px;
+}
+.notif-empty-ic{
+  width:72px; height:72px; margin:0 auto 12px;
+  border-radius:50%;
+  display:grid; place-items:center;
+  background:linear-gradient(135deg, rgba(245,185,80,.14), rgba(239,68,68,.10));
+  color:#f5b950;
+}
+.notif-empty-ic svg{ width:32px; height:32px; }
+.notif-empty-t{ font-size:16px; font-weight:800; color:#fff; margin-bottom:4px; }
+.notif-empty-s{ font-size:13px; opacity:.68; }
+
+.notif-list{
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:10px;
+}
+
+.notif-item{
+  position:relative;
+  display:flex; align-items:flex-start; gap:12px;
+  padding:14px 14px 14px 12px !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02)) !important;
+  border:1px solid rgba(255,255,255,.07) !important;
+  border-radius:16px !important;
+  box-shadow:0 4px 14px rgba(0,0,0,.20);
+  transition:transform .15s ease, background .15s, border-color .15s, opacity .2s;
+  overflow:hidden;
+  animation:notifIn .28s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes notifIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+.notif-item:hover{ background:rgba(255,255,255,.06) !important; border-color:rgba(255,255,255,.12) !important; }
+.notif-item:active{ transform:scale(.99); }
+.notif-item.is-removing{ opacity:0; transform:translateX(24px); }
+
+.notif-item.is-unread{
+  background:linear-gradient(180deg, rgba(245,185,80,.10), rgba(245,185,80,.03)) !important;
+  border-color:rgba(245,185,80,.30) !important;
+}
+.notif-item.is-unread::before{
+  content:""; position:absolute; inset-inline-start:0; top:14px; bottom:14px;
+  width:3px; border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,#f5b950,#ef6b57);
+}
+
+.notif-ic{
+  width:40px; height:40px; border-radius:12px;
+  display:grid; place-items:center; flex-shrink:0;
+  background:linear-gradient(135deg, rgba(245,185,80,.16), rgba(239,68,68,.10));
+  color:#f5b950;
+  box-shadow:0 4px 10px rgba(0,0,0,.18) inset;
+}
+.notif-ic svg{ width:20px; height:20px; }
+.notif-item.is-unread .notif-ic{ background:linear-gradient(135deg,#f5b950,#ef6b57); color:#1a1207; }
+
+.notif-main{ flex:1; min-width:0; }
+.notif-item .notif-link{ display:block; color:inherit; text-decoration:none; }
+.notif-title{
+  font-weight:800; font-size:14.5px; line-height:1.4;
+  margin-bottom:4px; color:#fff;
+  overflow:hidden; text-overflow:ellipsis;
+  display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;
+}
+.notif-body{
+  font-size:13px; line-height:1.55; opacity:.85;
+  word-break:break-word;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+.notif-time{ margin-top:8px; font-size:11.5px; opacity:.55; font-weight:600; }
+
+.notif-del{
+  width:32px; height:32px; border-radius:10px;
+  display:grid; place-items:center; flex-shrink:0;
+  background:transparent; color:rgba(255,255,255,.4);
+  border:none; cursor:pointer;
+  transition:background .15s, color .15s, transform .1s;
+}
+.notif-del:hover{ background:rgba(239,68,68,.14); color:#ff9a86; }
+.notif-del:active{ transform:scale(.9); }
+.notif-del svg{ width:16px; height:16px; }
+
+@media (max-width:420px){
+  .notif-page{ padding:10px 10px 28px !important; }
+  .notif-item{ padding:12px 10px !important; gap:10px; }
+  .notif-ic{ width:36px; height:36px; }
+  .notif-title{ font-size:14px; }
+  .notif-body{ font-size:12.5px; -webkit-line-clamp:2; }
+}
