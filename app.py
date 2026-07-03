@@ -1075,19 +1075,22 @@ def admin_close_day():
     except Exception as _e:
         print("period summary error:", _e)
     flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
-    return redirect(url_for("admin_panel", day=day))
+    return redirect(url_for("admin_close_page", day=day))
 
 
 @app.route("/admin/reopen-day", methods=["POST"])
 @admin_required
 def admin_reopen_day():
     day = _parse_day(request.form.get("day")).isoformat()
+    nxt = (request.form.get("next") or "").strip()
     db = get_db()
     cur = db.cursor()
     cur.execute("DELETE FROM day_closures WHERE day=%s", (day,))
     db.commit()
     cur.close()
     flash("تم إعادة فتح اليوم", "info")
+    if nxt == "close-page":
+        return redirect(url_for("admin_close_page", day=day))
     return redirect(url_for("admin_panel", day=day))
 
 
@@ -1241,6 +1244,10 @@ def admin_users():
 def admin_close_page():
     day = _parse_day(request.args.get("day"))
     day_s = day.isoformat()
+    prev_day = (day - timedelta(days=1)).isoformat()
+    next_day = (day + timedelta(days=1)).isoformat()
+    from datetime import date as _date
+    is_today = (day_s == _date.today().isoformat())
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
@@ -1258,8 +1265,6 @@ def admin_close_page():
     _admin_u = current_user()
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (_admin_u["id"], day_s))
     admin_checked_in = cur.fetchone() is not None
-    from datetime import date as _date
-    is_today = (day_s == _date.today().isoformat())
     # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور
     cur.execute("""
         SELECT u.id, u.full_name, u.role,
@@ -1273,7 +1278,8 @@ def admin_close_page():
                            day=day_s, day_total=day_total,
                            no_deduct_total=no_deduct_total,
                            present_count=present_count, day_closed=closed,
-                           all_people=all_people)
+                           all_people=all_people,
+                           prev_day=prev_day, next_day=next_day, is_today=is_today)
 
 
 # ---- سجل الأعداد بدون خصم (مرجع للمسؤول) ----
