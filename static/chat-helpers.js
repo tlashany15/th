@@ -32,13 +32,31 @@ window.ChatHelpers = (function(){
 
   // مشغل صوت بسيط زي واتساب
   function audioPlayerHTML(src, id){
+    // موجة صوت بأعمدة حقيقية بارتفاعات متغيّرة (seeded per src)
+    var BAR_COUNT = 42;
+    var seed = 0;
+    for (var i=0;i<src.length;i++){ seed = (seed*31 + src.charCodeAt(i)) >>> 0; }
+    function rnd(){ seed = (seed*1664525 + 1013904223) >>> 0; return (seed & 0xffff) / 0xffff; }
+    var bars = '';
+    for (var j=0;j<BAR_COUNT;j++){
+      // منحنى ناعم: يعلى في النص ويقل في الأطراف
+      var t = j/(BAR_COUNT-1);
+      var envelope = 0.55 + 0.45*Math.sin(t*Math.PI);
+      var h = Math.round((0.22 + rnd()*0.78) * envelope * 100);
+      if (h < 14) h = 14;
+      bars += '<i style="height:'+h+'%"></i>';
+    }
     return '<div class="wa-audio2" data-src="'+src+'">'+
              '<button type="button" class="wa-a-play" aria-label="تشغيل">'+
                '<svg class="ic-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'+
                '<svg class="ic-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'+
              '</button>'+
              '<div class="wa-a-mid">'+
-               '<div class="wa-a-wave"><div class="wa-a-progress"></div></div>'+
+               '<div class="wa-a-wave">'+
+                 '<div class="wa-a-bars">'+bars+'</div>'+
+                 '<div class="wa-a-bars wa-a-bars--fill" aria-hidden="true">'+bars+'</div>'+
+                 '<span class="wa-a-thumb" aria-hidden="true"></span>'+
+               '</div>'+
                '<div class="wa-a-time">0:00</div>'+
              '</div>'+
            '</div>';
@@ -52,9 +70,26 @@ window.ChatHelpers = (function(){
       audio.preload = 'metadata';
       audio.src = src;
       var btn = box.querySelector('.wa-a-play');
-      var prog = box.querySelector('.wa-a-progress');
+      var wave = box.querySelector('.wa-a-wave');
+      var fill = box.querySelector('.wa-a-bars--fill');
       var timeEl = box.querySelector('.wa-a-time');
       var duration = 0;
+
+      function setProgress(p){
+        if (p < 0) p = 0; if (p > 1) p = 1;
+        if (fill) fill.style.setProperty('--p', (p*100).toFixed(2)+'%');
+      }
+      setProgress(0);
+
+      if (wave){
+        wave.addEventListener('click', function(ev){
+          if (!duration) return;
+          var r = wave.getBoundingClientRect();
+          var x = ev.clientX - r.left;
+          var p = Math.max(0, Math.min(1, x / r.width));
+          try { audio.currentTime = p * duration; setProgress(p); } catch(_){}
+        });
+      }
 
       audio.addEventListener('loadedmetadata', function(){
         duration = isFinite(audio.duration) ? audio.duration : 0;
@@ -63,12 +98,12 @@ window.ChatHelpers = (function(){
       audio.addEventListener('timeupdate', function(){
         if (!duration && isFinite(audio.duration)) duration = audio.duration;
         var t = audio.currentTime;
-        if (duration > 0) prog.style.width = ((t/duration)*100).toFixed(1)+'%';
+        if (duration > 0) setProgress(t/duration);
         timeEl.textContent = fmtSec(Math.floor(duration - t > 0 ? (duration - t) : t));
       });
       audio.addEventListener('ended', function(){
         box.classList.remove('is-playing');
-        prog.style.width = '0%';
+        setProgress(0);
         timeEl.textContent = duration ? fmtSec(Math.floor(duration)) : '0:00';
       });
       audio.addEventListener('error', function(){
