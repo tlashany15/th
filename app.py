@@ -495,9 +495,9 @@ def inject_user():
             # المسؤول يشوف الكل (بما فيهم نفسه عشان يحسب لنفسه لو حضر)
             # العامل يشوف نفسه بس
             if u["role"] == "admin":
-                cur.execute("SELECT id, full_name, username, role FROM users ORDER BY (role='admin') DESC, full_name")
+                cur.execute("SELECT id, full_name, username, role, avatar FROM users ORDER BY (role='admin') DESC, full_name")
             else:
-                cur.execute("SELECT id, full_name, username, role FROM users WHERE id=%s", (u["id"],))
+                cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE id=%s", (u["id"],))
             sidebar_workers = cur.fetchall()
             cur.close()
         except Exception:
@@ -913,7 +913,7 @@ def admin_panel():
     cur = db.cursor()
 
     cur.execute("""
-        SELECT u.id, u.full_name, u.username, u.role,
+        SELECT u.id, u.full_name, u.username, u.role, u.avatar,
                EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present,
                COALESCE((SELECT SUM(count) FROM vaccinations v WHERE v.user_id=u.id AND v.day=%s),0) AS total
         FROM users u ORDER BY (u.role='admin') DESC, u.full_name
@@ -1267,7 +1267,7 @@ def admin_close_page():
     admin_checked_in = cur.fetchone() is not None
     # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور
     cur.execute("""
-        SELECT u.id, u.full_name, u.role,
+        SELECT u.id, u.full_name, u.role, u.avatar,
                EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present
         FROM users u
         ORDER BY (u.role='admin') DESC, u.full_name
@@ -1307,22 +1307,10 @@ def worker_profile():
     db = get_db()
     cur = db.cursor()
     if request.method == "POST":
-        action = request.form.get("action", "name")
-        if action == "name":
-            new_name = (request.form.get("full_name") or "").strip()
-            new_username = (request.form.get("username") or "").strip()
-            if not new_name or not new_username:
-                flash("الاسم واسم المستخدم مطلوبين", "error")
-            else:
-                try:
-                    cur.execute("UPDATE users SET full_name=%s, username=%s WHERE id=%s",
-                                (new_name[:80], new_username[:40], u["id"]))
-                    db.commit()
-                    flash("تم تحديث بياناتك", "success")
-                except psycopg2.IntegrityError:
-                    db.rollback()
-                    flash("اسم المستخدم ده موجود بالفعل", "error")
-        elif action == "password":
+        action = request.form.get("action", "password")
+        # العامل مسموحله يغيّر كلمة السر بتاعته بس — مش الاسم ولا اليوزرنيم
+        # (تغيير الصورة له مسار منفصل عبر /me/avatar)
+        if action == "password":
             old_pw = request.form.get("old_password", "")
             new_pw = request.form.get("new_password", "")
             if not new_pw or len(new_pw) < 4:
@@ -1334,6 +1322,8 @@ def worker_profile():
                             (generate_password_hash(new_pw), u["id"]))
                 db.commit()
                 flash("تم تحديث كلمة السر", "success")
+        else:
+            flash("مش مسموحلك تغيّر البيانات دي — العامل يقدر يغيّر الصورة وكلمة السر بس", "error")
         cur.close()
         return redirect(url_for("worker_profile"))
     cur.close()
