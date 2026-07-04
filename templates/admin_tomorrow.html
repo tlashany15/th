@@ -34,16 +34,20 @@
 
     <div class="tomorrow-grid">
       {% for w in all_workers %}
+      {# نخفي المسؤول الرئيسي (username == '1') من قائمة تحضير الحضور #}
+      {% if not (w.role == 'admin' and (w.username|string) == '1') %}
       <label class="tom-chk">
         <input type="checkbox" name="user_ids" value="{{ w.id }}">
         <span class="tom-name">
           {{ w.full_name }}
-          {% if w.role == 'admin' %}<em class="tom-role">مسؤول</em>{% endif %}
+          {% if w.role == 'admin' %}<em class="tom-role">مقاول</em>{% endif %}
         </span>
       </label>
+      {% endif %}
       {% else %}
       <div class="empty"><div>لا يوجد مستخدمون</div></div>
       {% endfor %}
+
     </div>
 
     <button class="btn btn-primary btn-lg" type="submit" style="margin-top:14px;width:100%;">
