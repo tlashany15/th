@@ -286,6 +286,18 @@ def init_db():
             UNIQUE(user_id, day)
         );
         CREATE INDEX IF NOT EXISTS idx_wadj_user ON worker_adjustments(user_id, day DESC);
+
+        -- ==== محاسبة عامل عن مدة كاملة (نصف شهر) ====
+        CREATE TABLE IF NOT EXISTS worker_period_settle (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            half INTEGER NOT NULL CHECK (half IN (1,2)),
+            created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY(user_id, year, month, half)
+        );
+        CREATE INDEX IF NOT EXISTS idx_wps_period ON worker_period_settle(year, month, half);
     """)
     # نتأكد إن فيه مسؤول برقم "1"
     cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
@@ -808,12 +820,10 @@ def history():
     cur.close()
 
     today = date.today()
-    if is_admin:
-        months = set((d.year, d.month) for d in by_day.keys())
-        months.add((today.year, today.month))
-    else:
-        # العمال يشوفوا سجل الشهر الجاري بالكامل (النصفين) — يتصفّى تلقائيًا مع بداية كل شهر جديد
-        months = {(today.year, today.month)}
+    # كل المدد اللي فيها أي إغلاق تفضل ظاهرة (للمسؤول وللعمال) لحد ما المسؤول
+    # يضغط "تصفير المدة". دايمًا نضم الشهر الحالي عشان يظهر حتى لو فاضي.
+    months = set((d.year, d.month) for d in by_day.keys())
+    months.add((today.year, today.month))
     current_half = 1 if today.day <= 15 else 2
     periods = []
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
@@ -823,11 +833,14 @@ def history():
         last_day = calendar.monthrange(y, m)[1]
         for half, (start, end) in enumerate([(1, 15), (16, last_day)], start=1):
             days_list = []
+            has_any = False
             for dnum in range(start, end + 1):
                 d = date(y, m, dnum)
                 wd = d.weekday()
                 is_friday = (wd == 4)
                 rec = by_day.get(d)
+                if rec is not None:
+                    has_any = True
                 days_list.append({
                     "date": d.isoformat(),
                     "day_num": dnum,
@@ -839,9 +852,14 @@ def history():
                     "attendee_ids": rec["ids"] if rec else [],
                     "has_data": rec is not None,
                 })
+            is_current = (y == today.year and m == today.month and half == current_half)
+            # نخفي المدد الفاضية إلا لو هي المدة الحالية
+            if not has_any and not is_current:
+                continue
             periods.append({
                 "label": f"{AR_MONTHS[m-1]} {y} — {'النصف الأول (1-15)' if half==1 else f'النصف الثاني (16-{last_day})'}",
                 "days": days_list,
+                "year": y, "month": m, "half": half,
             })
     return render_template("history.html", periods=periods, all_workers=all_workers)
 
@@ -850,7 +868,9 @@ def history():
 @app.route("/worker/<int:worker_id>/stats")
 @login_required
 def worker_stats(worker_id):
-    """يعرض أيام حضور العامل في الشهر الحالي + نصيبه (إجمالي اليوم / عدد الحاضرين)."""
+    """يعرض أيام حضور العامل في المدة المختارة (نصف شهر) + نصيبه.
+    كل مدة (نصف شهر) تُعرض منفصلة. المسؤول يقدر يضغط "تم المحاسبة" على يوم واحد
+    أو على المدة كلها من صفحة "تصفية المدة"."""
     import calendar as _cal
     me = current_user()
     if me["role"] != "admin" and me["id"] != worker_id:
@@ -867,10 +887,25 @@ def worker_stats(worker_id):
         return redirect(url_for("dashboard"))
 
     today = date.today()
-    y, m = today.year, today.month
+    # ==== المدة المختارة (نصف شهر) ====
+    def _int_arg(name, default):
+        try:
+            return int(request.args.get(name) or default)
+        except (TypeError, ValueError):
+            return default
+    y = _int_arg("year", today.year)
+    m = _int_arg("month", today.month)
+    default_half = 1 if today.day <= 15 else 2
+    half = _int_arg("half", default_half)
+    if half not in (1, 2):
+        half = default_half
     last_day = _cal.monthrange(y, m)[1]
-    start_d = date(y, m, 1).isoformat()
-    end_d   = date(y, m, last_day).isoformat()
+    if half == 1:
+        start_d = date(y, m, 1).isoformat()
+        end_d   = date(y, m, 15).isoformat()
+    else:
+        start_d = date(y, m, 16).isoformat()
+        end_d   = date(y, m, last_day).isoformat()
 
     cur.execute("""
         SELECT c.day, c.total_count,
@@ -882,14 +917,14 @@ def worker_stats(worker_id):
     """, (worker_id, start_d, end_d))
     rows = cur.fetchall()
 
-    # ==== جلب تعديلات (إضافي/خصم) لهذا العامل خلال الشهر ====
+    # ==== جلب تعديلات (إضافي/خصم) لهذا العامل خلال المدة ====
     cur.execute("""
         SELECT day, amount, reason FROM worker_adjustments
         WHERE user_id=%s AND day BETWEEN %s AND %s
         ORDER BY day ASC
     """, (worker_id, start_d, end_d))
     adj_rows = cur.fetchall()
-    # ==== جلب تصفيات الحساب (المدفوعات) لهذا العامل خلال الشهر ====
+    # ==== جلب تصفيات الحساب (المدفوعات) لهذا العامل خلال المدة ====
     cur.execute("""CREATE TABLE IF NOT EXISTS worker_settlements (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -920,6 +955,38 @@ def worker_stats(worker_id):
     for _r in cur.fetchall():
         _d = _r["day"]
         _settled_days_set.add(_d.isoformat() if hasattr(_d, "isoformat") else str(_d))
+
+    # ==== هل تم محاسبة العامل عن المدة كلها؟ ====
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_period_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year INTEGER NOT NULL, month INTEGER NOT NULL,
+        half INTEGER NOT NULL CHECK (half IN (1,2)),
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, year, month, half)
+    )""")
+    cur.execute("""SELECT 1 FROM worker_period_settle
+                   WHERE user_id=%s AND year=%s AND month=%s AND half=%s""",
+                (worker_id, y, m, half))
+    period_settled = cur.fetchone() is not None
+
+    # ==== كل المدد المتاحة (فيها أي بيانات) — عشان قائمة التنقّل ====
+    cur.execute("""SELECT DISTINCT
+                     EXTRACT(YEAR  FROM day)::int AS yy,
+                     EXTRACT(MONTH FROM day)::int AS mm,
+                     CASE WHEN EXTRACT(DAY FROM day) <= 15 THEN 1 ELSE 2 END AS hh
+                   FROM day_closures
+                   ORDER BY yy DESC, mm DESC, hh DESC""")
+    available_periods = []
+    _seen = set()
+    for _r in cur.fetchall():
+        key = (int(_r["yy"]), int(_r["mm"]), int(_r["hh"]))
+        _seen.add(key)
+        available_periods.append(key)
+    # نضم المدة الحالية دايمًا
+    cur_key = (today.year, today.month, 1 if today.day <= 15 else 2)
+    if cur_key not in _seen:
+        available_periods.insert(0, cur_key)
     cur.close()
 
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
@@ -931,7 +998,7 @@ def worker_stats(worker_id):
     total_share = 0.0
     pending_share = 0.0
     settled_share = 0.0
-    total_month = 0
+    total_month = 0  # (إجمالي المدة)
     days_attended = 0
     for r in rows:
         d = r["day"]
@@ -946,7 +1013,8 @@ def worker_stats(worker_id):
             share = tot / att
             total_share += share
             days_attended += 1
-            is_settled = d_s in _settled_days_set
+            # لو المدة كلها اتحسبت — كل الأيام تُعتبر متحاسب عليها
+            is_settled = period_settled or (d_s in _settled_days_set)
             item = {"date": d_s, "weekday": wd, "chicks": int(share), "chicks_f": round(share, 2)}
             if is_settled:
                 settled_share += share
@@ -995,7 +1063,7 @@ def worker_stats(worker_id):
         amt = int(s["amount"] or 0)
         settle_list.append({"id": s["id"], "date": d_s, "weekday": wd, "amount": amt, "note": s["note"] or ""})
         settled_total += amt
-    total_due = net_money + adjust_net           # الإجمالي المستحق للعامل (شهري كامل قبل التصفيات)
+    total_due = net_money + adjust_net           # الإجمالي المستحق للعامل (المدة كاملة قبل التصفيات)
     remaining = total_due - settled_total        # المتبقي بعد التصفيات النقدية القديمة
     # === النظام الجديد: كتاكيت متبقية = مجموع أيام حاضرها ولم يُحاسب عليها ===
     pending_chicks = int(pending_share)                # الجزء الصحيح فقط
@@ -1003,7 +1071,17 @@ def worker_stats(worker_id):
     pending_money  = pending_chicks * 55               # ج
     pending_money_with_adj = pending_money + adjust_net - settled_total
 
-    month_label = f"{AR_MONTHS[m-1]} {y}"
+    half_lbl = "النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})"
+    month_label = f"{AR_MONTHS[m-1]} {y} — {half_lbl}"
+    # قائمة تنقّل بين المدد
+    period_choices = []
+    for (py, pm, ph) in available_periods:
+        pld = _cal.monthrange(py, pm)[1]
+        lbl = f"{AR_MONTHS[pm-1]} {py} — " + ("النصف الأول (1-15)" if ph == 1 else f"النصف الثاني (16-{pld})")
+        period_choices.append({
+            "year": py, "month": pm, "half": ph, "label": lbl,
+            "is_current": (py == y and pm == m and ph == half),
+        })
     return render_template("worker_stats.html",
                            worker=worker, days=days_list,
                            total_share=round(total_share, 2),
@@ -1028,6 +1106,9 @@ def worker_stats(worker_id):
                            total_month=total_month,
                            days_attended=days_attended,
                            month_label=month_label,
+                           period_year=y, period_month=m, period_half=half,
+                           period_settled=period_settled,
+                           period_choices=period_choices,
                            is_admin_view=(me["role"] == "admin"),
                            is_self=(me["id"] == worker_id))
 
@@ -1582,6 +1663,7 @@ def admin_close_page():
 @app.route("/admin/gross-log")
 @admin_required
 def admin_gross_log():
+    import calendar as _cal
     db = get_db()
     cur = db.cursor()
     cur.execute("""SELECT day, total_count, no_deduct_total, closed_at
@@ -1592,7 +1674,30 @@ def admin_gross_log():
     cur.execute("SELECT COALESCE(SUM(no_deduct_total),0) AS s FROM day_closures")
     grand = int(cur.fetchone()["s"] or 0)
     cur.close()
-    return render_template("admin_gross_log.html", rows=rows, grand=grand)
+    # نجمّع الصفوف حسب المدة (نصف شهر)
+    AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+                 "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+    groups = {}
+    for r in rows:
+        d = r["day"]
+        if hasattr(d, "year"):
+            yy, mm, dnum = d.year, d.month, d.day
+        else:
+            yy, mm, dnum = [int(x) for x in str(d).split("-")[:3]]
+        hh = 1 if dnum <= 15 else 2
+        key = (yy, mm, hh)
+        if key not in groups:
+            last_day = _cal.monthrange(yy, mm)[1]
+            if hh == 1:
+                s_d, e_d = f"{yy:04d}-{mm:02d}-01", f"{yy:04d}-{mm:02d}-15"
+            else:
+                s_d, e_d = f"{yy:04d}-{mm:02d}-16", f"{yy:04d}-{mm:02d}-{last_day:02d}"
+            lbl = f"{AR_MONTHS[mm-1]} {yy} — " + ("النصف الأول (1-15)" if hh == 1 else f"النصف الثاني (16-{last_day})")
+            groups[key] = {"label": lbl, "start": s_d, "end": e_d, "rows": [], "sum": 0}
+        groups[key]["rows"].append(r)
+        groups[key]["sum"] += int(r["no_deduct_total"] or 0)
+    grouped = [groups[k] for k in sorted(groups.keys(), reverse=True)]
+    return render_template("admin_gross_log.html", rows=rows, grand=grand, grouped=grouped)
 
 
 # ---- بروفايل العامل ----
@@ -2473,6 +2578,22 @@ def admin_reset_period():
         cur.execute("DELETE FROM vaccinations WHERE day BETWEEN %s AND %s", (start_d, end_d))
         cur.execute("DELETE FROM attendance   WHERE day BETWEEN %s AND %s", (start_d, end_d))
         cur.execute("DELETE FROM day_closures WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        # نمسح كل بيانات العمال المرتبطة بالمدة عشان تختفي تمامًا بعد التصفير
+        try:
+            cur.execute("DELETE FROM worker_adjustments   WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        except Exception: pass
+        try:
+            cur.execute("DELETE FROM worker_settlements   WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        except Exception: pass
+        try:
+            cur.execute("DELETE FROM worker_day_settle    WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        except Exception: pass
+        # تصفية سجل "تم محاسبة المدة" لكل عامل في الفترة دي
+        try:
+            cur.execute("""DELETE FROM worker_period_settle
+                           WHERE make_date(year, month, CASE WHEN half=1 THEN 1 ELSE 16 END)
+                                 BETWEEN %s AND %s""", (start_d, end_d))
+        except Exception: pass
         # نمسح ملخصات الفترة اللي جواها الفترة دي (لو موجودة)
         cur.execute("""DELETE FROM period_summaries
                        WHERE make_date(year, month, CASE WHEN half=1 THEN 1 ELSE 16 END) BETWEEN %s AND %s""",
@@ -2485,6 +2606,257 @@ def admin_reset_period():
     finally:
         cur.close()
     return redirect(url_for("history"))
+
+
+# ---- تصفير "الأعداد بدون خصم" لمدة معيّنة فقط ----
+@app.route("/admin/reset-gross-period", methods=["POST"])
+@admin_required
+def admin_reset_gross_period():
+    start_d = request.form.get("start", "").strip()
+    end_d   = request.form.get("end", "").strip()
+    if not (start_d and end_d):
+        flash("فترة غير صالحة", "error")
+        return redirect(url_for("admin_gross_log"))
+    db = get_db(); cur = db.cursor()
+    try:
+        cur.execute("UPDATE day_closures SET no_deduct_total=0 WHERE day BETWEEN %s AND %s",
+                    (start_d, end_d))
+        db.commit()
+        flash("تم تصفير أعداد بدون خصم للفترة ✓", "success")
+    except Exception as e:
+        db.rollback()
+        flash("خطأ: " + str(e), "error")
+    finally:
+        cur.close()
+    return redirect(url_for("admin_gross_log"))
+
+
+# ============================================================
+# ==================== تصفية المدة (نصف شهر) ==================
+# ============================================================
+def _period_range(y, m, half):
+    import calendar as _cal
+    last_day = _cal.monthrange(y, m)[1]
+    if half == 1:
+        return date(y, m, 1).isoformat(), date(y, m, 15).isoformat(), last_day
+    return date(y, m, 16).isoformat(), date(y, m, last_day).isoformat(), last_day
+
+
+@app.route("/admin/period-settle")
+@admin_required
+def admin_period_settle():
+    """صفحة تصفية المدة (نصف شهر): كل عامل قد إيه اتحاسب على إيه + زر لتحديد إنه اتحاسب على المدة."""
+    import calendar as _cal
+    today = date.today()
+    def _int_arg(name, default):
+        try: return int(request.args.get(name) or default)
+        except (TypeError, ValueError): return default
+    y = _int_arg("year", today.year)
+    m = _int_arg("month", today.month)
+    default_half = 1 if today.day <= 15 else 2
+    half = _int_arg("half", default_half)
+    if half not in (1, 2): half = default_half
+    start_d, end_d, last_day = _period_range(y, m, half)
+    db = get_db(); cur = db.cursor()
+    # نتأكد من وجود الجداول
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_period_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year INTEGER NOT NULL, month INTEGER NOT NULL,
+        half INTEGER NOT NULL CHECK (half IN (1,2)),
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, year, month, half)
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_day_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, day)
+    )""")
+
+    # كل العمال
+    cur.execute("SELECT id, full_name, avatar FROM users WHERE role='worker' ORDER BY full_name")
+    workers = cur.fetchall()
+
+    # جمع إجماليات الأيام في المدة
+    cur.execute("""SELECT c.day, c.total_count,
+                          (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day) AS attendees
+                   FROM day_closures c
+                   WHERE c.day BETWEEN %s AND %s
+                   ORDER BY c.day""", (start_d, end_d))
+    day_rows = cur.fetchall()
+    day_meta = {}
+    for r in day_rows:
+        ds = r["day"].isoformat() if hasattr(r["day"], "isoformat") else str(r["day"])
+        day_meta[ds] = {"total": int(r["total_count"] or 0), "att": int(r["attendees"] or 0)}
+
+    # لكل عامل: أيام حضوره + أيام تمّت المحاسبة عليها + هل المدة اتحسبت كلها
+    rows = []
+    for w in workers:
+        wid = w["id"]
+        cur.execute("""SELECT day FROM attendance
+                       WHERE user_id=%s AND day BETWEEN %s AND %s""",
+                    (wid, start_d, end_d))
+        att_days = [r["day"].isoformat() if hasattr(r["day"], "isoformat") else str(r["day"])
+                    for r in cur.fetchall()]
+        cur.execute("""SELECT day FROM worker_day_settle
+                       WHERE user_id=%s AND day BETWEEN %s AND %s""",
+                    (wid, start_d, end_d))
+        settled_days = {r["day"].isoformat() if hasattr(r["day"], "isoformat") else str(r["day"])
+                        for r in cur.fetchall()}
+        total_share = 0.0
+        settled_share = 0.0
+        for ds in att_days:
+            meta = day_meta.get(ds)
+            if not meta or meta["att"] <= 0: continue
+            share = meta["total"] / meta["att"]
+            total_share += share
+            if ds in settled_days:
+                settled_share += share
+        # تصفيات نقدية داخل المدة
+        cur.execute("""SELECT COALESCE(SUM(amount),0) AS s FROM worker_settlements
+                       WHERE user_id=%s AND day BETWEEN %s AND %s""",
+                    (wid, start_d, end_d))
+        paid_money = int((cur.fetchone() or {}).get("s") or 0)
+        # هل المدة اتحسبت كلها؟
+        cur.execute("""SELECT 1 FROM worker_period_settle
+                       WHERE user_id=%s AND year=%s AND month=%s AND half=%s""",
+                    (wid, y, m, half))
+        p_settled = cur.fetchone() is not None
+        total_chicks = int(total_share)
+        settled_chicks = int(settled_share)
+        pending_chicks = max(0, total_chicks - settled_chicks)
+        rows.append({
+            "id": wid,
+            "full_name": w["full_name"],
+            "avatar": w["avatar"],
+            "days_attended": len(att_days),
+            "total_chicks": total_chicks,
+            "settled_chicks": settled_chicks,
+            "pending_chicks": pending_chicks,
+            "total_money": total_chicks * 55,
+            "paid_money": paid_money,
+            "period_settled": p_settled,
+        })
+
+    # قائمة كل المدد المتاحة (فيها بيانات) + المدة الحالية
+    cur.execute("""SELECT DISTINCT
+                     EXTRACT(YEAR  FROM day)::int AS yy,
+                     EXTRACT(MONTH FROM day)::int AS mm,
+                     CASE WHEN EXTRACT(DAY FROM day) <= 15 THEN 1 ELSE 2 END AS hh
+                   FROM day_closures
+                   ORDER BY yy DESC, mm DESC, hh DESC""")
+    seen = set()
+    period_choices = []
+    AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+                 "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+    for r in cur.fetchall():
+        key = (int(r["yy"]), int(r["mm"]), int(r["hh"]))
+        seen.add(key)
+        pld = _cal.monthrange(key[0], key[1])[1]
+        lbl = f"{AR_MONTHS[key[1]-1]} {key[0]} — " + ("النصف الأول (1-15)" if key[2] == 1 else f"النصف الثاني (16-{pld})")
+        period_choices.append({"year": key[0], "month": key[1], "half": key[2], "label": lbl,
+                               "is_current": (key == (y, m, half))})
+    cur_key = (today.year, today.month, 1 if today.day <= 15 else 2)
+    if cur_key not in seen:
+        pld = _cal.monthrange(cur_key[0], cur_key[1])[1]
+        lbl = f"{AR_MONTHS[cur_key[1]-1]} {cur_key[0]} — " + ("النصف الأول (1-15)" if cur_key[2] == 1 else f"النصف الثاني (16-{pld})")
+        period_choices.insert(0, {"year": cur_key[0], "month": cur_key[1], "half": cur_key[2],
+                                  "label": lbl, "is_current": (cur_key == (y, m, half))})
+    cur.close()
+
+    all_settled = bool(rows) and all(r["period_settled"] for r in rows)
+    label = f"{AR_MONTHS[m-1]} {y} — " + ("النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})")
+    return render_template("admin_period_settle.html",
+                           rows=rows, label=label,
+                           period_year=y, period_month=m, period_half=half,
+                           start_d=start_d, end_d=end_d,
+                           period_choices=period_choices, all_settled=all_settled)
+
+
+@app.route("/admin/period-settle/toggle", methods=["POST"])
+@admin_required
+def admin_period_settle_toggle():
+    u = current_user()
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+        y = int(request.form.get("year") or 0)
+        m = int(request.form.get("month") or 0)
+        half = int(request.form.get("half") or 0)
+    except (TypeError, ValueError):
+        flash("قيم غير صالحة", "error")
+        return redirect(url_for("admin_period_settle"))
+    if not (user_id and y and m and half in (1, 2)):
+        flash("قيم غير صالحة", "error")
+        return redirect(url_for("admin_period_settle"))
+    db = get_db(); cur = db.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_period_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year INTEGER NOT NULL, month INTEGER NOT NULL,
+        half INTEGER NOT NULL CHECK (half IN (1,2)),
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, year, month, half)
+    )""")
+    cur.execute("""SELECT 1 FROM worker_period_settle
+                   WHERE user_id=%s AND year=%s AND month=%s AND half=%s""",
+                (user_id, y, m, half))
+    if cur.fetchone():
+        cur.execute("""DELETE FROM worker_period_settle
+                       WHERE user_id=%s AND year=%s AND month=%s AND half=%s""",
+                    (user_id, y, m, half))
+        flash("تم إلغاء محاسبة المدة لهذا العامل", "info")
+    else:
+        cur.execute("""INSERT INTO worker_period_settle(user_id, year, month, half, created_by)
+                       VALUES(%s,%s,%s,%s,%s)
+                       ON CONFLICT DO NOTHING""",
+                    (user_id, y, m, half, u["id"]))
+        flash("تم تحديد أن العامل اتحاسب على المدة ✓", "success")
+    db.commit(); cur.close()
+    return redirect(url_for("admin_period_settle", year=y, month=m, half=half))
+
+
+# ---- تصفير المدة (أعداد + محاسبات + بيانات العمال كلها) لو كل العمال اتحاسبوا ----
+@app.route("/admin/period-clear", methods=["POST"])
+@admin_required
+def admin_period_clear():
+    """يمسح المدة كلها نهائيًا (أعداد + حضور + إغلاقات + تعديلات + تصفيات). المسؤول فقط."""
+    try:
+        y = int(request.form.get("year") or 0)
+        m = int(request.form.get("month") or 0)
+        half = int(request.form.get("half") or 0)
+    except (TypeError, ValueError):
+        flash("قيم غير صالحة", "error")
+        return redirect(url_for("admin_period_settle"))
+    if not (y and m and half in (1, 2)):
+        flash("قيم غير صالحة", "error")
+        return redirect(url_for("admin_period_settle"))
+    start_d, end_d, _ = _period_range(y, m, half)
+    db = get_db(); cur = db.cursor()
+    try:
+        cur.execute("DELETE FROM vaccinations WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        cur.execute("DELETE FROM attendance   WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        cur.execute("DELETE FROM day_closures WHERE day BETWEEN %s AND %s", (start_d, end_d))
+        for tbl in ("worker_adjustments", "worker_settlements", "worker_day_settle"):
+            try: cur.execute(f"DELETE FROM {tbl} WHERE day BETWEEN %s AND %s", (start_d, end_d))
+            except Exception: pass
+        try:
+            cur.execute("""DELETE FROM worker_period_settle
+                           WHERE year=%s AND month=%s AND half=%s""", (y, m, half))
+        except Exception: pass
+        try:
+            cur.execute("DELETE FROM period_summaries WHERE year=%s AND month=%s AND half=%s",
+                        (y, m, half))
+        except Exception: pass
+        db.commit()
+        flash("تم تصفير المدة نهائيًا ✓", "success")
+    except Exception as e:
+        db.rollback()
+        flash("خطأ أثناء التصفير: " + str(e), "error")
+    finally:
+        cur.close()
+    return redirect(url_for("admin_period_settle"))
 
 
 @app.route("/me/ping", methods=["POST"])
