@@ -28,20 +28,20 @@
     </div>
     <div class="kpi kpi-green">
       <div class="kpi-ico">
-        {# أيقونة كتكوت #}
-        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M18 40c0-8 6-14 14-14s14 6 14 14v6c0 3-2 5-5 5H23c-3 0-5-2-5-5v-6z" fill="currentColor" fill-opacity=".18"/>
-          <circle cx="32" cy="24" r="10" fill="currentColor" fill-opacity=".28"/>
-          <circle cx="35" cy="22" r="1.6" fill="currentColor"/>
-          <path d="M38 25l4-1-4-1z" fill="currentColor"/>
-          <path d="M24 52l-2 4M32 52l0 5M40 52l2 4"/>
+        <!-- كتكوت -->
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="40" rx="18" ry="16" fill="#ffd93d"/>
+          <circle cx="32" cy="22" r="13" fill="#ffd93d"/>
+          <circle cx="27" cy="20" r="2.2" fill="#1a1a1a"/>
+          <circle cx="37" cy="20" r="2.2" fill="#1a1a1a"/>
+          <path d="M28 26 L32 30 L36 26 Z" fill="#ff8c00"/>
+          <path d="M22 46 l-4 6 M42 46 l4 6" stroke="#ff8c00" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format(share_int) }}</div>
       <div class="kpi-l">كتكوت</div>
     </div>
   </div>
-
 </section>
 
 {% if is_admin_view %}
@@ -54,25 +54,40 @@
       </div>
       <div>
         <div class="sec-h-t">تصفية الحساب</div>
-        <div class="sec-h-s">النصيب بالجنيه + الإضافي والخصم (كلٌّ على حِدة)</div>
+        <div class="sec-h-s">النصيب بالجنيه + الإضافي والخصم</div>
       </div>
     </div>
   </div>
-  {% set final_total = net_money + bonus_total - deduct_total %}
   <div class="settle-grid">
     <div class="settle-cell net"><div class="settle-l">حسابه صافي</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
     <div class="settle-cell pos"><div class="settle-l">إضافي</div><div class="settle-v">+ {{ '{:,}'.format(bonus_total) }} ج</div></div>
     <div class="settle-cell neg"><div class="settle-l">خصم</div><div class="settle-v">- {{ '{:,}'.format(deduct_total) }} ج</div></div>
-    <div class="settle-cell {% if final_total >= 0 %}pos{% else %}neg{% endif %}">
-      <div class="settle-l">الإجمالي المستحق</div>
-      <div class="settle-v">{{ '{:,}'.format(final_total) }} ج</div>
-    </div>
+    <div class="settle-cell neg"><div class="settle-l">المدفوع (تصفية)</div><div class="settle-v">- {{ '{:,}'.format(settled_total) }} ج</div></div>
+    <div class="settle-cell net" style="grid-column:1/-1;"><div class="settle-l">المتبقي للعامل</div><div class="settle-v" style="font-size:20px;">{{ '{:,}'.format(remaining) }} ج</div></div>
   </div>
   <div style="margin-top:8px;font-size:11.5px;color:var(--text-3);line-height:1.6;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
-    الإضافي والخصم بيتحسبوا كلٌّ لوحده — ومش بيتجمّعوا مع بعض.
+    المتبقي = حسابه صافي + إضافي − خصم − المدفوع.
   </div>
 
+  {# ==== فورم تسجيل تصفية (دفع جزئي/كلي) ==== #}
+  <form method="post" action="{{ url_for('admin_worker_settle') }}" class="settle-form">
+    <input type="hidden" name="user_id" value="{{ worker.id }}">
+    <div class="sf-row">
+      <div class="sf-field">
+        <label>تاريخ التصفية</label>
+        <input type="date" name="day" value="{{ today_iso }}" required>
+      </div>
+      <div class="sf-field">
+        <label>المبلغ المدفوع (ج)</label>
+        <input type="number" name="amount" min="1" step="1" placeholder="0" required>
+      </div>
+      <div class="sf-field sf-grow">
+        <label>ملاحظة (اختياري)</label>
+        <input type="text" name="note" placeholder="مثلاً: دفعة نقدي">
+      </div>
+      <button class="btn btn-primary" type="submit">تسجيل تصفية</button>
+    </div>
+  </form>
 
   {% if bonus_list %}
   <div class="adj-block">
@@ -96,8 +111,28 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if not bonus_list and not deduct_list %}
-  <div class="empty" style="margin-top:8px;">مفيش تعديلات على النصيب في {{ month_label }}.</div>
+  {% if settle_list %}
+  <div class="adj-block">
+    <div class="adj-h neg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12h16M4 6h16M4 18h10"/></svg>
+      تصفيات ({{ settle_list|length }})
+    </div>
+    {% for it in settle_list %}
+    <div class="adj-item">
+      <span class="adj-day">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
+      <span style="display:flex;gap:6px;align-items:center;">
+        <span class="adj-amt neg">- {{ '{:,}'.format(it.amount) }} ج</span>
+        <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}" style="display:inline;" onsubmit="return confirm('حذف هذه التصفية؟');">
+          <input type="hidden" name="user_id" value="{{ worker.id }}">
+          <button type="submit" style="background:none;border:0;color:#ff8080;cursor:pointer;font-size:14px;">✕</button>
+        </form>
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if not bonus_list and not deduct_list and not settle_list %}
+  <div class="empty" style="margin-top:8px;">مفيش تعديلات ولا تصفيات في {{ month_label }}.</div>
   {% endif %}
 </div>
 
@@ -120,6 +155,13 @@
 .adj-day{color:var(--text-3);font-family:monospace}
 .adj-amt{font-weight:800;font-variant-numeric:tabular-nums}
 .adj-amt.pos{color:#7ff0c1}.adj-amt.neg{color:#ffb0b0}
+.settle-form{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12)}
+.sf-row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.sf-field{display:flex;flex-direction:column;gap:4px;min-width:110px}
+.sf-field.sf-grow{flex:1;min-width:140px}
+.sf-field label{font-size:11px;color:var(--text-3);font-weight:700}
+.sf-field input{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:inherit;font-size:13px}
+.settle-form .btn{padding:9px 14px;font-size:13px}
 </style>
 {% endif %}
 

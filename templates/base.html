@@ -15,6 +15,17 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}">
+  <style>
+    /* فرض عرض الأرقام بالإنجليزي (Latin) في كل الصفحات */
+    @font-face {
+      font-family: 'ForceLatinDigits';
+      src: local('Arial'), local('Helvetica Neue'), local('Segoe UI'), local('Roboto');
+      unicode-range: U+0030-0039, U+002E, U+002C, U+003A, U+002F, U+002D, U+0025;
+    }
+    html, body, input, textarea, select, button, .container, .card, .kpi, .kpi-v, .tl, .tl-num, .tl-tnum, .hero-h1, .settle-v, .adj-amt, .adj-day, .mini-chip {
+      font-family: 'ForceLatinDigits', 'Alexandria', 'IBM Plex Sans Arabic', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
+    }
+  </style>
   <script>window.CURRENT_USER_ID = {{ (current_user.id if current_user else 'guest')|tojson }};</script>
   <script src="{{ url_for('static', filename='themes.js') }}" defer></script>
   <script src="{{ url_for('static', filename='reply-swipe.js') }}" defer></script>

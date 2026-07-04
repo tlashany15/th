@@ -81,7 +81,6 @@
     <div class="snav-group">اليومي</div>
     <a href="{{ url_for('admin_panel') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>اللوحة الرئيسية</span></a>
     <a href="{{ url_for('admin_close_page', day=today) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
-    <a href="{{ url_for('admin_tomorrow_page') }}"><span class="snav-ico">{{ snav_icon('tomorrow') }}</span><span>تحضير حضور</span></a>
 
     <div class="snav-group">السجلات والتقارير</div>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>أعداد بعد الخصم</span></a>
@@ -179,9 +178,9 @@
       {{ snav_icon('close') }}
       إغلاق
     </a>
-    <a href="{{ url_for('admin_tomorrow_page') }}" class="{% if request.endpoint in ['admin_tomorrow_page','admin_announce_tomorrow'] %}active{% endif %}">
-      {{ snav_icon('tomorrow') }}
-      تحضير
+    <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">
+      {{ snav_icon('history') }}
+      أعداد بعد الخصم
     </a>
     <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
       {{ snav_icon('chat') }}
