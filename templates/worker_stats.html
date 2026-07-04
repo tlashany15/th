@@ -38,13 +38,42 @@
           <path d="M22 46 l-4 6 M42 46 l4 6" stroke="#ff8c00" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="kpi-v">{{ '{:,}'.format(share_int) }}</div>
-      <div class="kpi-l">كتكوت</div>
+      <div class="kpi-v">{{ '{:,}'.format(pending_chicks) }}</div>
+      <div class="kpi-l">كتكوت متبقي (لم يُحاسب عليه)</div>
     </div>
   </div>
 </section>
 
-{% if is_admin_view %}
+{# ==== شريط اختيار المدة (نصف شهر) ==== #}
+{% if period_choices and period_choices|length > 1 %}
+<div class="card" style="padding:10px 12px;">
+  <div style="font-size:12px;color:var(--text-3);font-weight:800;margin-bottom:6px;">اختر المدة</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;">
+    {% for p in period_choices %}
+      <a href="{{ url_for('worker_stats', worker_id=worker.id, year=p.year, month=p.month, half=p.half) }}"
+         class="mini-chip" style="{% if p.is_current %}background:var(--gold-soft);color:var(--gold-2);font-weight:800;{% endif %}">
+        {{ p.label }}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if period_settled %}
+<div class="card" style="padding:14px;background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(255,255,255,.02));border:1px solid rgba(52,211,153,.45);">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#7ee2a1" stroke-width="2.4" style="width:22px;height:22px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+    <div>
+      <div style="font-weight:900;color:#c6f5da;font-size:15px;">تمت محاسبة هذه المدة كاملة ✓</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:3px;">
+        كل الكتاكيت في المدة دي مش هتتحسب في "نصيبك".
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ==== ملخّص المحاسبة — يظهر للعامل والمسؤول ==== #}
 <!-- ===== ملخّص المحاسبة (للمسؤول فقط) ===== -->
 <div class="card">
   <div class="sec-head">
@@ -53,8 +82,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 17.25V6.75z"/></svg>
       </div>
       <div>
-        <div class="sec-h-t">تصفية الحساب</div>
-        <div class="sec-h-s">النصيب بالجنيه + الإضافي والخصم</div>
+        <div class="sec-h-t">ملخص المحاسبة</div>
+        <div class="sec-h-s">كتاكيت متبقية / تمّت محاسبتها + الإضافي والخصم</div>
       </div>
     </div>
   </div>
@@ -82,11 +111,13 @@
     {% for it in settled_days_list %}
     <div class="adj-item settle-day-item">
       <span class="adj-day">تم الحساب يوم <b>{{ it.date }}</b> · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+      {% if is_admin_view and not period_settled %}
       <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;" onsubmit="return confirm('إلغاء المحاسبة لهذا اليوم؟');">
         <input type="hidden" name="user_id" value="{{ worker.id }}">
         <input type="hidden" name="day" value="{{ it.date }}">
         <button type="submit" title="إلغاء المحاسبة" style="background:none;border:0;color:#ff8080;cursor:pointer;font-size:14px;">✕</button>
       </form>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
@@ -102,11 +133,13 @@
     {% for it in pending_days_list %}
     <div class="adj-item settle-day-item">
       <span class="adj-day">{{ it.date }} · {{ it.weekday }} — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+      {% if is_admin_view %}
       <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;">
         <input type="hidden" name="user_id" value="{{ worker.id }}">
         <input type="hidden" name="day" value="{{ it.date }}">
         <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده">✓ تم</button>
       </form>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
@@ -222,7 +255,6 @@
 .sf-field input{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:inherit;font-size:13px}
 .settle-form .btn{padding:9px 14px;font-size:13px}
 </style>
-{% endif %}
 
 <!-- ===== تفاصيل الأيام ===== -->
 <div class="card">

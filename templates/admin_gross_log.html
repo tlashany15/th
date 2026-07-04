@@ -37,27 +37,54 @@
     </div>
   </div>
 
-  {% if rows %}
-    <div class="gl-list">
-      {% for r in rows %}
-      <div class="gl-row">
-        <div class="gl-day">
-          <div class="gl-day-d">{{ r.day.isoformat()[8:] if r.day.__class__.__name__ != 'str' else r.day[8:] }}</div>
-          <div class="gl-day-m">{{ (r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day)[:7] }}</div>
+  {% if grouped %}
+    {% for g in grouped %}
+    <div class="gl-period">
+      <div class="gl-period-head">
+        <div>
+          <div class="gl-period-lbl">{{ g.label }}</div>
+          <div class="gl-period-sub">إجمالي المدة بدون خصم: <b>{{ '{:,}'.format(g.sum) }}</b></div>
         </div>
-        <div class="gl-body">
-          <div class="gl-nd">{{ '{:,}'.format(r.no_deduct_total or 0) }} <span>بدون خصم</span></div>
-          <div class="gl-tot">إجمالي اليوم: <strong>{{ '{:,}'.format(r.total_count or 0) }}</strong></div>
-        </div>
+        <form method="post" action="{{ url_for('admin_reset_gross_period') }}"
+              onsubmit="return confirm('تصفير أعداد بدون خصم لهذه المدة فقط؟');">
+          <input type="hidden" name="start" value="{{ g.start }}">
+          <input type="hidden" name="end"   value="{{ g.end }}">
+          <button type="submit" class="gl-reset-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 006.34 6.34M4 16a8 8 0 0013.66 1.66"/></svg>
+            تصفير المدة
+          </button>
+        </form>
       </div>
-      {% endfor %}
+      <div class="gl-list">
+        {% for r in g.rows %}
+        <div class="gl-row">
+          <div class="gl-day">
+            <div class="gl-day-d">{{ r.day.isoformat()[8:] if r.day.__class__.__name__ != 'str' else r.day[8:] }}</div>
+            <div class="gl-day-m">{{ (r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day)[:7] }}</div>
+          </div>
+          <div class="gl-body">
+            <div class="gl-nd">{{ '{:,}'.format(r.no_deduct_total or 0) }} <span>بدون خصم</span></div>
+            <div class="gl-tot">إجمالي اليوم: <strong>{{ '{:,}'.format(r.total_count or 0) }}</strong></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
+    {% endfor %}
   {% else %}
     <div class="empty">لا توجد أعداد بدون خصم مسجلة بعد.</div>
   {% endif %}
 </div>
 
 <style>
+.gl-period{padding:12px;border-radius:14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);margin-bottom:10px}
+.gl-period-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed rgba(255,255,255,.1)}
+.gl-period-lbl{font-weight:900;font-size:14px;color:#fff}
+.gl-period-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+.gl-period-sub b{color:#8ec2ff;font-variant-numeric:tabular-nums}
+.gl-reset-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;background:rgba(255,120,120,.14);color:#ffb0b0;border:1px solid rgba(255,120,120,.35);font-weight:800;font-size:11.5px;cursor:pointer}
+.gl-reset-btn svg{width:13px;height:13px}
+.gl-reset-btn:hover{background:rgba(255,120,120,.24)}
 .gl-list{display:flex;flex-direction:column;gap:8px}
 .gl-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(80,150,255,.06),rgba(255,255,255,.02));border:1px solid rgba(80,150,255,.2)}
 .gl-day{width:54px;flex-shrink:0;text-align:center;padding:8px 4px;border-radius:10px;background:rgba(0,0,0,.25)}
