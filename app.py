@@ -448,20 +448,57 @@ def _toggle_reaction(table, message_id, user_id, emoji):
 def is_day_closed(day_s):
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    try:
+        cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
+        db.commit()
+    except Exception:
+        db.rollback()
+    cur.execute("SELECT total_count, reopened FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
-    closed = _row is not None
     cur.close()
-    return closed
+    if not _row:
+        return False
+    # اليوم اللي اتعاد فتحه يعتبر مش مقفول
+    return not bool(_row["reopened"])
 
 
 def get_day_closure_total(day_s):
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    try:
+        cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
+        db.commit()
+    except Exception:
+        db.rollback()
+    cur.execute("SELECT total_count, reopened FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
     cur.close()
-    return _row["total_count"] if _row else None
+    if not _row:
+        return None
+    if bool(_row["reopened"]):
+        return None
+    return _row["total_count"]
+
+
+def _purge_closure_message(cur, day):
+    """يحذف/ينضف رسايل ملخّص إغلاق اليوم اللي فيها ماركر [CLOSED:{day}]."""
+    import re as _re
+    marker = f"[CLOSED:{day}]"
+    cur.execute(
+        "SELECT id, body FROM group_messages WHERE kind='attendance' AND deleted=FALSE AND body LIKE %s",
+        (f"%{marker}%",),
+    )
+    rows = cur.fetchall() or []
+    pat = _re.compile(r"\n*\[ICON:check\] تم إغلاق اليوم[\s\S]*?\[CLOSED:" + _re.escape(day) + r"\]")
+    for r in rows:
+        body = r["body"] or ""
+        stand_prefix = f"[ICON:clipboard] إغلاق يوم {day}"
+        if body.startswith(stand_prefix):
+            # رسالة مستقلّة للإغلاق — نمسحها بالكامل
+            cur.execute("UPDATE group_messages SET deleted=TRUE, pinned=FALSE WHERE id=%s", (r["id"],))
+        else:
+            new_body = pat.sub("", body).rstrip()
+            cur.execute("UPDATE group_messages SET body=%s WHERE id=%s", (new_body, r["id"]))
 
 
 def login_required(f):
@@ -923,7 +960,9 @@ def worker_stats(worker_id):
             bonus_list.append(item); bonus_total += amt
         else:
             deduct_list.append(item); deduct_total += -amt
-    net_money = money_egp + bonus_total - deduct_total
+    # الصافي = النصيب فقط. الإضافي/الخصم بيتجمعوا لوحدهم في مجموع منفصل (adjust_net)
+    net_money = money_egp
+    adjust_net = bonus_total - deduct_total
 
     month_label = f"{AR_MONTHS[m-1]} {y}"
     return render_template("worker_stats.html",
@@ -935,6 +974,7 @@ def worker_stats(worker_id):
                            bonus_list=bonus_list, deduct_list=deduct_list,
                            bonus_total=bonus_total, deduct_total=deduct_total,
                            net_money=net_money,
+                           adjust_net=adjust_net,
                            total_month=total_month,
                            days_attended=days_attended,
                            month_label=month_label,
@@ -1050,10 +1090,12 @@ def admin_close_day():
                                             closed_by = EXCLUDED.closed_by""",
         (day, u["id"], total, no_deduct_total),
     )
-    # ==== نحدّث رسالة تحضير اليوم المثبتة (لو موجودة) ونضيف الإجمالي — مرة واحدة فقط ====
+    # ==== نحدّث رسالة الإغلاق: نمسح القديمة (لو موجودة) ونضيف الجديدة بالإجمالي المحدّث ====
     try:
         marker = f"[CLOSED:{day}]"
-        # ندوّر على أحدث رسالة كنوعها attendance و بتاعت نفس اليوم
+        # امسح أي ملخّص إغلاق سابق لنفس اليوم (سواء كان مضاف لرسالة تحضير أو رسالة مستقلة)
+        _purge_closure_message(cur, day)
+        # ندوّر على أحدث رسالة كنوعها attendance و بتاعت نفس اليوم بعد التنضيف
         cur.execute("""SELECT id, body FROM group_messages
                        WHERE kind='attendance' AND deleted=FALSE AND body LIKE %s
                        ORDER BY id DESC LIMIT 1""", (f"%حضور يوم {day}%",))
@@ -1066,22 +1108,19 @@ def admin_close_day():
             f"\n- الحاضرون: {present_c}"
             f"\n{marker}"
         )
-        if att and marker not in (att["body"] or ""):
-            new_body = (att["body"] or "") + summary_line
+        if att:
+            new_body = (att["body"] or "").rstrip() + summary_line
             cur.execute("UPDATE group_messages SET body=%s, pinned=TRUE WHERE id=%s",
                         (new_body, att["id"]))
-        elif not att:
-            # ما فيش رسالة حضور لليوم ده — ننشر رسالة إغلاق مثبّتة (مرة واحدة)
-            cur.execute("""SELECT 1 FROM group_messages
-                           WHERE kind='attendance' AND body LIKE %s""", (f"%{marker}%",))
-            exists = cur.fetchone()
-            if not exists:
-                cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
-                body_new = f"[ICON:clipboard] إغلاق يوم {day}{summary_line}"
-                cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
-                               VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body_new))
+        else:
+            # ما فيش رسالة حضور لليوم ده — ننشر رسالة إغلاق مثبّتة
+            cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
+            body_new = f"[ICON:clipboard] إغلاق يوم {day}{summary_line}"
+            cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
+                           VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body_new))
     except Exception as _e:
         print("update pinned attendance error:", _e)
+
     db.commit()
     cur.close()
     # ==== ملخص الفترة (نصف شهر) — تلقائي في الجروب ====
@@ -1179,6 +1218,11 @@ def admin_reopen_day():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
     # نحتفظ بالأرقام (total_count / no_deduct_total) عشان متضيعش لما المسؤول يفتح اليوم تاني
     cur.execute("UPDATE day_closures SET reopened=TRUE WHERE day=%s", (day,))
+    # امسح ملخّص الإغلاق اللي اتبعت للجروب — هيتبعت جديد لما اليوم يقفل تاني
+    try:
+        _purge_closure_message(cur, day)
+    except Exception as _e:
+        print("purge closure on reopen error:", _e)
     db.commit()
     cur.close()
     flash("تم إعادة فتح اليوم", "info")
