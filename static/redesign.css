@@ -1,0 +1,361 @@
+/* ============================================================
+   Redesign Layer — Facebook Dark Modern
+   يعيد تلوين وتنسيق كل واجهات التطبيق دون حذف أي ميزة.
+   يتم تحميله بعد style.css / style-v2.css / chat.css / themes.css
+   ============================================================ */
+
+/* ---- Tokens Overrides (FB Dark) ---- */
+:root, .theme-fb, body {
+  --bg-0:#18191A;
+  --bg-1:#1C1D1E;
+  --bg-2:#242526;
+  --surface:#242526;
+  --surface-2:#2E2F30;
+  --surface-3:#3A3B3C;
+
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.14);
+
+  --text:#E4E6EB;
+  --text-2:#D0D3D8;
+  --text-3:#B0B3B8;
+  --text-mute:#8A8D91;
+
+  /* accent: FB blue */
+  --gold:#2374E1;
+  --gold-2:#4599FF;
+  --gold-soft:rgba(35,116,225,.16);
+
+  --amber:#F5A623;
+  --coral:#FA383E;
+  --red:#FA383E;
+  --green:#31A24C;
+  --green-soft:rgba(49,162,76,.18);
+  --blue:#2374E1;
+  --blue-soft:rgba(35,116,225,.18);
+  --violet:#8A64E1;
+
+  --grad-gold:linear-gradient(135deg,#4599FF 0%,#2374E1 55%,#1B5FB8 100%);
+  --grad-blue:linear-gradient(135deg,#4599FF 0%,#2374E1 55%,#1B5FB8 100%);
+  --grad-green:linear-gradient(135deg,#42D77A 0%,#31A24C 55%,#1F7A38 100%);
+  --grad-surface:linear-gradient(180deg,#2A2B2C 0%,#1F2021 100%);
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 6px 20px -8px rgba(0,0,0,.55);
+  --shadow-lg:0 18px 44px -18px rgba(0,0,0,.75);
+  --shadow-gold:0 10px 26px -12px rgba(35,116,225,.55);
+
+  --r-sm:8px;
+  --r-md:12px;
+  --r-lg:16px;
+  --r-xl:20px;
+  --r-2xl:24px;
+}
+
+/* ---- Global background: flat FB style ---- */
+html, body {
+  background: var(--bg-0) !important;
+}
+body {
+  font-family: "Inter","SF Pro Display","Cairo","Alexandria","IBM Plex Sans Arabic","Segoe UI",system-ui,-apple-system,sans-serif !important;
+  letter-spacing: 0;
+  color: var(--text);
+}
+h1,h2,h3,h4,.auth-title,.sec-h-t,.kpi-v,.hero-date-d,.daynav-date,.brand,.brand-name{
+  font-family: "Inter","SF Pro Display","Cairo","Alexandria",system-ui,sans-serif !important;
+  letter-spacing:-0.01em;
+  font-weight: 800;
+}
+
+/* ---- Container / spacing ---- */
+.container{ max-width: 680px; padding-left:12px; padding-right:12px; }
+
+/* ---- Topbar: FB flat header ---- */
+.topbar{
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.brand-icon{
+  background: var(--surface-2);
+  border:1px solid var(--line-strong);
+  border-radius: 50%;
+}
+.brand, .brand-name{ color: var(--text); font-weight: 800; }
+
+/* ---- Cards: flat surface + subtle border ---- */
+.card, .auth-card, .wcard, .kpi, .hero-admin, .close-card, .closed-hero,
+.section, .panel, .list-card, .note-card, .chat-card, .chats-card,
+.msg-actions-sheet, .modal, .sheet, .dialog{
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+/* ---- Buttons: FB rounded-pill primary ---- */
+.btn{
+  border-radius: 10px;
+  font-weight: 700;
+  height: 44px;
+  transition: background .15s ease, transform .05s ease, opacity .15s ease;
+}
+.btn:active{ transform: scale(.97); }
+.btn-primary{
+  background: var(--blue) !important;
+  color:#fff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.btn-primary:hover{ background:#1B65C9 !important; }
+.btn-ghost{
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line-strong) !important;
+}
+.btn-ghost:hover{ background: var(--surface-3) !important; }
+.btn-danger{
+  background: var(--red) !important;
+  color:#fff !important;
+  border:none !important;
+}
+.btn-lg{ height:50px; border-radius:12px; font-size:16px; }
+.btn-sm{ height:34px; border-radius:8px; }
+
+/* ---- Icon buttons: FB circular ---- */
+.icon-btn, .snav-btn, .nav-arr, .add-plus{
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 50% !important;
+  transition: background .15s ease;
+}
+.icon-btn:hover, .snav-btn:hover, .nav-arr:hover{
+  background: var(--surface-3) !important;
+}
+.icon-btn-danger{ color:#FF7A7A !important; }
+
+/* ---- Inputs ---- */
+input, select, textarea, .big-input input, .field input, .field select, .field textarea{
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--text) !important;
+  border-radius: 10px !important;
+}
+input:focus, select:focus, textarea:focus{
+  outline: none !important;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(35,116,225,.25) !important;
+}
+::placeholder{ color: var(--text-mute) !important; }
+
+/* ---- Bottom nav: FB tab-bar ---- */
+.bottom-nav{
+  background: var(--bg-1) !important;
+  border-top: 1px solid var(--line) !important;
+  box-shadow: 0 -1px 0 rgba(0,0,0,.2);
+  backdrop-filter: none;
+}
+.bottom-nav a, .bottom-nav .nav-item{
+  color: var(--text-3) !important;
+  font-weight: 600;
+}
+.bottom-nav a.active, .bottom-nav .nav-item.active,
+.bottom-nav a[aria-current="page"]{
+  color: var(--blue) !important;
+}
+.bottom-nav svg{ stroke-width: 2 !important; }
+
+/* ---- Badges / chips ---- */
+.badge, .hero-chip, .chip{
+  border-radius: 999px !important;
+  font-weight: 700;
+  border: 1px solid var(--line-strong) !important;
+  background: var(--surface-2) !important;
+  color: var(--text-2) !important;
+}
+.badge-gold{ background: var(--blue-soft) !important; color:#8FBCFF !important; border-color: rgba(35,116,225,.4) !important; }
+.badge-green{ background: var(--green-soft) !important; color:#7CE29A !important; border-color: rgba(49,162,76,.4) !important; }
+
+/* ---- KPIs ---- */
+.kpi{ padding:14px; }
+.kpi-ico{
+  background: var(--surface-3) !important;
+  color: var(--blue) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--line) !important;
+}
+.kpi-v{ color: var(--text) !important; }
+
+/* ---- Section headers ---- */
+.sec-h-ico{
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  color: var(--blue) !important;
+}
+.sec-h-ico-gold{ background: var(--blue-soft) !important; color: var(--blue) !important; }
+.sec-h-ico-blue{ background: var(--blue-soft) !important; color: var(--blue) !important; }
+.sec-h-t{ color: var(--text) !important; }
+
+/* ---- Avatars: FB gradient ---- */
+.wavatar, .avatar{
+  background: linear-gradient(135deg, #4599FF, #2374E1) !important;
+  color: #fff !important;
+  border: 2px solid var(--bg-1) !important;
+  border-radius: 50% !important;
+  font-weight: 800;
+}
+.wavatar-muted{
+  background: linear-gradient(135deg,#4A4B4C,#3A3B3C) !important;
+  color: var(--text-2) !important;
+}
+
+/* ---- Day-nav / bars ---- */
+.daynav{ background: var(--surface) !important; border:1px solid var(--line) !important; }
+.daynav-date, .hero-date-d{ color: var(--blue) !important; font-family: "Inter","Cairo",sans-serif !important; }
+.dbp-bar{ background: rgba(255,255,255,.06) !important; }
+
+/* ---- Chat bubbles (WhatsApp-ish tuned to FB dark) ---- */
+.msg, .message, .msg-bubble, .bubble{
+  border-radius: 18px !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.msg.me, .message.me, .msg-out, .bubble.me,
+.msg[data-me="1"], .msg-me{
+  background: var(--blue) !important;
+  color: #fff !important;
+}
+.msg.other, .message.other, .msg-in, .bubble.other,
+.msg[data-me="0"], .msg-other{
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+}
+.msg time, .msg .meta, .msg-time{ color: rgba(255,255,255,.65) !important; font-size:11px; }
+.msg.other time, .msg-in .meta{ color: var(--text-mute) !important; }
+
+/* ---- Chat list items ---- */
+.chat-row, .chats-row, .chat-item{
+  background: transparent !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  transition: background .15s ease;
+}
+.chat-row:hover, .chats-row:hover, .chat-item:hover{
+  background: var(--surface-2) !important;
+}
+.chat-name, .chats-name{ color: var(--text) !important; font-weight: 700; }
+.chat-preview, .chats-preview{ color: var(--text-3) !important; }
+.unread-dot, .badge-unread{
+  background: var(--blue) !important;
+  color:#fff !important;
+  border-radius:999px !important;
+  font-weight: 700;
+}
+
+/* ---- Composer / message input ---- */
+.composer, .chat-composer, .msg-composer{
+  background: var(--bg-1) !important;
+  border-top: 1px solid var(--line) !important;
+}
+.composer input, .composer textarea, .composer .input,
+.msg-composer input, .msg-composer textarea{
+  background: var(--surface-2) !important;
+  border-radius: 22px !important;
+  border: 1px solid var(--line-strong) !important;
+}
+.composer .send-btn, .msg-send, .send-btn{
+  background: var(--blue) !important;
+  color:#fff !important;
+  border-radius: 50% !important;
+  border: none !important;
+}
+
+/* ---- Modals / sheets ---- */
+.modal, .sheet, .dialog, .msg-actions-sheet, .popover{
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px -20px rgba(0,0,0,.8) !important;
+}
+.backdrop, .modal-backdrop, .overlay{
+  background: rgba(0,0,0,.65) !important;
+  backdrop-filter: blur(3px);
+}
+
+/* ---- Flash / alerts ---- */
+.flash{
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+}
+.flash.success{ border-color: rgba(49,162,76,.5) !important; }
+.flash.error, .flash.danger{ border-color: rgba(250,56,62,.5) !important; }
+
+/* ---- Sidebar (admin snav) ---- */
+.snav, .snav-sheet, .side-nav{
+  background: var(--bg-1) !important;
+  border-inline-start: 1px solid var(--line) !important;
+}
+.snav a, .snav-item{
+  color: var(--text-2) !important;
+  border-radius: 10px !important;
+}
+.snav a:hover, .snav-item:hover{ background: var(--surface-2) !important; color: var(--text) !important; }
+.snav a.active, .snav-item.active{
+  background: var(--blue-soft) !important;
+  color: var(--blue) !important;
+}
+
+/* ---- Tables / lists ---- */
+table{ border-color: var(--line) !important; color: var(--text) !important; }
+th{ background: var(--surface-2) !important; color: var(--text-2) !important; }
+td{ border-color: var(--line) !important; }
+tr:hover td{ background: rgba(255,255,255,.03) !important; }
+
+/* ---- Scrollbar ---- */
+*::-webkit-scrollbar{ width:8px; height:8px; }
+*::-webkit-scrollbar-thumb{ background: var(--surface-3); border-radius: 8px; }
+*::-webkit-scrollbar-track{ background: transparent; }
+
+/* ---- Splash / auth polish ---- */
+.auth-wrap{ background: var(--bg-0) !important; }
+.auth-card{ box-shadow: none !important; }
+.auth-logo{ filter: none; }
+
+/* ---- Selection ---- */
+::selection{ background: rgba(35,116,225,.35); color:#fff; }
+
+/* ---- SVG icons: consistent stroke ---- */
+.bottom-nav svg, .icon-btn svg, .snav-btn svg, .sec-h-ico svg, .kpi-ico svg{
+  stroke-width: 1.9;
+}
+
+/* ---- Utilities to avoid warm-amber leftovers ---- */
+[style*="#f5b950"], [style*="#ffd27a"], [style*="#f5a623"]{
+  /* soft override for inline warm accents to FB blue tint */
+  color: var(--blue-2, var(--blue)) !important;
+}
+
+/* ---- Reduce heavy gradients on hero ---- */
+.hero-admin, .hero-mesh{
+  background: var(--surface) !important;
+  border:1px solid var(--line) !important;
+}
+
+/* ---- Notifications rows ---- */
+.notif-row, .notification{
+  background: var(--surface) !important;
+  border:1px solid var(--line) !important;
+  border-radius: 12px !important;
+}
+.notif-row.unread{ background: var(--blue-soft) !important; border-color: rgba(35,116,225,.35) !important; }
+
+/* ---- Focus ring accessibility ---- */
+:focus-visible{
+  outline: 2px solid var(--blue) !important;
+  outline-offset: 2px;
+}
