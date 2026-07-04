@@ -3,19 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#18191A">
+  <meta name="theme-color" content="#0e1621">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>{% block title %}فريق تحصين الكتاكيت{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Cairo:wght@400;500;600;700;800;900&family=Alexandria:wght@300;400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='redesign.css') }}">
   <style>
     /* فرض عرض الأرقام بالإنجليزي (Latin) في كل الصفحات */
     @font-face {
@@ -89,9 +88,6 @@
     </div>
     <div class="app-modal-title" id="appModalTitle">تأكيد</div>
     <div class="app-modal-sub" id="appModalSub">هل أنت متأكد؟</div>
-    <div class="app-modal-input-wrap" id="appModalInputWrap" hidden>
-      <textarea id="appModalInput" class="app-modal-input" rows="3"></textarea>
-    </div>
     <div class="app-modal-actions">
       <button class="btn btn-ghost" data-app-close id="appModalCancel">إلغاء</button>
       <button class="btn btn-primary" id="appModalOk">تأكيد</button>
@@ -107,16 +103,12 @@
   var modalSub = document.getElementById('appModalSub');
   var modalOk = document.getElementById('appModalOk');
   var modalCancel = document.getElementById('appModalCancel');
-  var modalInputWrap = document.getElementById('appModalInputWrap');
-  var modalInput = document.getElementById('appModalInput');
   var currentResolve = null;
-  var currentMode = 'confirm';
 
   var ICONS = {
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>',
     success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>',
-    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487z"/></svg>'
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
   };
 
   window.appAlert = function(text, kind){
@@ -136,21 +128,12 @@
   function openModal(opts){
     modalTitle.textContent = opts.title || 'تأكيد';
     modalSub.textContent = opts.sub || '';
-    modalSub.style.display = opts.sub ? '' : 'none';
-    var iconKind = opts.iconKind || (opts.danger ? 'error' : (opts.mode === 'prompt' ? 'edit' : 'info'));
-    modalIc.className = 'app-modal-ic' + (opts.danger ? ' is-danger' : '') + (opts.mode === 'prompt' ? ' is-edit' : '');
-    modalIc.innerHTML = ICONS[iconKind] || ICONS.info;
+    modalIc.className = 'app-modal-ic' + (opts.danger ? ' is-danger' : '');
+    modalIc.innerHTML = ICONS[opts.danger ? 'error' : 'info'];
     modalOk.textContent = opts.okText || 'تأكيد';
     modalCancel.textContent = opts.cancelText || 'إلغاء';
     modalOk.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
     modalCancel.style.display = opts.hideCancel ? 'none' : '';
-    if (opts.mode === 'prompt'){
-      modalInputWrap.hidden = false;
-      modalInput.value = opts.defaultValue || '';
-      setTimeout(function(){ modalInput.focus(); try{ modalInput.select(); }catch(e){} }, 40);
-    } else {
-      modalInputWrap.hidden = true;
-    }
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden','false');
   }
@@ -161,24 +144,10 @@
   }
   window.appConfirm = function(text, opts){
     opts = opts || {};
-    currentMode = 'confirm';
     return new Promise(function(resolve){
       currentResolve = resolve;
       openModal({ title: opts.title || 'تأكيد', sub: text, danger: opts.danger,
                   okText: opts.okText || 'تأكيد', cancelText: opts.cancelText || 'إلغاء' });
-    });
-  };
-  window.appPrompt = function(text, defaultValue, opts){
-    opts = opts || {};
-    currentMode = 'prompt';
-    return new Promise(function(resolve){
-      currentResolve = function(v){
-        if (v === true) resolve(modalInput.value);
-        else resolve(null);
-      };
-      openModal({ mode:'prompt', title: opts.title || text || 'إدخال',
-                  sub: opts.sub || '', defaultValue: defaultValue || '',
-                  okText: opts.okText || 'حفظ', cancelText: opts.cancelText || 'إلغاء' });
     });
   };
   modalOk.addEventListener('click', function(){ closeModal(true); });
@@ -188,49 +157,6 @@
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(false);
   });
-
-  // اعتراض onsubmit="return confirm(...)" و onclick="return confirm(...)"
-  // لتحويلها لنافذة التطبيق بدون تعديل كل الصفحات القديمة.
-  function interceptConfirm(el){
-    if (!el || el.dataset.appConfirmBound === '1') return;
-    var raw = el.getAttribute(el.tagName === 'FORM' ? 'onsubmit' : 'onclick') || '';
-    var m = raw.match(/^\s*return\s+confirm\(\s*(['"])([\s\S]*?)\1\s*\)\s*;?\s*$/);
-    if (!m) return;
-    var msg = m[2].replace(/\\'/g,"'").replace(/\\"/g,'"').replace(/\\n/g,'\n');
-    el.dataset.appConfirmBound = '1';
-    if (el.tagName === 'FORM'){
-      el.removeAttribute('onsubmit');
-      el.addEventListener('submit', function(ev){
-        if (el.dataset.appConfirmOk === '1') return true;
-        ev.preventDefault();
-        var isDanger = /حذف|تصفير|إلغاء|إنهاء|مسح/.test(msg);
-        var okText = /حذف/.test(msg) ? 'حذف' : (/تصفير/.test(msg) ? 'تصفير' : 'تأكيد');
-        window.appConfirm(msg, {danger:isDanger, okText:okText}).then(function(ok){
-          if (ok){ el.dataset.appConfirmOk = '1'; el.submit(); }
-        });
-      });
-    } else {
-      el.removeAttribute('onclick');
-      el.addEventListener('click', function(ev){
-        ev.preventDefault();
-        var isDanger = /حذف|تصفير|إلغاء|إنهاء|مسح/.test(msg);
-        window.appConfirm(msg, {danger:isDanger}).then(function(ok){
-          if (ok){
-            if (el.href) location.href = el.href;
-            else if (el.tagName === 'BUTTON' && el.form){ el.form.dataset.appConfirmOk='1'; el.form.submit(); }
-          }
-        });
-      });
-    }
-  }
-  function scan(){
-    document.querySelectorAll('form[onsubmit^="return confirm"],a[onclick^="return confirm"],button[onclick^="return confirm"]').forEach(interceptConfirm);
-  }
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', scan);
-  } else { scan(); }
-  // إعادة الفحص لو أُضيفت عناصر ديناميكية
-  new MutationObserver(scan).observe(document.documentElement, {childList:true, subtree:true});
 })();
 </script>
 </body>
