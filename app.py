@@ -688,14 +688,11 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ملاحظة: التسجيل الذاتي متعطّل. المسؤول الرئيسي فقط يُنشئ الحسابات من صفحة «إدارة المستخدمين».
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    # إنشاء الحسابات متاح للمسؤول الرئيسي فقط من لوحة إدارة المستخدمين
     flash("إنشاء الحسابات متاح للمسؤول الرئيسي فقط من لوحة الإدارة", "error")
     return redirect(url_for("login"))
-
-
-
 
 
 @app.route("/dashboard")
@@ -892,6 +889,22 @@ def worker_stats(worker_id):
         ORDER BY day ASC
     """, (worker_id, start_d, end_d))
     adj_rows = cur.fetchall()
+    # ==== جلب تصفيات الحساب (المدفوعات) لهذا العامل خلال الشهر ====
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_settlements (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        amount INTEGER NOT NULL,
+        note TEXT,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )""")
+    cur.execute("""
+        SELECT id, day, amount, note FROM worker_settlements
+        WHERE user_id=%s AND day BETWEEN %s AND %s
+        ORDER BY day ASC, id ASC
+    """, (worker_id, start_d, end_d))
+    settle_rows = cur.fetchall()
     cur.close()
 
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
@@ -941,6 +954,18 @@ def worker_stats(worker_id):
     # الصافي = النصيب فقط. الإضافي/الخصم بيتجمعوا لوحدهم في مجموع منفصل (adjust_net)
     net_money = money_egp
     adjust_net = bonus_total - deduct_total
+    # ==== تصفيات (مدفوعات) ====
+    settle_list = []
+    settled_total = 0
+    for s in settle_rows:
+        d = s["day"]
+        d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
+        wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
+        amt = int(s["amount"] or 0)
+        settle_list.append({"id": s["id"], "date": d_s, "weekday": wd, "amount": amt, "note": s["note"] or ""})
+        settled_total += amt
+    total_due = net_money + adjust_net           # الإجمالي المستحق للعامل
+    remaining = total_due - settled_total        # المتبقي بعد التصفيات
 
     month_label = f"{AR_MONTHS[m-1]} {y}"
     return render_template("worker_stats.html",
@@ -953,6 +978,11 @@ def worker_stats(worker_id):
                            bonus_total=bonus_total, deduct_total=deduct_total,
                            net_money=net_money,
                            adjust_net=adjust_net,
+                           settle_list=settle_list,
+                           settled_total=settled_total,
+                           total_due=total_due,
+                           remaining=remaining,
+                           today_iso=date.today().isoformat(),
                            total_month=total_month,
                            days_attended=days_attended,
                            month_label=month_label,
@@ -1184,6 +1214,56 @@ def admin_worker_adjust():
         return jsonify({"ok": True, "amount": amount})
     flash("تم حفظ التعديل ✓", "success")
     return redirect(url_for("admin_close_page", day=day))
+
+
+# ---- تصفية الحساب: تسجيل مبلغ تم دفعه للعامل (للمسؤول فقط) ----
+@app.route("/admin/worker-settle", methods=["POST"])
+@admin_required
+def admin_worker_settle():
+    u = current_user()
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+    except (TypeError, ValueError):
+        user_id = 0
+    day = _parse_day(request.form.get("day") or date.today().isoformat()).isoformat()
+    try:
+        amount = int(request.form.get("amount") or 0)
+    except (TypeError, ValueError):
+        amount = 0
+    note = (request.form.get("note") or "").strip() or None
+    if not user_id or amount <= 0:
+        flash("ادخل مبلغ صحيح", "error")
+        return redirect(url_for("worker_stats", worker_id=user_id or u["id"]))
+    db = get_db(); cur = db.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_settlements (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        amount INTEGER NOT NULL,
+        note TEXT,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )""")
+    cur.execute("""INSERT INTO worker_settlements(user_id, day, amount, note, created_by)
+                   VALUES(%s,%s,%s,%s,%s)""",
+                (user_id, day, amount, note, u["id"]))
+    db.commit(); cur.close()
+    flash("تم تسجيل التصفية ✓", "success")
+    return redirect(url_for("worker_stats", worker_id=user_id))
+
+
+@app.route("/admin/worker-settle/<int:sid>/delete", methods=["POST"])
+@admin_required
+def admin_worker_settle_delete(sid):
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+    except (TypeError, ValueError):
+        user_id = 0
+    db = get_db(); cur = db.cursor()
+    cur.execute("DELETE FROM worker_settlements WHERE id=%s", (sid,))
+    db.commit(); cur.close()
+    flash("تم حذف التصفية", "info")
+    return redirect(url_for("worker_stats", worker_id=user_id))
 
 
 @app.route("/admin/reopen-day", methods=["POST"])
@@ -1455,31 +1535,12 @@ def worker_profile():
     return render_template("admin_profile.html", me=u)
 
 
-# ---- صفحة مستقلة لتحضير عمال بكره ----
+# ---- (تم حذف صفحة تحضير عمال بكره — لم تعد مستخدمة) ----
 @app.route("/admin/tomorrow-page")
 @admin_required
 def admin_tomorrow_page():
-    db = get_db()
-    cur = db.cursor()
-    # كل المستخدمين (بمن فيهم المسؤولين) يقدروا يظهروا في قائمة الحضور
-    cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
-    all_workers = cur.fetchall()
-    cur.close()
-    today_s = date.today().isoformat()
-    tomorrow = (date.today() + timedelta(days=1)).isoformat()
-    after_tomorrow = (date.today() + timedelta(days=2)).isoformat()
-    # اليوم المختار من الـ query string (لو موجود)، غير كده الافتراضي = بكرة
-    selected = (request.args.get("day") or tomorrow)
-    try:
-        _parse_day(selected)
-    except Exception:
-        selected = tomorrow
-    return render_template("admin_tomorrow.html",
-                           all_workers=all_workers,
-                           tomorrow=tomorrow,
-                           today=today_s,
-                           after_tomorrow=after_tomorrow,
-                           selected=selected)
+    return redirect(url_for("admin_panel"))
+
 
 
 # ---- بروفايل المسؤول: تغيير الاسم / كلمة السر ----
