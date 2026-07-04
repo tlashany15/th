@@ -86,7 +86,7 @@
           {% endif %}
           {% if d.names %}
           <div class="tl-meta">
-            <span class="mini-chip">👥 {{ d.names|length }} عامل</span>
+            <span class="mini-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg> {{ d.names|length }} عامل</span>
           </div>
           <div class="tl-names">
             {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}

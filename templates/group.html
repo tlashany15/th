@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 
-<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}" data-can-delete="{{ '1' if my_can_delete else '0' }}">
+<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}" data-can-delete="{{ '1' if my_can_delete else '0' }}" data-locked="{{ '1' if group.is_locked else '0' }}">
 
   <!-- HEADER -->
   <header class="wa-head">
@@ -10,7 +10,7 @@
     </a>
     <label class="wa-head-avatar wa-head-avatar-group {% if is_admin %}is-clickable{% endif %}" title="{% if is_admin %}تغيير صورة المجموعة{% endif %}">
       {% if group.avatar %}<img src="{{ group.avatar }}" alt="">
-      {% else %}<div class="wa-head-fb">👥</div>{% endif %}
+      {% else %}<div class="wa-head-fb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg></div>{% endif %}
       {% if is_admin %}
         <form id="grpAvatarForm" method="post" action="{{ url_for('group_avatar') }}" enctype="multipart/form-data" style="display:none">
           <input type="file" name="file" id="grpAvatarFile" accept="image/*">
@@ -21,15 +21,24 @@
       {% endif %}
     </label>
     <button type="button" class="wa-head-info wa-head-info-btn" id="openMembers" aria-label="عرض الأعضاء">
-      <div class="wa-head-name">{{ group.name }}</div>
+      <div class="wa-head-name">{{ group.name }}{% if group.is_locked %} <span class="wa-lock-badge" title="مقفولة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg></span>{% endif %}</div>
       <div class="wa-head-status" id="grpStatus">{{ group.members }} عضو</div>
     </button>
     {% if is_admin %}
+    <button type="button" class="wa-head-action" id="lockBtn" aria-label="قفل/فتح الدردشة" title="قفل/فتح الدردشة">
+      <svg id="lockIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{% if group.is_locked %}M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z{% else %}M13.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3 10.5h15v10.5H3zM18 10.5h3{% endif %}"/></svg>
+    </button>
     <button type="button" class="wa-head-action" id="renameBtn" aria-label="تعديل الاسم">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487zM19.5 18.75h-15"/></svg>
     </button>
     {% endif %}
   </header>
+
+  <!-- Locked notice -->
+  <div class="wa-locked-bar" id="lockedBar" {% if not group.is_locked %}hidden{% endif %}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg>
+    <span>الدردشة مقفولة من المسؤول — لا يمكن الكتابة</span>
+  </div>
 
   <!-- MESSAGES -->
   <main class="wa-msgs" id="msgs"></main>
@@ -595,6 +604,53 @@
 .wa-lb-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:99px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);text-decoration:none;font-weight:700;font-size:13px;backdrop-filter:blur(10px);cursor:pointer}
 .wa-lb-btn:hover{background:rgba(255,255,255,.22)}
 .wa-lb-btn svg{width:16px;height:16px}
+
+/* Lock UI */
+.wa-lock-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(255,180,60,.18);color:#ffcf7a;margin-inline-start:4px}
+.wa-locked-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;background:linear-gradient(180deg,rgba(255,180,60,.14),rgba(255,180,60,.06));border-bottom:1px solid rgba(255,180,60,.22);color:#ffdca6;font-weight:700;font-size:13px}
+.wa-locked-bar svg{width:16px;height:16px}
+.wa-wrap.is-locked-guest .wa-composer{opacity:.35;pointer-events:none;filter:grayscale(.3)}
+.wa-wrap.is-locked-guest .wa-mic,.wa-wrap.is-locked-guest .wa-send,.wa-wrap.is-locked-guest .wa-attach{pointer-events:none}
 </style>
+
+<script>
+(function(){
+  var wrap=document.querySelector('.wa-wrap');
+  var IS_ADMIN=wrap.dataset.isAdmin==='1';
+  var lockedBar=document.getElementById('lockedBar');
+  var lockBtn=document.getElementById('lockBtn');
+  var lockIcon=document.getElementById('lockIcon');
+  function applyLock(locked){
+    wrap.dataset.locked=locked?'1':'0';
+    if(!IS_ADMIN){ wrap.classList.toggle('is-locked-guest', locked); }
+    if(lockedBar){ lockedBar.hidden=!locked; }
+    if(lockIcon){
+      lockIcon.innerHTML = locked
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3 10.5h15v10.5H3zM18 10.5h3"/>';
+    }
+  }
+  applyLock(wrap.dataset.locked==='1');
+  if(lockBtn){
+    lockBtn.addEventListener('click', function(){
+      var cur=wrap.dataset.locked==='1';
+      var next=cur?'0':'1';
+      var msg=cur?'فتح الدردشة والسماح للأعضاء بالكتابة؟':'قفل الدردشة ومنع الأعضاء من الكتابة أو التفاعل؟';
+      (window.appConfirm?window.appConfirm(msg,{okText:cur?'فتح':'قفل',danger:!cur}):Promise.resolve(confirm(msg)))
+      .then(function(ok){ if(!ok) return;
+        var fd=new FormData(); fd.append('locked', next);
+        fetch("{{ url_for('group_toggle_lock') }}", {method:'POST', body:fd, credentials:'same-origin'})
+          .then(function(r){return r.json();})
+          .then(function(d){
+            if(d && d.ok){ applyLock(!!d.is_locked);
+              if(window.appAlert) window.appAlert(d.is_locked?'تم قفل الدردشة':'تم فتح الدردشة','success');
+            }
+          });
+      });
+    });
+  }
+})();
+</script>
+
 
 {% endblock %}

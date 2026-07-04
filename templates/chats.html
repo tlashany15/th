@@ -59,7 +59,7 @@
       <a class="tg-row" href="{{ url_for('group_room') }}" data-name="{{ group.name|lower }} مجموعة">
         <div class="tg-av-wrap">
           {% if group.avatar %}<img class="tg-av" src="{{ group.avatar }}" alt="">
-          {% else %}<div class="tg-av tg-av-group">👥</div>{% endif %}
+          {% else %}<div class="tg-av tg-av-group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg></div>{% endif %}
         </div>
         <div class="tg-mid">
           <div class="tg-top">

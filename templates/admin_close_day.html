@@ -87,14 +87,16 @@
       </label>
     </div>
 
-    <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose" style="margin-top:14px;width:100%;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-      {% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}
-    </button>
+    <div class="close-actions">
+      <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        {% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}
+      </button>
+    </div>
   </form>
 
   {% if day_closed %}
-    <form method="post" action="{{ url_for('admin_reopen_day') }}" style="margin-top:10px;">
+    <form method="post" action="{{ url_for('admin_reopen_day') }}" class="close-actions" style="margin-top:0">
       <input type="hidden" name="day" value="{{ day }}">
       <input type="hidden" name="next" value="close-page">
       <button class="btn btn-ghost">إعادة فتح اليوم (الأرقام هتفضل محفوظة)</button>
@@ -164,33 +166,44 @@
 </div>
 
 <style>
-.close-grid{display:grid;grid-template-columns:1fr;gap:10px}
-@media(min-width:640px){.close-grid{grid-template-columns:1fr 1fr}}
-.field-wrap{position:relative;display:block;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);transition:.18s}
-.field-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
-.field-gold{background:linear-gradient(140deg,rgba(212,175,55,.09),rgba(255,255,255,.02))}
-.field-blue{background:linear-gradient(140deg,rgba(80,150,255,.07),rgba(255,255,255,.02))}
-.field-lbl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text-2);opacity:.9}
-.field-lbl svg{width:14px;height:14px}
-.field-input{width:100%;background:transparent;border:0;color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:.5px;outline:none;margin-top:6px;padding:6px 0;font-variant-numeric:tabular-nums}
-.field-hint{display:block;font-size:10.5px;color:var(--text-3);text-align:center;margin-top:4px}
+/* ==== Close-day polished layout ==== */
+.close-card{position:relative}
+.closed-hero{display:flex;align-items:center;gap:12px;padding:14px 14px;margin:-4px -4px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(52,211,153,.04));border:1px solid rgba(52,211,153,.28)}
+.closed-hero-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(52,211,153,.22);color:#7ff0c1;flex-shrink:0}
+.closed-hero-ic svg{width:22px;height:22px}
+.closed-hero-t{font-weight:900;font-size:15px;color:#c6f5da;margin-bottom:2px}
+.closed-hero-s{font-size:12.5px;color:var(--text-2);line-height:1.5}
 
-.att-scroll{max-height:60vh;overflow:auto;padding-inline-end:2px;margin-top:6px}
+.close-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:640px){.close-grid{grid-template-columns:1fr 1fr}}
+.field-wrap{position:relative;display:block;padding:16px 14px 12px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);transition:.2s}
+.field-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft);transform:translateY(-1px)}
+.field-gold{background:linear-gradient(140deg,rgba(212,175,55,.10),rgba(255,255,255,.02))}
+.field-blue{background:linear-gradient(140deg,rgba(80,150,255,.08),rgba(255,255,255,.02))}
+.field-lbl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--text-2);opacity:.95;letter-spacing:.2px}
+.field-lbl svg{width:14px;height:14px}
+.field-input{width:100%;background:transparent;border:0;color:#fff;font-size:30px;font-weight:900;text-align:center;letter-spacing:.5px;outline:none;margin-top:8px;padding:4px 0;font-variant-numeric:tabular-nums;font-family:"Fraunces",serif}
+.field-hint{display:block;font-size:10.5px;color:var(--text-3);text-align:center;margin-top:6px;letter-spacing:.2px}
+
+.close-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.close-actions .btn{width:100%}
+
+.att-scroll{max-height:60vh;overflow:auto;padding-inline-end:2px;margin-top:10px}
 .att-scroll::-webkit-scrollbar{width:6px}.att-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}
 .att-list{display:flex;flex-direction:column;gap:8px}
-.att-row{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.18s}
+.att-row{padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.18s}
 .att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.32)}
 .att-main{display:flex;align-items:center;gap:10px}
-.att-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;overflow:hidden}
+.att-av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;overflow:hidden}
 .att-av img{width:100%;height:100%;object-fit:cover}
 .att-body{flex:1;min-width:0}
-.att-name{font-weight:800;font-size:14px;line-height:1.2}
-.att-sub{font-size:11px;color:var(--text-3);margin-top:2px}
-.att-toggle{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-2);border-color:rgba(255,255,255,.1)}
+.att-name{font-weight:800;font-size:14.5px;line-height:1.2}
+.att-sub{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.att-toggle{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-2);border-color:rgba(255,255,255,.1)}
 .att-toggle.on{background:rgba(56,178,102,.18);color:#7ee2a1;border-color:rgba(56,178,102,.4)}
-.adj-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.08);flex-wrap:wrap}
+.adj-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.08);flex-wrap:wrap}
 .adj-lbl{font-size:11.5px;color:var(--text-3);font-weight:700}
-.adj-input{flex:1;min-width:80px;max-width:120px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 10px;color:#fff;font-size:14px;font-weight:800;text-align:center;outline:none;transition:.15s;font-variant-numeric:tabular-nums}
+.adj-input{flex:1;min-width:90px;max-width:130px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 10px;color:#fff;font-size:14px;font-weight:800;text-align:center;outline:none;transition:.15s;font-variant-numeric:tabular-nums}
 .adj-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
 .adj-input.pos{color:#7ff0c1;border-color:rgba(52,211,153,.35)}
 .adj-input.neg{color:#ffb0b0;border-color:rgba(255,99,99,.35)}
@@ -198,7 +211,7 @@
 .adj-val.pos{color:#7ff0c1}
 .adj-val.neg{color:#ffb0b0}
 .nav-arr-disabled{opacity:.35;pointer-events:none}
-.sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:2px}
 </style>
 
 <script>
