@@ -14,7 +14,7 @@
       </svg>
     </div>
     <h1 class="auth-title">إنشاء حساب</h1>
-    <p class="auth-sub">إنشاء حساب جديد (للمسؤول الرئيسي فقط)</p>
+    <p class="auth-sub">سجّل باسمك وكلمة السر بس</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
@@ -38,7 +38,7 @@
         </button>
       </form>
     </div>
-    <p class="auth-footer"><a href="{{ url_for('admin_users') }}">← رجوع لإدارة المستخدمين</a></p>
+    <p class="auth-footer">لديك حساب بالفعل؟ <a href="{{ url_for('login') }}">تسجيل الدخول</a></p>
   </div>
 </div>
 {% endblock %}

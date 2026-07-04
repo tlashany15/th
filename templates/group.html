@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 
-<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}" data-can-delete="{{ '1' if my_can_delete else '0' }}" data-locked="{{ '1' if group.is_locked else '0' }}" data-images-locked="{{ '1' if group.images_locked else '0' }}">
+<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}" data-can-delete="{{ '1' if my_can_delete else '0' }}" data-locked="{{ '1' if group.is_locked else '0' }}">
 
   <!-- HEADER -->
   <header class="wa-head">
@@ -28,9 +28,6 @@
     <button type="button" class="wa-head-action" id="lockBtn" aria-label="قفل/فتح الدردشة" title="قفل/فتح الدردشة">
       <svg id="lockIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{% if group.is_locked %}M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z{% else %}M13.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3 10.5h15v10.5H3zM18 10.5h3{% endif %}"/></svg>
     </button>
-    <button type="button" class="wa-head-action{% if group.images_locked %} is-active{% endif %}" id="imgLockBtn" aria-label="قفل/فتح إرسال الصور" title="قفل/فتح إرسال الصور">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/>{% if group.images_locked %}<path stroke-linecap="round" stroke-linejoin="round" d="M4 4l16 16"/>{% endif %}</svg>
-    </button>
     <button type="button" class="wa-head-action" id="renameBtn" aria-label="تعديل الاسم">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487zM19.5 18.75h-15"/></svg>
     </button>
@@ -41,10 +38,6 @@
   <div class="wa-locked-bar" id="lockedBar" {% if not group.is_locked %}hidden{% endif %}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg>
     <span>الدردشة مقفولة من المسؤول — لا يمكن الكتابة</span>
-  </div>
-  <div class="wa-locked-bar" id="imgLockedBar" {% if not group.images_locked %}hidden{% endif %} style="background:rgba(255,180,60,.10);color:#ffb84d;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m3-3l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M4 4l16 16"/></svg>
-    <span>إرسال الصور موقوف من المسؤول</span>
   </div>
 
   <!-- MESSAGES -->
@@ -645,46 +638,12 @@
       var msg=cur?'فتح الدردشة والسماح للأعضاء بالكتابة؟':'قفل الدردشة ومنع الأعضاء من الكتابة أو التفاعل؟';
       (window.appConfirm?window.appConfirm(msg,{okText:cur?'فتح':'قفل',danger:!cur}):Promise.resolve(confirm(msg)))
       .then(function(ok){ if(!ok) return;
-        var fd=new FormData(); fd.append('locked', next); fd.append('field','chat');
+        var fd=new FormData(); fd.append('locked', next);
         fetch("{{ url_for('group_toggle_lock') }}", {method:'POST', body:fd, credentials:'same-origin'})
           .then(function(r){return r.json();})
           .then(function(d){
             if(d && d.ok){ applyLock(!!d.is_locked);
               if(window.appAlert) window.appAlert(d.is_locked?'تم قفل الدردشة':'تم فتح الدردشة','success');
-            }
-          });
-      });
-    });
-  }
-
-  // ===== قفل الصور =====
-  var imgLockBtn=document.getElementById('imgLockBtn');
-  var imgLockedBar=document.getElementById('imgLockedBar');
-  var imgInputEl=document.getElementById('imgInput');
-  var attachLabel=imgInputEl?imgInputEl.closest('label'):null;
-  function applyImgLock(locked){
-    wrap.dataset.imagesLocked=locked?'1':'0';
-    if(imgLockedBar){ imgLockedBar.hidden=!locked; }
-    if(!IS_ADMIN && attachLabel){
-      attachLabel.style.opacity = locked?'.35':'';
-      attachLabel.style.pointerEvents = locked?'none':'';
-    }
-    if(imgLockBtn){ imgLockBtn.classList.toggle('is-active', locked); }
-  }
-  applyImgLock(wrap.dataset.imagesLocked==='1');
-  if(imgLockBtn){
-    imgLockBtn.addEventListener('click', function(){
-      var cur=wrap.dataset.imagesLocked==='1';
-      var next=cur?'0':'1';
-      var msg=cur?'السماح للأعضاء بإرسال الصور مرة أخرى؟':'إيقاف إرسال الصور من الأعضاء؟';
-      (window.appConfirm?window.appConfirm(msg,{okText:cur?'سماح':'إيقاف',danger:!cur}):Promise.resolve(confirm(msg)))
-      .then(function(ok){ if(!ok) return;
-        var fd=new FormData(); fd.append('locked', next); fd.append('field','images');
-        fetch("{{ url_for('group_toggle_lock') }}", {method:'POST', body:fd, credentials:'same-origin'})
-          .then(function(r){return r.json();})
-          .then(function(d){
-            if(d && d.ok){ applyImgLock(!!d.images_locked);
-              if(window.appAlert) window.appAlert(d.images_locked?'تم إيقاف إرسال الصور':'تم السماح بإرسال الصور','success');
             }
           });
       });

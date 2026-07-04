@@ -121,7 +121,7 @@
           <div class="wcard-info">
             <div class="wcard-name">
               {{ w.full_name }}
-              {% if w.role == 'admin' and is_super_admin %}<span class="badge badge-gold sm">{{ role_label(w) }}</span>{% endif %}
+              {% if w.role == 'admin' and is_super_admin %}<span class="badge badge-gold sm">مسؤول</span>{% endif %}
             </div>
             <div class="wcard-meta">@{{ w.username }}</div>
           </div>
