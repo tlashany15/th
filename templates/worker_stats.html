@@ -60,10 +60,17 @@
     </div>
   </div>
   <div class="settle-grid">
-    <div class="settle-cell"><div class="settle-l">النصيب</div><div class="settle-v">{{ '{:,}'.format(money_egp) }} ج</div></div>
+    <div class="settle-cell net"><div class="settle-l">الصافي (النصيب)</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
     <div class="settle-cell pos"><div class="settle-l">إضافي</div><div class="settle-v">+ {{ '{:,}'.format(bonus_total) }} ج</div></div>
     <div class="settle-cell neg"><div class="settle-l">خصم</div><div class="settle-v">- {{ '{:,}'.format(deduct_total) }} ج</div></div>
-    <div class="settle-cell net"><div class="settle-l">الصافي</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
+    <div class="settle-cell {% if adjust_net >= 0 %}pos{% else %}neg{% endif %}">
+      <div class="settle-l">صافي التعديلات</div>
+      <div class="settle-v">{% if adjust_net >= 0 %}+{% else %}-{% endif %} {{ '{:,}'.format(adjust_net|abs) }} ج</div>
+    </div>
+  </div>
+  <div style="margin-top:8px;font-size:11.5px;color:var(--text-3);line-height:1.6;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+    الإضافي والخصم بيتجمّعوا لوحدهم في «صافي التعديلات» ومش بيتضافوا على الصافي.
   </div>
 
   {% if bonus_list %}

@@ -63,32 +63,7 @@
     </div>
   </div>
 
-  <!-- ============ WORKERS LIST (أسماء فقط) ============ -->
-  <section class="v2-section v2-fade" style="--i:2">
-    <div class="v2-section-head">
-      <h3>الحاضرون</h3>
-      <span class="v2-chip">{{ present_list|length }}</span>
-    </div>
-
-    {% if present_list %}
-      <ol class="v2-list">
-        {% for p in present_list %}
-        <li class="v2-row v2-fade" style="--i:{{ loop.index0 + 3 }}">
-          <span class="v2-rank">{{ '%02d' % loop.index }}</span>
-          <div class="v2-row-main">
-            <div class="v2-row-name">{{ p.full_name }}</div>
-            <div class="v2-row-sub">تم تسجيل الحضور</div>
-          </div>
-          {# لا أرقام جنب العمال — مش بنقسّم الإجمالي عليهم #}
-        </li>
-        {% endfor %}
-      </ol>
-    {% else %}
-      <div class="v2-empty">
-        <p>لا أحد سجّل حضوره اليوم</p>
-      </div>
-    {% endif %}
-  </section>
+  {# قائمة الحاضرين اتشالت من اللوحة — بتظهر في صفحة إغلاق اليوم عند المسؤول #}
 
 {% else %}
 

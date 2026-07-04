@@ -88,18 +88,30 @@
     </div>
 
     <div class="close-actions">
-      <button class="btn btn-primary btn-lg" type="button" id="btnConfirmClose">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:16px;height:16px;vertical-align:-3px;margin-inline-end:6px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-        {% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}
+      <button class="btn-close-primary" type="button" id="btnConfirmClose">
+        <span class="btn-ic">
+          {% if day_closed %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          {% else %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3.75 21.75h16.5a1.5 1.5 0 001.5-1.5v-8.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v8.25a1.5 1.5 0 001.5 1.5z"/></svg>
+          {% endif %}
+        </span>
+        <span class="btn-lbl">{% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}</span>
       </button>
     </div>
   </form>
 
   {% if day_closed %}
-    <form method="post" action="{{ url_for('admin_reopen_day') }}" class="close-actions" style="margin-top:0">
+    <form method="post" action="{{ url_for('admin_reopen_day') }}" class="close-actions">
       <input type="hidden" name="day" value="{{ day }}">
       <input type="hidden" name="next" value="close-page">
-      <button class="btn btn-ghost">إعادة فتح اليوم (الأرقام هتفضل محفوظة)</button>
+      <button class="btn-close-reopen" type="submit">
+        <span class="btn-ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a1.5 1.5 0 001.5-1.5v-8.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v8.25a1.5 1.5 0 001.5 1.5z"/></svg>
+        </span>
+        <span class="btn-lbl">إعادة فتح اليوم</span>
+        <span class="btn-hint">هيتحذف ملخّص الإغلاق من الجروب — الأرقام تفضل محفوظة</span>
+      </button>
     </form>
   {% endif %}
 </div>
@@ -185,8 +197,40 @@
 .field-input{width:100%;background:transparent;border:0;color:#fff;font-size:30px;font-weight:900;text-align:center;letter-spacing:.5px;outline:none;margin-top:8px;padding:4px 0;font-variant-numeric:tabular-nums;font-family:"Fraunces",serif}
 .field-hint{display:block;font-size:10.5px;color:var(--text-3);text-align:center;margin-top:6px;letter-spacing:.2px}
 
-.close-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
-.close-actions .btn{width:100%}
+.close-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+
+/* ==== أزرار إغلاق/إعادة فتح اليوم — تنسيق موحّد ==== */
+.btn-close-primary,
+.btn-close-reopen{
+  width:100%;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  flex-wrap:wrap;
+  padding:14px 18px;border-radius:16px;border:1px solid transparent;
+  font-family:inherit;font-size:15px;font-weight:900;letter-spacing:.2px;
+  cursor:pointer;transition:transform .15s ease, box-shadow .2s ease, background .2s;
+}
+.btn-close-primary{
+  color:#0b1418;
+  background:linear-gradient(135deg,#f2d675 0%,#d4af37 55%,#b98d1f 100%);
+  box-shadow:0 8px 24px -8px rgba(212,175,55,.55),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.btn-close-primary:hover{transform:translateY(-1px);box-shadow:0 12px 30px -10px rgba(212,175,55,.7),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn-close-primary:active{transform:translateY(0)}
+.btn-close-reopen{
+  color:#ffb0b0;
+  background:rgba(255,99,99,.08);
+  border-color:rgba(255,99,99,.32);
+  flex-direction:column;gap:4px;padding:12px 14px;
+}
+.btn-close-reopen:hover{background:rgba(255,99,99,.14);border-color:rgba(255,99,99,.5)}
+.btn-close-primary .btn-ic,
+.btn-close-reopen .btn-ic{width:22px;height:22px;display:grid;place-items:center;flex-shrink:0}
+.btn-close-primary .btn-ic svg{width:20px;height:20px}
+.btn-close-reopen .btn-ic svg{width:18px;height:18px}
+.btn-close-reopen .btn-lbl{display:inline-flex;align-items:center;gap:8px;font-size:14px}
+.btn-close-reopen .btn-lbl::before{content:"";width:18px;height:18px;display:inline-block;background:transparent}
+.btn-close-reopen .btn-hint{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.1px}
+
 
 .att-scroll{max-height:60vh;overflow:auto;padding-inline-end:2px;margin-top:10px}
 .att-scroll::-webkit-scrollbar{width:6px}.att-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}
