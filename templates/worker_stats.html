@@ -58,36 +58,76 @@
       </div>
     </div>
   </div>
-  <div class="settle-grid">
-    <div class="settle-cell net"><div class="settle-l">حسابه صافي</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
-    <div class="settle-cell pos"><div class="settle-l">إضافي</div><div class="settle-v">+ {{ '{:,}'.format(bonus_total) }} ج</div></div>
-    <div class="settle-cell neg"><div class="settle-l">خصم</div><div class="settle-v">- {{ '{:,}'.format(deduct_total) }} ج</div></div>
-    <div class="settle-cell neg"><div class="settle-l">المدفوع (تصفية)</div><div class="settle-v">- {{ '{:,}'.format(settled_total) }} ج</div></div>
-    <div class="settle-cell net" style="grid-column:1/-1;"><div class="settle-l">المتبقي للعامل</div><div class="settle-v" style="font-size:20px;">{{ '{:,}'.format(remaining) }} ج</div></div>
-  </div>
-  <div style="margin-top:8px;font-size:11.5px;color:var(--text-3);line-height:1.6;">
-    المتبقي = حسابه صافي + إضافي − خصم − المدفوع.
+  {# ==== ملخّص المحاسبة بعدد الكتاكيت (النظام الجديد) ==== #}
+  <div class="chick-grid">
+    <div class="chick-cell chick-pending">
+      <div class="chick-l">كتاكيت متبقية عليه</div>
+      <div class="chick-v">{{ '{:,}'.format(pending_chicks) }} <span class="chick-u">كتكوت</span></div>
+      <div class="chick-sub">من {{ pending_days_list|length }} يوم لم يُحاسب عليها بعد</div>
+    </div>
+    <div class="chick-cell chick-settled">
+      <div class="chick-l">تمت المحاسبة</div>
+      <div class="chick-v">{{ '{:,}'.format(settled_chicks) }} <span class="chick-u">كتكوت</span></div>
+      <div class="chick-sub">في {{ settled_days_list|length }} يوم</div>
+    </div>
   </div>
 
-  {# ==== فورم تسجيل تصفية (دفع جزئي/كلي) ==== #}
-  <form method="post" action="{{ url_for('admin_worker_settle') }}" class="settle-form">
-    <input type="hidden" name="user_id" value="{{ worker.id }}">
-    <div class="sf-row">
-      <div class="sf-field">
-        <label>تاريخ التصفية</label>
-        <input type="date" name="day" value="{{ today_iso }}" required>
-      </div>
-      <div class="sf-field">
-        <label>المبلغ المدفوع (ج)</label>
-        <input type="number" name="amount" min="1" step="1" placeholder="0" value="{{ remaining if remaining and remaining > 0 else '' }}" required>
-      </div>
-      <div class="sf-field sf-grow">
-        <label>ملاحظة (اختياري)</label>
-        <input type="text" name="note" placeholder="مثلاً: دفعة نقدي">
-      </div>
-      <button class="btn btn-primary" type="submit">تم المحاسبة — تسجيل الدفع</button>
+  {# ==== أيام تمت المحاسبة عليها ==== #}
+  {% if settled_days_list %}
+  <div class="adj-block">
+    <div class="adj-h" style="color:#7ee2a1;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+      أيام تمّت المحاسبة ({{ settled_days_list|length }})
     </div>
-  </form>
+    {% for it in settled_days_list %}
+    <div class="adj-item settle-day-item">
+      <span class="adj-day">تم الحساب يوم <b>{{ it.date }}</b> · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+      <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;" onsubmit="return confirm('إلغاء المحاسبة لهذا اليوم؟');">
+        <input type="hidden" name="user_id" value="{{ worker.id }}">
+        <input type="hidden" name="day" value="{{ it.date }}">
+        <button type="submit" title="إلغاء المحاسبة" style="background:none;border:0;color:#ff8080;cursor:pointer;font-size:14px;">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ==== أيام لسه لم تُصفَّى ==== #}
+  {% if pending_days_list %}
+  <div class="adj-block">
+    <div class="adj-h" style="color:#f5c17c;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+      أيام لم تُصفَّ ({{ pending_days_list|length }})
+    </div>
+    {% for it in pending_days_list %}
+    <div class="adj-item settle-day-item">
+      <span class="adj-day">{{ it.date }} · {{ it.weekday }} — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+      <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;">
+        <input type="hidden" name="user_id" value="{{ worker.id }}">
+        <input type="hidden" name="day" value="{{ it.date }}">
+        <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده">✓ تم</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ==== الفلوس (آخر خطوة — نتيجة تلقائية) ==== #}
+  <div class="money-box">
+    <div class="money-l">قيمة الكتاكيت المتبقية</div>
+    <div class="money-calc">{{ '{:,}'.format(pending_chicks) }} كتكوت × 55 ج =
+      <b>{{ '{:,}'.format(pending_money) }} ج</b></div>
+    {% if bonus_total or deduct_total %}
+    <div class="money-adj">
+      {% if bonus_total %}+ إضافي {{ '{:,}'.format(bonus_total) }} ج{% endif %}
+      {% if deduct_total %} − خصم {{ '{:,}'.format(deduct_total) }} ج{% endif %}
+    </div>
+    {% endif %}
+    <div class="money-final">
+      المستحق حاليًا:
+      <span class="money-final-v">{{ '{:,}'.format(pending_money + bonus_total - deduct_total) }} ج</span>
+    </div>
+  </div>
 
   {% if bonus_list %}
   <div class="adj-block">
@@ -137,6 +177,25 @@
 </div>
 
 <style>
+
+.chick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.chick-cell{padding:14px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
+.chick-cell.chick-pending{background:linear-gradient(135deg,rgba(245,193,124,.14),rgba(255,255,255,.02));border-color:rgba(245,193,124,.4)}
+.chick-cell.chick-settled{background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(255,255,255,.02));border-color:rgba(52,211,153,.4)}
+.chick-l{font-size:11.5px;color:var(--text-3);font-weight:800}
+.chick-v{font-size:22px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums}
+.chick-u{font-size:11px;font-weight:700;color:var(--text-3)}
+.chick-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.settle-day-item{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mini-settle-btn{background:rgba(52,211,153,.16);color:#c6f5da;border:1px solid rgba(52,211,153,.45);border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
+.mini-settle-btn:hover{background:rgba(52,211,153,.28)}
+.money-box{margin-top:14px;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(120,170,255,.10),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
+.money-l{font-size:11.5px;color:var(--text-3);font-weight:800}
+.money-calc{font-size:13.5px;color:var(--text-2);margin-top:4px}
+.money-adj{font-size:12px;color:var(--text-3);margin-top:3px}
+.money-final{font-size:14px;font-weight:800;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.12);display:flex;justify-content:space-between;align-items:center}
+.money-final-v{font-size:20px;color:#dbeafe;font-variant-numeric:tabular-nums}
+
 .kpi-money{background:linear-gradient(135deg,rgba(120,170,255,.12),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
 .settle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
 @media(min-width:640px){.settle-grid{grid-template-columns:repeat(4,1fr)}}
