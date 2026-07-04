@@ -91,9 +91,9 @@
         <div class="wcard-info">
           <div class="wcard-name">
             {{ u.full_name }}
-            {% if u.role == 'admin' %}<span class="badge badge-gold sm">{% if u.username|string == '1' %}مسؤول{% else %}مقاول{% endif %}</span>{% else %}<span class="badge badge-muted sm">عامل</span>{% endif %}
+            {% if u.role == 'admin' %}<span class="badge badge-gold sm">{{ role_label(u) }}</span>{% else %}<span class="badge badge-muted sm">عامل</span>{% endif %}
           </div>
-          <div class="wcard-meta">{% if u.role == "admin" %}{% if u.username|string == "1" %}مسؤول{% else %}مقاول{% endif %}{% else %}عامل{% endif %}</div>
+          <div class="wcard-meta">{{ role_label(u) }}</div>
         </div>
       </div>
       <div class="wcard-r">

@@ -28,14 +28,14 @@
     </div>
     <div class="kpi kpi-green">
       <div class="kpi-ico">
-        <!-- كتكوت / chick -->
-        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20 40c0-8 5.4-14 12-14s12 6 12 14v3c0 4.4-3.6 8-8 8h-8c-4.4 0-8-3.6-8-8v-3z"/>
-          <circle cx="32" cy="22" r="9"/>
-          <path d="M28 21.5h.02M36 21.5h.02" stroke-width="3.5"/>
-          <path d="M32 25.5l-2.6 2 2.6 2 2.6-2z" fill="currentColor" stroke="none"/>
-          <path d="M32 13v-3"/>
-          <path d="M26 51l-1.5 4M32 51l0 4M38 51l1.5 4"/>
+        <!-- chick / كتكوت -->
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="32" cy="38" rx="17" ry="16"/>
+          <circle cx="32" cy="20" r="11"/>
+          <circle cx="28.5" cy="19" r="1.6" fill="currentColor" stroke="none"/>
+          <circle cx="35.5" cy="19" r="1.6" fill="currentColor" stroke="none"/>
+          <path d="M30 24 L32 26 L34 24 Z" fill="currentColor" stroke="none"/>
+          <path d="M18 50 L14 56 M24 52 L22 58 M40 52 L42 58 M46 50 L50 56"/>
         </svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format(share_int) }}</div>
@@ -74,7 +74,7 @@
   </div>
   <div style="margin-top:8px;font-size:11.5px;color:var(--text-3);line-height:1.6;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
-    الإضافي والخصم كلٌ منهما لوحده — لا يتجمّعان ولا يُضافان على الصافي.
+    الإضافي والخصم بيتحسبوا كلٌّ على حدة ومش بيدخلوا في «الصافي».
   </div>
 
   {% if bonus_list %}
@@ -106,8 +106,8 @@
 
 <style>
 .kpi-money{background:linear-gradient(135deg,rgba(120,170,255,.12),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
-.settle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
-@media(min-width:640px){.settle-grid{grid-template-columns:repeat(3,1fr)}}
+.settle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+@media(max-width:520px){.settle-grid{grid-template-columns:1fr}}
 .settle-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 .settle-cell.pos{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.32)}
 .settle-cell.neg{background:rgba(255,99,99,.10);border-color:rgba(255,99,99,.30)}

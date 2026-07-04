@@ -46,7 +46,6 @@
 
 <!-- TOPBAR -->
 <div class="topbar">
-
   <div class="brand">
     <div class="brand-icon">{{ brand_icon(22) }}</div>
     <span>فريق التحصين</span>
@@ -114,7 +113,7 @@
       <div class="sidebar-worker-row">
         <a class="sidebar-worker" href="{{ url_for('worker_stats', worker_id=w.id) }}">
           <span class="sw-badge">{% if w.avatar %}<img src="{{ w.avatar }}" alt="">{% else %}{{ (w.full_name or '?')[:1] }}{% endif %}</span>
-          <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">({% if w.username|string == "1" %}مسؤول{% else %}مقاول{% endif %})</em>{% endif %}</span>
+          <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">({{ role_label(w) }})</em>{% endif %}</span>
         </a>
         {% if is_real_super_admin and w.id != current_user.id and not (w.role == 'admin' and w.username == '1') %}
         <a class="sidebar-worker-imp" href="{{ url_for('admin_impersonate', uid=w.id) }}" title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
