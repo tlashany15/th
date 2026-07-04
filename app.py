@@ -170,8 +170,10 @@ def init_db():
             id INTEGER PRIMARY KEY DEFAULT 1,
             name TEXT NOT NULL DEFAULT 'دردشة العمال',
             avatar TEXT,
+            is_locked BOOLEAN NOT NULL DEFAULT FALSE,
             CHECK (id = 1)
         );
+        ALTER TABLE group_settings ADD COLUMN IF NOT EXISTS is_locked BOOLEAN NOT NULL DEFAULT FALSE;
         INSERT INTO group_settings (id, name) VALUES (1, 'دردشة العمال') ON CONFLICT DO NOTHING;
 
         -- جدول رسايل المجموعة
@@ -751,7 +753,7 @@ def check_in():
     try:
         cur.execute("INSERT INTO attendance(user_id, day) VALUES(%s,%s)", (u["id"], today))
         db.commit()
-        flash("تم تسجيل حضورك اليوم 💉", "success")
+        flash("تم تسجيل حضورك اليوم", "success")
     except psycopg2.IntegrityError:
         db.rollback()
         flash("أنت مسجَّل حضورك بالفعل اليوم", "info")
@@ -903,8 +905,10 @@ def worker_stats(worker_id):
             "share": round(share, 2),
         })
 
-    share_int = int(round(total_share))
-    money_egp = share_int * 55  # جنيه بدون سنتات
+    # نأخذ الجزء الصحيح فقط من النصيب (144.77 => 144) عشان الإضافي/الخصم يتحسب على 144 وليس على الكسور
+    share_int = int(total_share)
+    share_fraction = round(total_share - share_int, 2)
+    money_egp = share_int * 55  # جنيه بدون سنتات — على الجزء الصحيح فقط
     bonus_list = []
     deduct_list = []
     bonus_total = 0
@@ -926,6 +930,7 @@ def worker_stats(worker_id):
                            worker=worker, days=days_list,
                            total_share=round(total_share, 2),
                            share_int=share_int,
+                           share_fraction=share_fraction,
                            money_egp=money_egp,
                            bonus_list=bonus_list, deduct_list=deduct_list,
                            bonus_total=bonus_total, deduct_total=deduct_total,
@@ -1207,7 +1212,7 @@ def admin_add_for_worker():
     )
     db.commit()
     cur.close()
-    flash("تمت الإضافة 💉", "success")
+    flash("تمت الإضافة", "success")
     return redirect(url_for("admin_panel", day=day.isoformat()))
 
 
@@ -1274,7 +1279,7 @@ def admin_announce_tomorrow():
     cur.close()
     # 🔔 إشعار لكل عامل مدرج في القائمة
     _notify_users(id_ints,
-                  "🗓️ حضورك مطلوب يوم " + day,
+                  "حضورك مطلوب يوم " + day,
                   f"اضغط لعرض التفاصيل في الجروب",
                   url=url_for("group_room"),
                   type_="attendance")
@@ -1303,7 +1308,7 @@ def admin_users():
                         (new_uid, full_name, generate_password_hash(password), role),
                     )
                     db.commit()
-                    flash(f"تم إضافة المستخدم برقم {new_uid} 💉", "success")
+                    flash(f"تم إضافة المستخدم برقم {new_uid}", "success")
                 except psycopg2.IntegrityError:
                     db.rollback()
                     flash("حصل تعارض في الرقم — حاول تاني", "error")
@@ -1747,7 +1752,7 @@ def chat_messages_api(other_id):
         cur.execute("""SELECT id, kind, body, sender_id FROM chat_messages WHERE id = ANY(%s)""",
                     (reply_ids,))
         for rr in cur.fetchall():
-            snip = rr["body"] if rr["kind"] == "text" else ("🖼️ صورة" if rr["kind"] == "image" else "🎤 صوت")
+            snip = rr["body"] if rr["kind"] == "text" else ("[صورة]" if rr["kind"] == "image" else "[رسالة صوتية]")
             replies_map[rr["id"]] = {
                 "id": rr["id"],
                 "snippet": (snip or "")[:140],
@@ -1840,9 +1845,9 @@ def chat_send(other_id):
     db.commit()
     cur.close()
     # 🔔 إشعار للمستقبل
-    preview = body if kind == "text" else ("🖼️ صورة" if kind == "image" else "🎤 رسالة صوتية")
+    preview = body if kind == "text" else ("[صورة]" if kind == "image" else "[رسالة صوتية]")
     _notify_users([other_id],
-                  f"💬 {u['full_name']}",
+                  f"{u['full_name']}",
                   (preview or "")[:120],
                   url=url_for("chat_room", other_id=u["id"]),
                   type_="dm")
@@ -1875,7 +1880,8 @@ def group_room():
     _mp = cur2.fetchone(); cur2.close()
     my_can_delete = bool(_mp and _mp["can_delete"])
     return render_template("group.html", group={
-        "name": gs["name"], "avatar": gs["avatar"], "members": members
+        "name": gs["name"], "avatar": gs["avatar"], "members": members,
+        "is_locked": bool(gs["is_locked"]) if "is_locked" in gs else False
     }, is_admin=is_admin, my_can_delete=my_can_delete)
 
 
@@ -1908,7 +1914,7 @@ def group_messages_api():
                        FROM group_messages m LEFT JOIN users u ON u.id=m.sender_id
                        WHERE m.id = ANY(%s)""", (reply_ids,))
         for rr in cur.fetchall():
-            snippet = rr["body"] if rr["kind"] == "text" else ("🖼️ صورة" if rr["kind"] == "image" else "🎤 صوت")
+            snippet = rr["body"] if rr["kind"] == "text" else ("[صورة]" if rr["kind"] == "image" else "[رسالة صوتية]")
             replies_map[rr["id"]] = {
                 "id": rr["id"], "sender_name": rr["sender_name"] or "محذوف",
                 "snippet": (snippet or "")[:140]
@@ -1972,6 +1978,11 @@ def group_messages_api():
 @login_required
 def group_send():
     u = current_user()
+    # منع الإرسال إذا كانت الدردشة مقفولة (إلا للمسؤول)
+    if u["role"] != "admin":
+        _gs = _get_group_settings()
+        if _gs and _gs["is_locked"]:
+            return jsonify({"ok": False, "error": "locked", "message": "الدردشة مقفولة من المسؤول"}), 403
     kind = request.form.get("kind", "text")
     body = None
     if kind == "text":
@@ -2025,9 +2036,9 @@ def group_send():
     notify_ids.discard(u["id"])
     cur.close()
     if notify_ids:
-        preview = body if kind == "text" else ("🖼️ صورة" if kind == "image" else "🎤 رسالة صوتية")
+        preview = body if kind == "text" else ("[صورة]" if kind == "image" else "[رسالة صوتية]")
         _notify_users(list(notify_ids),
-                      f"👥 {u['full_name']} في المجموعة",
+                      f"{u['full_name']} في المجموعة",
                       (preview or "")[:120],
                       url=url_for("group_room"),
                       type_="group_mention")
@@ -2093,6 +2104,22 @@ def group_rename():
     cur.close()
     flash("تم تحديث اسم المجموعة ✓", "success")
     return redirect(url_for("group_room"))
+
+
+@app.route("/group/lock", methods=["POST"])
+@admin_required
+def group_toggle_lock():
+    """قفل/فتح الدردشة — المسؤول فقط. لما تكون مقفولة، لا أحد غير المسؤول يقدر يرسل."""
+    val = (request.form.get("locked") or "").strip().lower() in ("1", "true", "on", "yes")
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE group_settings SET is_locked=%s WHERE id=1", (val,))
+    db.commit()
+    cur.close()
+    return jsonify({"ok": True, "is_locked": val})
+
+
+
 
 
 @app.route("/group/members")
@@ -2299,7 +2326,7 @@ def init_db_route():
         return "غير مسموح", 403
     try:
         init_db()
-        return "تم إنشاء قاعدة البيانات 💉", 200
+        return "تم إنشاء قاعدة البيانات", 200
     except Exception as e:
         return f"خطأ: {e}", 500
 
