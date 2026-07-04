@@ -14,72 +14,85 @@
         نصيب العامل
       </span>
       <h1 class="hero-h1" style="margin-top:6px;">{{ worker.full_name }}</h1>
-      <p class="hero-sub">{{ month_label }}</p>
+      <p class="hero-sub">كل المدد المفتوحة (لسه ما اتأكدش استلام أموالها)</p>
     </div>
   </div>
 
   <div class="kpi-grid">
     <div class="kpi kpi-gold">
       <div class="kpi-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
-      </div>
-      <div class="kpi-v">{{ days_attended }}</div>
-      <div class="kpi-l">أيام الحضور</div>
-    </div>
-    <div class="kpi kpi-green">
-      <div class="kpi-ico">
-        <!-- كتكوت -->
         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="32" cy="40" rx="18" ry="16" fill="#ffd93d"/>
           <circle cx="32" cy="22" r="13" fill="#ffd93d"/>
           <circle cx="27" cy="20" r="2.2" fill="#1a1a1a"/>
           <circle cx="37" cy="20" r="2.2" fill="#1a1a1a"/>
           <path d="M28 26 L32 30 L36 26 Z" fill="#ff8c00"/>
-          <path d="M22 46 l-4 6 M42 46 l4 6" stroke="#ff8c00" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="kpi-v">{{ '{:,}'.format(share_int) }}</div>
-      <div class="kpi-l">كتكوت</div>
+      <div class="kpi-v">{{ '{:,}'.format(grand_pending_chicks) }}</div>
+      <div class="kpi-l">كتاكيت متبقية</div>
+    </div>
+    <div class="kpi kpi-green">
+      <div class="kpi-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
+      </div>
+      <div class="kpi-v">{{ '{:,}'.format(grand_pending_money + grand_bonus - grand_deduct) }} <span style="font-size:14px;">ج</span></div>
+      <div class="kpi-l">إجمالي مستحق</div>
     </div>
   </div>
 </section>
 
-{% if is_admin_view %}
-<!-- ===== ملخّص المحاسبة (للمسؤول فقط) ===== -->
+{% for p in periods %}
 <div class="card">
-  <div class="sec-head">
+  <div class="sec-head" style="align-items:center;">
     <div class="sec-h-l">
       <div class="sec-h-ico sec-h-ico-blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 17.25V6.75z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
       </div>
       <div>
-        <div class="sec-h-t">تصفية الحساب</div>
-        <div class="sec-h-s">النصيب بالجنيه + الإضافي والخصم</div>
+        <div class="sec-h-t">
+          {{ p.label }}
+          {% if p.is_current %}<span class="badge badge-green sm" style="margin-right:6px;">المدة الحالية</span>{% endif %}
+        </div>
+        <div class="sec-h-s">{{ p.days_attended }} يوم حضور · إجمالي المدة {{ '{:,}'.format(p.total_period) }}</div>
       </div>
     </div>
+    {% if is_admin_view %}
+    <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
+          onsubmit="return confirm('تأكيد استلام أموال هذه المدة؟\nسيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.');"
+          style="margin:0;">
+      <input type="hidden" name="user_id" value="{{ worker.id }}">
+      <input type="hidden" name="year"    value="{{ p.y }}">
+      <input type="hidden" name="month"   value="{{ p.m }}">
+      <input type="hidden" name="half"    value="{{ p.half }}">
+      <button type="submit" class="btn-clear-period" title="تأكيد استلام وتصفير المدة">
+        ✓ تأكيد الاستلام وتصفير
+      </button>
+    </form>
+    {% endif %}
   </div>
-  {# ==== ملخّص المحاسبة بعدد الكتاكيت (النظام الجديد) ==== #}
+
+  {% if is_admin_view %}
   <div class="chick-grid">
     <div class="chick-cell chick-pending">
-      <div class="chick-l">كتاكيت متبقية ليه</div>
-      <div class="chick-v">{{ '{:,}'.format(pending_chicks) }} <span class="chick-u">كتكوت</span></div>
-      <div class="chick-sub">من {{ pending_days_list|length }} يوم لم يُحاسب عليها بعد</div>
+      <div class="chick-l">كتاكيت متبقية</div>
+      <div class="chick-v">{{ '{:,}'.format(p.pending_chicks) }} <span class="chick-u">كتكوت</span></div>
+      <div class="chick-sub">من {{ p.pending_days_list|length }} يوم لم يُحاسب عليها</div>
     </div>
     <div class="chick-cell chick-settled">
       <div class="chick-l">تمت المحاسبة</div>
-      <div class="chick-v">{{ '{:,}'.format(settled_chicks) }} <span class="chick-u">كتكوت</span></div>
-      <div class="chick-sub">في {{ settled_days_list|length }} يوم</div>
+      <div class="chick-v">{{ '{:,}'.format(p.settled_chicks) }} <span class="chick-u">كتكوت</span></div>
+      <div class="chick-sub">في {{ p.settled_days_list|length }} يوم</div>
     </div>
   </div>
 
-  {# ==== أيام تمت المحاسبة عليها ==== #}
-  {% if settled_days_list %}
+  {% if p.settled_days_list %}
   <div class="adj-block">
     <div class="adj-h" style="color:#7ee2a1;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-      أيام تمّت المحاسبة ({{ settled_days_list|length }})
+      أيام تمّت المحاسبة ({{ p.settled_days_list|length }})
     </div>
-    {% for it in settled_days_list %}
+    {% for it in p.settled_days_list %}
     <div class="adj-item settle-day-item">
       <span class="adj-day">تم الحساب يوم <b>{{ it.date }}</b> · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
       <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;" onsubmit="return confirm('إلغاء المحاسبة لهذا اليوم؟');">
@@ -92,14 +105,13 @@
   </div>
   {% endif %}
 
-  {# ==== أيام لسه لم تُصفَّى ==== #}
-  {% if pending_days_list %}
+  {% if p.pending_days_list %}
   <div class="adj-block">
     <div class="adj-h" style="color:#f5c17c;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
-      أيام لم تُصفَّ ({{ pending_days_list|length }})
+      أيام لم تُصفَّ ({{ p.pending_days_list|length }})
     </div>
-    {% for it in pending_days_list %}
+    {% for it in p.pending_days_list %}
     <div class="adj-item settle-day-item">
       <span class="adj-day">{{ it.date }} · {{ it.weekday }} — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
       <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;">
@@ -112,52 +124,42 @@
   </div>
   {% endif %}
 
-  {# ==== الفلوس (آخر خطوة — نتيجة تلقائية) ==== #}
   <div class="money-box">
     <div class="money-l">قيمة الكتاكيت المتبقية</div>
-    <div class="money-calc">{{ '{:,}'.format(pending_chicks) }} كتكوت × 55 ج =
-      <b>{{ '{:,}'.format(pending_money) }} ج</b></div>
-    {% if bonus_total or deduct_total %}
+    <div class="money-calc">{{ '{:,}'.format(p.pending_chicks) }} كتكوت × 55 ج =
+      <b>{{ '{:,}'.format(p.pending_money) }} ج</b></div>
+    {% if p.bonus_total or p.deduct_total %}
     <div class="money-adj">
-      {% if bonus_total %}+ إضافي {{ '{:,}'.format(bonus_total) }} ج{% endif %}
-      {% if deduct_total %} − خصم {{ '{:,}'.format(deduct_total) }} ج{% endif %}
+      {% if p.bonus_total %}+ إضافي {{ '{:,}'.format(p.bonus_total) }} ج{% endif %}
+      {% if p.deduct_total %} − خصم {{ '{:,}'.format(p.deduct_total) }} ج{% endif %}
     </div>
     {% endif %}
     <div class="money-final">
       المستحق حاليًا:
-      <span class="money-final-v">{{ '{:,}'.format(pending_money + bonus_total - deduct_total) }} ج</span>
+      <span class="money-final-v">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }} ج</span>
     </div>
   </div>
 
-  {% if bonus_list %}
+  {% if p.bonus_list %}
   <div class="adj-block">
-    <div class="adj-h pos">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-      إضافي ({{ bonus_list|length }})
-    </div>
-    {% for it in bonus_list %}
+    <div class="adj-h pos">إضافي ({{ p.bonus_list|length }})</div>
+    {% for it in p.bonus_list %}
     <div class="adj-item"><span class="adj-day">{{ it.date }} · {{ it.weekday }}</span><span class="adj-amt pos">+ {{ '{:,}'.format(it.amount) }} ج</span></div>
     {% endfor %}
   </div>
   {% endif %}
-  {% if deduct_list %}
+  {% if p.deduct_list %}
   <div class="adj-block">
-    <div class="adj-h neg">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15"/></svg>
-      خصم ({{ deduct_list|length }})
-    </div>
-    {% for it in deduct_list %}
+    <div class="adj-h neg">خصم ({{ p.deduct_list|length }})</div>
+    {% for it in p.deduct_list %}
     <div class="adj-item"><span class="adj-day">{{ it.date }} · {{ it.weekday }}</span><span class="adj-amt neg">- {{ '{:,}'.format(it.amount) }} ج</span></div>
     {% endfor %}
   </div>
   {% endif %}
-  {% if settle_list %}
+  {% if p.settle_list %}
   <div class="adj-block">
-    <div class="adj-h neg">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12h16M4 6h16M4 18h10"/></svg>
-      تصفيات ({{ settle_list|length }})
-    </div>
-    {% for it in settle_list %}
+    <div class="adj-h neg">تصفيات ({{ p.settle_list|length }})</div>
+    {% for it in p.settle_list %}
     <div class="adj-item">
       <span class="adj-day">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
       <span style="display:flex;gap:6px;align-items:center;">
@@ -171,13 +173,56 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if not bonus_list and not deduct_list and not settle_list %}
-  <div class="empty" style="margin-top:8px;">مفيش تعديلات ولا تصفيات في {{ month_label }}.</div>
   {% endif %}
+
+  <!-- تفاصيل أيام المدة -->
+  {% if p.days %}
+  <div class="tl" style="margin-top:12px;">
+    {% for d in p.days %}
+    <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
+      <div class="tl-date">
+        <div class="tl-num">{{ d.date.split('-')[-1] }}</div>
+        <div class="tl-wd">{{ d.weekday }}</div>
+      </div>
+      <div class="tl-bar"></div>
+      <div class="tl-body">
+        <div class="tl-row-top">
+          <div class="tl-total">
+            <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
+            <div class="tl-tlab">إجمالي اليوم</div>
+          </div>
+          {% if d.attended %}
+            <span class="badge badge-green sm">حاضر</span>
+          {% else %}
+            <span class="badge sm" style="background:rgba(255,255,255,.06);color:var(--text-3);">غائب</span>
+          {% endif %}
+        </div>
+        <div class="tl-meta" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <span class="mini-chip">{{ d.attendees }} عامل</span>
+          <span class="mini-chip" style="font-family:monospace;">{{ d.date }}</span>
+          {% if d.attended %}
+            <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
+              نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty" style="margin-top:8px;">مفيش أيام مسجلة في المدة دي لسه.</div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
+{% endfor %}
+
+<div class="card" style="text-align:center;font-size:12.5px;color:var(--text-3);padding:12px;">
+  المدة متفضل ظاهره لحد ما المسؤول يأكد استلام الأموال ويصفّرها.
 </div>
 
 <style>
-
 .chick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
 .chick-cell{padding:14px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
 .chick-cell.chick-pending{background:linear-gradient(135deg,rgba(245,193,124,.14),rgba(255,255,255,.02));border-color:rgba(245,193,124,.4)}
@@ -195,16 +240,6 @@
 .money-adj{font-size:12px;color:var(--text-3);margin-top:3px}
 .money-final{font-size:14px;font-weight:800;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.12);display:flex;justify-content:space-between;align-items:center}
 .money-final-v{font-size:20px;color:#dbeafe;font-variant-numeric:tabular-nums}
-
-.kpi-money{background:linear-gradient(135deg,rgba(120,170,255,.12),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
-.settle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
-@media(min-width:640px){.settle-grid{grid-template-columns:repeat(4,1fr)}}
-.settle-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
-.settle-cell.pos{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.32)}
-.settle-cell.neg{background:rgba(255,99,99,.10);border-color:rgba(255,99,99,.30)}
-.settle-cell.net{background:linear-gradient(135deg,rgba(212,175,55,.14),rgba(255,255,255,.02));border-color:rgba(212,175,55,.35)}
-.settle-l{font-size:11px;color:var(--text-3);font-weight:700}
-.settle-v{font-size:16px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
 .adj-block{margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
 .adj-h{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;margin-bottom:6px}
 .adj-h svg{width:14px;height:14px}
@@ -214,80 +249,8 @@
 .adj-day{color:var(--text-3);font-family:monospace}
 .adj-amt{font-weight:800;font-variant-numeric:tabular-nums}
 .adj-amt.pos{color:#7ff0c1}.adj-amt.neg{color:#ffb0b0}
-.settle-form{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12)}
-.sf-row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
-.sf-field{display:flex;flex-direction:column;gap:4px;min-width:110px}
-.sf-field.sf-grow{flex:1;min-width:140px}
-.sf-field label{font-size:11px;color:var(--text-3);font-weight:700}
-.sf-field input{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:inherit;font-size:13px}
-.settle-form .btn{padding:9px 14px;font-size:13px}
+.btn-clear-period{background:linear-gradient(135deg,#e94560,#c81d38);color:#fff;border:0;border-radius:10px;
+  padding:9px 14px;font-size:12.5px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(233,69,96,.35)}
+.btn-clear-period:hover{filter:brightness(1.08)}
 </style>
-{% endif %}
-
-<!-- ===== تفاصيل الأيام ===== -->
-<div class="card">
-  <div class="sec-head">
-    <div class="sec-h-l">
-      <div class="sec-h-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12M8.25 17.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
-      </div>
-      <div>
-        <div style="font-weight:800;font-size:16px;">تفاصيل الأيام</div>
-        <div style="font-size:12px;color:var(--text-3);">{{ month_label }}</div>
-      </div>
-    </div>
-  </div>
-
-  {% if not days %}
-    <div class="empty">مفيش أيام مغلقة في {{ month_label }} لسه.</div>
-  {% else %}
-    <div class="tl">
-      {% for d in days %}
-      <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
-        <div class="tl-date">
-          <div class="tl-num">{{ d.date.split('-')[-1] if '-' in d.date|string else d.date }}</div>
-          <div class="tl-wd">{{ d.weekday }}</div>
-        </div>
-        <div class="tl-bar"></div>
-        <div class="tl-body">
-          <div class="tl-row-top">
-            <div class="tl-total">
-              <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
-              <div class="tl-tlab">إجمالي اليوم</div>
-            </div>
-            {% if d.attended %}
-              <span class="badge badge-green sm">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:11px;height:11px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                حاضر
-              </span>
-            {% else %}
-              <span class="badge sm" style="background:rgba(255,255,255,.06);color:var(--text-3);">
-                غائب
-              </span>
-            {% endif %}
-          </div>
-          <div class="tl-meta" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-            <span class="mini-chip">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
-              {{ d.attendees }} عامل
-            </span>
-            <span class="mini-chip" style="font-family:monospace;">{{ d.date }}</span>
-            {% if d.attended %}
-              <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
-                نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
-              </span>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-</div>
-
-<div class="card" style="text-align:center;font-size:12.5px;color:var(--text-3);padding:12px;">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-left:4px;color:var(--gold-2);"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
-  نصيب اليوم = إجمالي اليوم ÷ عدد العمال الحاضرين — يُجمع تلقائيًا على مدار الشهر.
-</div>
-
 {% endblock %}
