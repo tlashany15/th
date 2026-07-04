@@ -850,7 +850,12 @@ def history():
 @app.route("/worker/<int:worker_id>/stats")
 @login_required
 def worker_stats(worker_id):
-    """يعرض أيام حضور العامل في الشهر الحالي + نصيبه (إجمالي اليوم / عدد الحاضرين)."""
+    """
+    يعرض كل المدد (نصف الشهر) اللي فيها بيانات للعامل — والمدة الحالية.
+    المدة متفضل ظاهرة عند العامل حتى بعد نهاية الشهر لحد ما المسؤول يأكد
+    استلام الأموال ويصفّر المدة (endpoint: admin_worker_clear_period)،
+    وقتها البيانات بتتشال من قاعدة البيانات كمان.
+    """
     import calendar as _cal
     me = current_user()
     if me["role"] != "admin" and me["id"] != worker_id:
@@ -866,30 +871,16 @@ def worker_stats(worker_id):
         flash("العامل مش موجود", "error")
         return redirect(url_for("dashboard"))
 
-    today = date.today()
-    y, m = today.year, today.month
-    last_day = _cal.monthrange(y, m)[1]
-    start_d = date(y, m, 1).isoformat()
-    end_d   = date(y, m, last_day).isoformat()
-
-    cur.execute("""
-        SELECT c.day, c.total_count,
-               (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day) AS attendees,
-               EXISTS(SELECT 1 FROM attendance a2 WHERE a2.day = c.day AND a2.user_id = %s) AS he_attended
-        FROM day_closures c
-        WHERE c.day BETWEEN %s AND %s
-        ORDER BY c.day ASC
-    """, (worker_id, start_d, end_d))
-    rows = cur.fetchall()
-
-    # ==== جلب تعديلات (إضافي/خصم) لهذا العامل خلال الشهر ====
-    cur.execute("""
-        SELECT day, amount, reason FROM worker_adjustments
-        WHERE user_id=%s AND day BETWEEN %s AND %s
-        ORDER BY day ASC
-    """, (worker_id, start_d, end_d))
-    adj_rows = cur.fetchall()
-    # ==== جلب تصفيات الحساب (المدفوعات) لهذا العامل خلال الشهر ====
+    # جداول التصفيات/التعديلات — نتأكد إنها موجودة
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_adjustments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        amount INTEGER NOT NULL,
+        reason TEXT,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, day))""")
     cur.execute("""CREATE TABLE IF NOT EXISTS worker_settlements (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -899,13 +890,6 @@ def worker_stats(worker_id):
         created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )""")
-    cur.execute("""
-        SELECT id, day, amount, note FROM worker_settlements
-        WHERE user_id=%s AND day BETWEEN %s AND %s
-        ORDER BY day ASC, id ASC
-    """, (worker_id, start_d, end_d))
-    settle_rows = cur.fetchall()
-    # ==== أيام تمّت المحاسبة عليها بعدد الكتاكيت (النظام الجديد) ====
     cur.execute("""CREATE TABLE IF NOT EXISTS worker_day_settle (
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         day DATE NOT NULL,
@@ -913,125 +897,211 @@ def worker_stats(worker_id):
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY(user_id, day)
     )""")
-    cur.execute("""SELECT day FROM worker_day_settle
-                   WHERE user_id=%s AND day BETWEEN %s AND %s""",
-                (worker_id, start_d, end_d))
-    _settled_days_set = set()
-    for _r in cur.fetchall():
-        _d = _r["day"]
-        _settled_days_set.add(_d.isoformat() if hasattr(_d, "isoformat") else str(_d))
-    cur.close()
+
+    # هات كل (سنة/شهر/نصف) فيه أي بيانات للعامل ده — عشان المدد القديمة
+    # اللي لسه المسؤول ما أكّدش استلامها متفضل ظاهره.
+    cur.execute("""
+        SELECT DISTINCT EXTRACT(YEAR FROM day)::int AS y,
+                        EXTRACT(MONTH FROM day)::int AS m,
+                        CASE WHEN EXTRACT(DAY FROM day) <= 15 THEN 1 ELSE 2 END AS half
+        FROM (
+            SELECT day FROM attendance          WHERE user_id=%s
+            UNION SELECT day FROM worker_adjustments WHERE user_id=%s
+            UNION SELECT day FROM worker_settlements WHERE user_id=%s
+            UNION SELECT day FROM worker_day_settle  WHERE user_id=%s
+        ) x
+    """, (worker_id, worker_id, worker_id, worker_id))
+    period_keys = set((r["y"], r["m"], r["half"]) for r in cur.fetchall())
+
+    today = date.today()
+    cur_half = 1 if today.day <= 15 else 2
+    # المدة الحالية دايماً بتتعرض — حتى لو فاضية
+    period_keys.add((today.year, today.month, cur_half))
 
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
     AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
                  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
-    days_list = []
-    settled_days_list = []   # أيام تمّت المحاسبة عليها بعدد الكتاكيت
-    pending_days_list = []   # أيام حضرها ولم تُصفَّ بعد
-    total_share = 0.0
-    pending_share = 0.0
-    settled_share = 0.0
-    total_month = 0
-    days_attended = 0
-    for r in rows:
-        d = r["day"]
-        d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
-        wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
-        tot = int(r["total_count"] or 0)
-        att = int(r["attendees"] or 0)
-        total_month += tot
-        share = 0.0
-        is_settled = False
-        if r["he_attended"] and att > 0:
-            share = tot / att
-            total_share += share
-            days_attended += 1
-            is_settled = d_s in _settled_days_set
-            item = {"date": d_s, "weekday": wd, "chicks": int(share), "chicks_f": round(share, 2)}
-            if is_settled:
-                settled_share += share
-                settled_days_list.append(item)
-            else:
-                pending_share += share
-                pending_days_list.append(item)
-        days_list.append({
-            "date": d_s,
-            "weekday": wd,
-            "total": tot,
-            "attendees": att,
-            "attended": bool(r["he_attended"]),
-            "share": round(share, 2),
-            "settled": is_settled,
+
+    periods_out = []
+    grand_pending_chicks = 0
+    grand_pending_money  = 0
+    grand_bonus = 0
+    grand_deduct = 0
+    grand_settled_chicks = 0
+
+    for (y, m, half) in sorted(period_keys, reverse=True):
+        last_day = _cal.monthrange(y, m)[1]
+        if half == 1:
+            start_d = date(y, m, 1);  end_d = date(y, m, min(15, last_day))
+        else:
+            start_d = date(y, m, 16); end_d = date(y, m, last_day)
+        s_iso = start_d.isoformat(); e_iso = end_d.isoformat()
+
+        cur.execute("""
+            SELECT c.day, c.total_count,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day) AS attendees,
+                   EXISTS(SELECT 1 FROM attendance a2 WHERE a2.day = c.day AND a2.user_id = %s) AS he_attended
+            FROM day_closures c
+            WHERE c.day BETWEEN %s AND %s
+            ORDER BY c.day ASC
+        """, (worker_id, s_iso, e_iso))
+        rows = cur.fetchall()
+
+        cur.execute("""SELECT day, amount, reason FROM worker_adjustments
+                       WHERE user_id=%s AND day BETWEEN %s AND %s ORDER BY day ASC""",
+                    (worker_id, s_iso, e_iso))
+        adj_rows = cur.fetchall()
+
+        cur.execute("""SELECT id, day, amount, note FROM worker_settlements
+                       WHERE user_id=%s AND day BETWEEN %s AND %s
+                       ORDER BY day ASC, id ASC""",
+                    (worker_id, s_iso, e_iso))
+        settle_rows = cur.fetchall()
+
+        cur.execute("""SELECT day FROM worker_day_settle
+                       WHERE user_id=%s AND day BETWEEN %s AND %s""",
+                    (worker_id, s_iso, e_iso))
+        _settled_days_set = set()
+        for _r in cur.fetchall():
+            _d = _r["day"]
+            _settled_days_set.add(_d.isoformat() if hasattr(_d, "isoformat") else str(_d))
+
+        days_list = []
+        settled_days_list = []
+        pending_days_list = []
+        total_share = 0.0
+        pending_share = 0.0
+        settled_share = 0.0
+        total_period = 0
+        days_attended = 0
+        for r in rows:
+            d = r["day"]; d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
+            wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
+            tot = int(r["total_count"] or 0); att = int(r["attendees"] or 0)
+            total_period += tot
+            share = 0.0; is_settled = False
+            if r["he_attended"] and att > 0:
+                share = tot / att; total_share += share; days_attended += 1
+                is_settled = d_s in _settled_days_set
+                item = {"date": d_s, "weekday": wd,
+                        "chicks": int(share), "chicks_f": round(share, 2)}
+                if is_settled:
+                    settled_share += share; settled_days_list.append(item)
+                else:
+                    pending_share += share; pending_days_list.append(item)
+            days_list.append({"date": d_s, "weekday": wd, "total": tot,
+                              "attendees": att, "attended": bool(r["he_attended"]),
+                              "share": round(share, 2), "settled": is_settled})
+
+        bonus_list = []; deduct_list = []; bonus_total = 0; deduct_total = 0
+        for a in adj_rows:
+            d = a["day"]; d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
+            wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
+            amt = int(a["amount"] or 0)
+            item = {"date": d_s, "weekday": wd, "amount": abs(amt), "reason": a["reason"] or ""}
+            if amt >= 0: bonus_list.append(item); bonus_total += amt
+            else:        deduct_list.append(item); deduct_total += -amt
+
+        settle_list = []; settled_total = 0
+        for s in settle_rows:
+            d = s["day"]; d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
+            wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
+            amt = int(s["amount"] or 0)
+            settle_list.append({"id": s["id"], "date": d_s, "weekday": wd,
+                                "amount": amt, "note": s["note"] or ""})
+            settled_total += amt
+
+        pending_chicks   = int(pending_share)
+        settled_chicks_i = int(settled_share)
+        share_int  = int(total_share)
+        pending_money = pending_chicks * 55
+        money_egp     = share_int * 55
+
+        is_current = (y == today.year and m == today.month and half == cur_half)
+        has_any = bool(rows or adj_rows or settle_rows or _settled_days_set)
+        # المدد الفاضية القديمة نتخطاها — بس المدة الحالية بتتعرض دايماً
+        if not has_any and not is_current:
+            continue
+
+        half_label = "النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})"
+        periods_out.append({
+            "y": y, "m": m, "half": half,
+            "label": f"{AR_MONTHS[m-1]} {y} — {half_label}",
+            "is_current": is_current,
+            "start": s_iso, "end": e_iso,
+            "days": days_list,
+            "settled_days_list": settled_days_list,
+            "pending_days_list": pending_days_list,
+            "bonus_list": bonus_list, "deduct_list": deduct_list,
+            "bonus_total": bonus_total, "deduct_total": deduct_total,
+            "settle_list": settle_list, "settled_total": settled_total,
+            "share_int": share_int, "money_egp": money_egp,
+            "pending_chicks": pending_chicks, "settled_chicks": settled_chicks_i,
+            "pending_money": pending_money,
+            "total_period": total_period, "days_attended": days_attended,
         })
 
-    # نأخذ الجزء الصحيح فقط من النصيب (144.77 => 144) عشان الإضافي/الخصم يتحسب على 144 وليس على الكسور
-    share_int = int(total_share)
-    share_fraction = round(total_share - share_int, 2)
-    money_egp = share_int * 55  # جنيه بدون سنتات — على الجزء الصحيح فقط
-    bonus_list = []
-    deduct_list = []
-    bonus_total = 0
-    deduct_total = 0
-    for a in adj_rows:
-        d = a["day"]
-        d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
-        wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
-        amt = int(a["amount"] or 0)
-        item = {"date": d_s, "weekday": wd, "amount": abs(amt), "reason": a["reason"] or ""}
-        if amt >= 0:
-            bonus_list.append(item); bonus_total += amt
-        else:
-            deduct_list.append(item); deduct_total += -amt
-    # الصافي = النصيب فقط. الإضافي/الخصم بيتجمعوا لوحدهم في مجموع منفصل (adjust_net)
-    net_money = money_egp
-    adjust_net = bonus_total - deduct_total
-    # ==== تصفيات (مدفوعات) ====
-    settle_list = []
-    settled_total = 0
-    for s in settle_rows:
-        d = s["day"]
-        d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
-        wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
-        amt = int(s["amount"] or 0)
-        settle_list.append({"id": s["id"], "date": d_s, "weekday": wd, "amount": amt, "note": s["note"] or ""})
-        settled_total += amt
-    total_due = net_money + adjust_net           # الإجمالي المستحق للعامل (شهري كامل قبل التصفيات)
-    remaining = total_due - settled_total        # المتبقي بعد التصفيات النقدية القديمة
-    # === النظام الجديد: كتاكيت متبقية = مجموع أيام حاضرها ولم يُحاسب عليها ===
-    pending_chicks = int(pending_share)                # الجزء الصحيح فقط
-    settled_chicks = int(settled_share)
-    pending_money  = pending_chicks * 55               # ج
-    pending_money_with_adj = pending_money + adjust_net - settled_total
+        grand_pending_chicks += pending_chicks
+        grand_pending_money  += pending_money
+        grand_bonus          += bonus_total
+        grand_deduct         += deduct_total
+        grand_settled_chicks += settled_chicks_i
 
-    month_label = f"{AR_MONTHS[m-1]} {y}"
+    cur.close()
+
     return render_template("worker_stats.html",
-                           worker=worker, days=days_list,
-                           total_share=round(total_share, 2),
-                           share_int=share_int,
-                           share_fraction=share_fraction,
-                           money_egp=money_egp,
-                           bonus_list=bonus_list, deduct_list=deduct_list,
-                           bonus_total=bonus_total, deduct_total=deduct_total,
-                           net_money=net_money,
-                           adjust_net=adjust_net,
-                           settle_list=settle_list,
-                           settled_total=settled_total,
-                           total_due=total_due,
-                           remaining=remaining,
-                           settled_days_list=settled_days_list,
-                           pending_days_list=pending_days_list,
-                           pending_chicks=pending_chicks,
-                           settled_chicks=settled_chicks,
-                           pending_money=pending_money,
-                           pending_money_with_adj=pending_money_with_adj,
-                           today_iso=date.today().isoformat(),
-                           total_month=total_month,
-                           days_attended=days_attended,
-                           month_label=month_label,
+                           worker=worker,
+                           periods=periods_out,
+                           grand_pending_chicks=grand_pending_chicks,
+                           grand_pending_money=grand_pending_money,
+                           grand_bonus=grand_bonus,
+                           grand_deduct=grand_deduct,
+                           grand_settled_chicks=grand_settled_chicks,
+                           today_iso=today.isoformat(),
                            is_admin_view=(me["role"] == "admin"),
                            is_self=(me["id"] == worker_id))
 
 
+# ---- تأكيد استلام الأموال + تصفير مدة (نصف شهر) لعامل ----
+@app.route("/admin/worker-clear-period", methods=["POST"])
+@admin_required
+def admin_worker_clear_period():
+    """
+    المسؤول يأكد إنه استلم أموال العامل عن المدة دي (نصف شهر) —
+    البيانات الخاصة بالعامل في المدة (حضور + تعديلات + تصفيات + محاسبة يومية)
+    بتتمسح من قاعدة البيانات، والمدة بتختفي من عرض العامل.
+    """
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+        y = int(request.form.get("year") or 0)
+        m = int(request.form.get("month") or 0)
+        half = int(request.form.get("half") or 0)
+    except (TypeError, ValueError):
+        flash("مدخلات غير صالحة", "error")
+        return redirect(url_for("dashboard"))
+    if not (user_id and y and m and half in (1, 2)):
+        flash("مدخلات غير صالحة", "error")
+        return redirect(url_for("worker_stats", worker_id=user_id or 0))
+    import calendar as _cal
+    last_day = _cal.monthrange(y, m)[1]
+    if half == 1:
+        s = date(y, m, 1).isoformat();  e = date(y, m, min(15, last_day)).isoformat()
+    else:
+        s = date(y, m, 16).isoformat(); e = date(y, m, last_day).isoformat()
+    db = get_db(); cur = db.cursor()
+    try:
+        cur.execute("DELETE FROM attendance          WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+        cur.execute("DELETE FROM worker_adjustments  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+        cur.execute("DELETE FROM worker_day_settle   WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+        cur.execute("DELETE FROM worker_settlements  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+        db.commit()
+        flash("تم تأكيد استلام الأموال وتصفير المدة ✓ — البيانات اتشالت من قاعدة البيانات", "success")
+    except Exception as ex:
+        db.rollback()
+        flash("خطأ أثناء التصفير: " + str(ex), "error")
+    finally:
+        cur.close()
+    return redirect(url_for("worker_stats", worker_id=user_id))
 
 
 
