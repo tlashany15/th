@@ -178,10 +178,6 @@
       {{ snav_icon('close') }}
       إغلاق
     </a>
-    <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">
-      {{ snav_icon('history') }}
-      أعداد بعد الخصم
-    </a>
     <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
       {{ snav_icon('chat') }}
       دردشة

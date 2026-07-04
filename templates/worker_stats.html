@@ -79,13 +79,13 @@
       </div>
       <div class="sf-field">
         <label>المبلغ المدفوع (ج)</label>
-        <input type="number" name="amount" min="1" step="1" placeholder="0" required>
+        <input type="number" name="amount" min="1" step="1" placeholder="0" value="{{ remaining if remaining and remaining > 0 else '' }}" required>
       </div>
       <div class="sf-field sf-grow">
         <label>ملاحظة (اختياري)</label>
         <input type="text" name="note" placeholder="مثلاً: دفعة نقدي">
       </div>
-      <button class="btn btn-primary" type="submit">تسجيل تصفية</button>
+      <button class="btn btn-primary" type="submit">تم المحاسبة — تسجيل الدفع</button>
     </div>
   </form>
 

@@ -155,6 +155,21 @@
         {% endif %}
       </div>
 
+      {% if p.present %}
+      <div class="settle-mark-row">
+        <button type="button" class="settle-mark js-settle-mark" data-uid="{{ p.id }}" data-day="{{ day }}">
+          <span class="sm-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          </span>
+          <span class="sm-lbl">تم المحاسبة</span>
+        </button>
+        <a class="settle-details" href="{{ url_for('worker_stats', worker_id=p.id) }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          التفاصيل
+        </a>
+      </div>
+      {% endif %}
+
       {% if not day_closed %}
       <div class="adj-row">
         <span class="adj-lbl">إضافي / خصم (جنيه):</span>
@@ -256,6 +271,16 @@
 .adj-val.neg{color:#ffb0b0}
 .nav-arr-disabled{opacity:.35;pointer-events:none}
 .sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+
+.settle-mark-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.settle-mark{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text-2);cursor:pointer;transition:.18s}
+.settle-mark .sm-ico{display:inline-flex;width:14px;height:14px}
+.settle-mark .sm-ico svg{width:14px;height:14px}
+.settle-mark.is-settled{background:linear-gradient(135deg,rgba(52,211,153,.24),rgba(52,211,153,.10));border-color:rgba(52,211,153,.55);color:#c6f5da;box-shadow:0 0 0 3px rgba(52,211,153,.08)}
+.att-row.is-settled{background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(255,255,255,.02));border-color:rgba(52,211,153,.4)}
+.settle-details{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;font-size:11.5px;font-weight:800;color:var(--text-3);background:rgba(120,170,255,.08);border:1px solid rgba(120,170,255,.22);text-decoration:none}
+.settle-details svg{width:13px;height:13px}
+.settle-details:hover{color:#dbeafe}
 </style>
 
 <script>
@@ -358,5 +383,26 @@
     });
   });
 })();
+
+  // ==== تم المحاسبة (توليد أخضر + حفظ محلي) ====
+  (function(){
+    var KEY = 'th_settled_v1';
+    function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ return {}; } }
+    function save(o){ try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){} }
+    var store = load();
+    document.querySelectorAll('.js-settle-mark').forEach(function(btn){
+      var uid = btn.dataset.uid, day = btn.dataset.day;
+      var k = day + ':' + uid;
+      var row = btn.closest('.att-row');
+      if (store[k]){ btn.classList.add('is-settled'); row && row.classList.add('is-settled'); btn.querySelector('.sm-lbl').textContent = 'تمت المحاسبة ✓'; }
+      btn.addEventListener('click', function(){
+        var on = btn.classList.toggle('is-settled');
+        row && row.classList.toggle('is-settled', on);
+        btn.querySelector('.sm-lbl').textContent = on ? 'تمت المحاسبة ✓' : 'تم المحاسبة';
+        if (on) store[k] = 1; else delete store[k];
+        save(store);
+      });
+    });
+  })();
 </script>
 {% endblock %}
