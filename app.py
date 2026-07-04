@@ -171,6 +171,7 @@ def init_db():
             name TEXT NOT NULL DEFAULT 'دردشة العمال',
             avatar TEXT,
             is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+            images_locked BOOLEAN NOT NULL DEFAULT FALSE,
             CHECK (id = 1)
         );
         ALTER TABLE group_settings ADD COLUMN IF NOT EXISTS is_locked BOOLEAN NOT NULL DEFAULT FALSE;
@@ -506,7 +507,7 @@ def login_required(f):
     @wraps(f)
     def w(*a, **kw):
         if not session.get("user_id"):
-            return redirect(url_for("admin_users"))
+            return redirect(url_for("login"))
         return f(*a, **kw)
     return w
 
@@ -538,21 +539,15 @@ def super_admin_required(f):
     return w
 
 
-@app.context_processor
 def _role_label(u):
-    """اسم الدور: 'مسؤول' لصاحب الحساب الرئيسي (id=1), 'مقاول' لأي أدمن آخر, 'عامل' للعامل."""
     if not u:
         return ""
-    if u["role"] == "admin":
-        try:
-            if str(u["username"]) == "1":
-                return "مسؤول"
-        except Exception:
-            pass
-        return "مقاول"
-    return "عامل"
+    if u.get("role") != "admin":
+        return "عامل"
+    return "مسؤول" if str(u.get("username")) == "1" else "مقاول"
 
 
+@app.context_processor
 def inject_user():
     u = current_user()
     sidebar_workers = []
@@ -577,9 +572,10 @@ def inject_user():
         "today": date.today().isoformat(),
         "sidebar_workers": sidebar_workers,
         "is_super_admin": _is_super_admin(u),
-        "role_label": _role_label(u),
         "impersonator": impersonator,
         "is_real_super_admin": _is_super_admin(ru),
+        "role_label": _role_label,
+        "is_role_label": _role_label,
     }
 
 
@@ -725,8 +721,8 @@ def register():
                             (new_uid, full_name, generate_password_hash(password)),
                         )
                         db.commit()
-                        flash(f"تم إنشاء حسابك ✓ رقمك في الفريق: {new_uid} — سجّل دخولك بالاسم وكلمة السر", "success")
-                        return redirect(url_for("login"))
+                        flash(f"تم إنشاء الحساب ✓ رقم المستخدم: {new_uid}", "success")
+                        return redirect(url_for("admin_users"))
                     except psycopg2.IntegrityError:
                         # race condition (نادر) — نعيد المحاولة
                         db.rollback()
@@ -1319,7 +1315,8 @@ def admin_delete_entry(entry_id):
 @app.route("/admin/announce-tomorrow", methods=["POST"])
 @admin_required
 def admin_announce_tomorrow():
-    abort(404)  # ميزة تحضير بكرة تم إلغاؤها
+    from flask import abort
+    abort(404)
     u = current_user()
     raw_day = request.form.get("day") or (date.today() + timedelta(days=1)).isoformat()
     day = _parse_day(raw_day).isoformat()
@@ -1499,7 +1496,8 @@ def worker_profile():
 @app.route("/admin/tomorrow-page")
 @admin_required
 def admin_tomorrow_page():
-    abort(404)  # ميزة تحضير بكرة تم إلغاؤها
+    from flask import abort
+    abort(404)
     db = get_db()
     cur = db.cursor()
     # كل المستخدمين (بمن فيهم المسؤولين) يقدروا يظهروا في قائمة الحضور
@@ -1874,11 +1872,6 @@ def chat_send(other_id):
     if other_id == u["id"]:
         return jsonify({"ok": False, "error": "self"}), 400
     kind = request.form.get("kind", "text")
-    # منع إرسال الصور إذا كان قفل الصور مفعّل (إلا للمسؤول)
-    if kind == "image" and u["role"] != "admin":
-        _gs2 = _get_group_settings()
-        if _gs2 and ("images_locked" in _gs2) and _gs2["images_locked"]:
-            return jsonify({"ok": False, "error": "images_locked", "message": "إرسال الصور مقفول من المسؤول"}), 403
     body = None
     if kind == "text":
         text = (request.form.get("body") or "").strip()
@@ -1950,7 +1943,7 @@ def group_room():
     return render_template("group.html", group={
         "name": gs["name"], "avatar": gs["avatar"], "members": members,
         "is_locked": bool(gs["is_locked"]) if "is_locked" in gs else False,
-        "images_locked": bool(gs["images_locked"]) if "images_locked" in gs else False
+        "images_locked": bool(gs.get("images_locked")) if hasattr(gs, "get") else (bool(gs["images_locked"]) if "images_locked" in gs else False)
     }, is_admin=is_admin, my_can_delete=my_can_delete)
 
 
@@ -2048,16 +2041,13 @@ def group_messages_api():
 def group_send():
     u = current_user()
     # منع الإرسال إذا كانت الدردشة مقفولة (إلا للمسؤول)
+    kind = request.form.get("kind", "text")
     if u["role"] != "admin":
         _gs = _get_group_settings()
-        if _gs and _gs["is_locked"]:
+        if _gs and _gs.get("is_locked"):
             return jsonify({"ok": False, "error": "locked", "message": "الدردشة مقفولة من المسؤول"}), 403
-    kind = request.form.get("kind", "text")
-    # منع إرسال الصور إذا كان قفل الصور مفعّل (إلا للمسؤول)
-    if kind == "image" and u["role"] != "admin":
-        _gs2 = _get_group_settings()
-        if _gs2 and ("images_locked" in _gs2) and _gs2["images_locked"]:
-            return jsonify({"ok": False, "error": "images_locked", "message": "إرسال الصور مقفول من المسؤول"}), 403
+        if _gs and _gs.get("images_locked") and kind == "image":
+            return jsonify({"ok": False, "error": "images_locked", "message": "إرسال الصور موقوف من المسؤول"}), 403
     body = None
     if kind == "text":
         text = (request.form.get("body") or "").strip()
@@ -2183,7 +2173,7 @@ def group_rename():
 @app.route("/group/lock", methods=["POST"])
 @admin_required
 def group_toggle_lock():
-    """قفل/فتح الدردشة أو قفل/فتح إرسال الصور — المسؤول فقط."""
+    """قفل/فتح الدردشة أو الصور — المسؤول فقط."""
     val = (request.form.get("locked") or "").strip().lower() in ("1", "true", "on", "yes")
     field = (request.form.get("field") or "chat").strip().lower()
     col = "images_locked" if field == "images" else "is_locked"
@@ -2192,7 +2182,8 @@ def group_toggle_lock():
     cur.execute(f"UPDATE group_settings SET {col}=%s WHERE id=1", (val,))
     db.commit()
     cur.close()
-    return jsonify({"ok": True, "field": field, "is_locked": val if col == "is_locked" else None, "images_locked": val if col == "images_locked" else None})
+    key = "images_locked" if field == "images" else "is_locked"
+    return jsonify({"ok": True, key: val, "field": field})
 
 
 
