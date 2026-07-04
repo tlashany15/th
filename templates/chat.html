@@ -321,11 +321,12 @@
       var msgEl = msgsEl.querySelector('.wa-msg[data-id="'+mid+'"]');
       var txtEl = msgEl && msgEl.querySelector('.wa-text');
       var current = txtEl ? txtEl.innerText : '';
-      var val = window.prompt('عدّل الرسالة:', current);
-      if (val == null) return;
-      val = val.trim();
-      if (!val || val === current) return;
-      var fd = new FormData(); fd.append('body', val);
+      (window.appPrompt ? window.appPrompt('عدّل الرسالة:', current, {okText:'حفظ'}) : Promise.resolve(window.prompt('عدّل الرسالة:', current)))
+        .then(function(val){
+          if (val == null) return;
+          val = String(val).trim();
+          if (!val || val === current) return;
+          var fd = new FormData(); fd.append('body', val);
       fetch('/chat/edit/'+mid, {method:'POST', body:fd, credentials:'same-origin'})
         .then(function(r){ return r.json(); })
         .then(function(d){
@@ -339,7 +340,8 @@
           } else {
             (window.appAlert||alert)('تعذّر التعديل','error');
           }
-        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); });
+        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error');
+        }); });
     }
   });
 })();
