@@ -28,10 +28,18 @@
     </div>
     <div class="kpi kpi-green">
       <div class="kpi-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.25 0-4-1.007-4-2.25S9.75 7.5 12 7.5c.725 0 1.45.22 2.003.659L15 8.818"/></svg>
+        <!-- كتكوت / chick -->
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 40c0-8 5.4-14 12-14s12 6 12 14v3c0 4.4-3.6 8-8 8h-8c-4.4 0-8-3.6-8-8v-3z"/>
+          <circle cx="32" cy="22" r="9"/>
+          <path d="M28 21.5h.02M36 21.5h.02" stroke-width="3.5"/>
+          <path d="M32 25.5l-2.6 2 2.6 2 2.6-2z" fill="currentColor" stroke="none"/>
+          <path d="M32 13v-3"/>
+          <path d="M26 51l-1.5 4M32 51l0 4M38 51l1.5 4"/>
+        </svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format(share_int) }}</div>
-      <div class="kpi-l">نصيبه الكامل</div>
+      <div class="kpi-l">كتكوت</div>
     </div>
     {% if is_admin_view %}
     <div class="kpi kpi-money">
@@ -60,17 +68,13 @@
     </div>
   </div>
   <div class="settle-grid">
-    <div class="settle-cell net"><div class="settle-l">الصافي (النصيب)</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
+    <div class="settle-cell net"><div class="settle-l">حسابه صافي</div><div class="settle-v">{{ '{:,}'.format(net_money) }} ج</div></div>
     <div class="settle-cell pos"><div class="settle-l">إضافي</div><div class="settle-v">+ {{ '{:,}'.format(bonus_total) }} ج</div></div>
     <div class="settle-cell neg"><div class="settle-l">خصم</div><div class="settle-v">- {{ '{:,}'.format(deduct_total) }} ج</div></div>
-    <div class="settle-cell {% if adjust_net >= 0 %}pos{% else %}neg{% endif %}">
-      <div class="settle-l">صافي التعديلات</div>
-      <div class="settle-v">{% if adjust_net >= 0 %}+{% else %}-{% endif %} {{ '{:,}'.format(adjust_net|abs) }} ج</div>
-    </div>
   </div>
   <div style="margin-top:8px;font-size:11.5px;color:var(--text-3);line-height:1.6;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
-    الإضافي والخصم بيتجمّعوا لوحدهم في «صافي التعديلات» ومش بيتضافوا على الصافي.
+    الإضافي والخصم كلٌ منهما لوحده — لا يتجمّعان ولا يُضافان على الصافي.
   </div>
 
   {% if bonus_list %}
@@ -103,7 +107,7 @@
 <style>
 .kpi-money{background:linear-gradient(135deg,rgba(120,170,255,.12),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
 .settle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
-@media(min-width:640px){.settle-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:640px){.settle-grid{grid-template-columns:repeat(3,1fr)}}
 .settle-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 .settle-cell.pos{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.32)}
 .settle-cell.neg{background:rgba(255,99,99,.10);border-color:rgba(255,99,99,.30)}

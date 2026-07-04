@@ -46,11 +46,7 @@
 
 <!-- TOPBAR -->
 <div class="topbar">
-  {% if current_user %}
-  <button id="sidebarToggle" class="sidebar-toggle" aria-label="فتح القائمة" type="button">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
-  </button>
-  {% endif %}
+
   <div class="brand">
     <div class="brand-icon">{{ brand_icon(22) }}</div>
     <span>فريق التحصين</span>
@@ -81,7 +77,6 @@
     <div class="snav-group">اليومي</div>
     <a href="{{ url_for('admin_panel') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>اللوحة الرئيسية</span></a>
     <a href="{{ url_for('admin_close_page', day=today) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
-    <a href="{{ url_for('admin_tomorrow_page') }}"><span class="snav-ico">{{ snav_icon('tomorrow') }}</span><span>تحضير حضور</span></a>
 
     <div class="snav-group">السجلات والتقارير</div>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>أعداد بعد الخصم</span></a>
@@ -119,7 +114,7 @@
       <div class="sidebar-worker-row">
         <a class="sidebar-worker" href="{{ url_for('worker_stats', worker_id=w.id) }}">
           <span class="sw-badge">{% if w.avatar %}<img src="{{ w.avatar }}" alt="">{% else %}{{ (w.full_name or '?')[:1] }}{% endif %}</span>
-          <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">(مسؤول)</em>{% endif %}</span>
+          <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">({% if w.username|string == "1" %}مسؤول{% else %}مقاول{% endif %})</em>{% endif %}</span>
         </a>
         {% if is_real_super_admin and w.id != current_user.id and not (w.role == 'admin' and w.username == '1') %}
         <a class="sidebar-worker-imp" href="{{ url_for('admin_impersonate', uid=w.id) }}" title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
@@ -179,9 +174,9 @@
       {{ snav_icon('close') }}
       إغلاق
     </a>
-    <a href="{{ url_for('admin_tomorrow_page') }}" class="{% if request.endpoint in ['admin_tomorrow_page','admin_announce_tomorrow'] %}active{% endif %}">
-      {{ snav_icon('tomorrow') }}
-      تحضير
+    <a href="{{ url_for('admin_profile') }}" class="{% if request.endpoint == 'admin_profile' %}active{% endif %}">
+      {{ snav_icon('profile') }}
+      بياناتي
     </a>
     <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
       {{ snav_icon('chat') }}
