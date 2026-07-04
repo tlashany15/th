@@ -109,8 +109,8 @@
       var name = senderEl ? senderEl.textContent.trim() : 'رسالة';
       var textEl = active.querySelector('.wa-text');
       var text = textEl ? textEl.textContent.trim()
-                        : (active.querySelector('.wa-img') ? '🖼️ صورة'
-                          : (active.querySelector('audio') ? '🎤 رسالة صوتية' : ''));
+                        : (active.querySelector('.wa-img') ? '[صورة]'
+                          : (active.querySelector('audio') ? '[رسالة صوتية]' : ''));
       setReply(id, name, text);
     }
     start = null; active = null;

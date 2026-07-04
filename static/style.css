@@ -60,7 +60,9 @@
 html,body{ margin:0; padding:0; }
 html{ -webkit-text-size-adjust:100%; }
 body{
-  font-family:"Cairo","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  font-family:"Alexandria","IBM Plex Sans Arabic","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  font-feature-settings:"ss01","cv11";
+  letter-spacing:-0.005em;
   background:
     radial-gradient(1200px 800px at 90% -10%, rgba(245,185,80,.06), transparent 60%),
     radial-gradient(900px 700px at -10% 10%, rgba(59,130,246,.07), transparent 60%),
@@ -668,7 +670,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .v2-total-label{ font-size:13px; color:var(--text-3); font-weight:700; }
 .v2-total-num{ margin:10px 0; font-family:"Fraunces",serif; font-size:72px; font-weight:900; line-height:1; background:var(--grad-gold); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.v2-total-num em{ font-family:"Cairo"; font-style:normal; display:block; font-size:14px; color:var(--text-3); font-weight:700; margin-top:6px; }
+.v2-total-num em{ font-family:"Alexandria","IBM Plex Sans Arabic",sans-serif; font-style:normal; display:block; font-size:14px; color:var(--text-3); font-weight:700; margin-top:6px; }
 .v2-total-foot{ display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-2); }
 .v2-total-foot svg{ width:16px; height:16px; color:var(--gold); }
 
@@ -1212,7 +1214,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .app-toast{
   pointer-events:auto;
-  min-width:180px; max-width:min(92vw, 360px);
+  min-width:220px; max-width:min(96vw, 560px); width:min(96vw, 560px);
   padding:10px 16px 10px 12px;
   border-radius:999px;
   background:rgba(12,14,20,.92);
