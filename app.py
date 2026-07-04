@@ -688,36 +688,14 @@ def logout():
     return redirect(url_for("login"))
 
 
+# ملاحظة: التسجيل الذاتي متعطّل. المسؤول الرئيسي فقط يُنشئ الحسابات من صفحة «إدارة المستخدمين».
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == "POST":
-        full_name = request.form.get("full_name", "").strip()
-        password = request.form.get("password", "")
-        if not (full_name and password):
-            flash("الاسم وكلمة السر مطلوبين", "error")
-        else:
-            db = get_db()
-            cur = db.cursor()
-            try:
-                # نجيب أصغر رقم متاح (يعيد استخدام الأرقام المحذوفة)
-                for _ in range(20):
-                    new_uid = _next_free_userid(cur)
-                    try:
-                        cur.execute(
-                            "INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,'worker')",
-                            (new_uid, full_name, generate_password_hash(password)),
-                        )
-                        db.commit()
-                        flash(f"تم إنشاء حسابك ✓ رقمك في الفريق: {new_uid} — سجّل دخولك بالاسم وكلمة السر", "success")
-                        return redirect(url_for("login"))
-                    except psycopg2.IntegrityError:
-                        # race condition (نادر) — نعيد المحاولة
-                        db.rollback()
-                        continue
-                flash("تعذر إنشاء الحساب — حاول مرة أخرى", "error")
-            finally:
-                cur.close()
-    return render_template("register.html")
+    flash("إنشاء الحسابات متاح للمسؤول الرئيسي فقط من لوحة الإدارة", "error")
+    return redirect(url_for("login"))
+
+
+
 
 
 @app.route("/dashboard")
