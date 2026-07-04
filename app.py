@@ -905,32 +905,63 @@ def worker_stats(worker_id):
         ORDER BY day ASC, id ASC
     """, (worker_id, start_d, end_d))
     settle_rows = cur.fetchall()
+    # ==== أيام تمّت المحاسبة عليها بعدد الكتاكيت (النظام الجديد) ====
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_day_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, day)
+    )""")
+    cur.execute("""SELECT day FROM worker_day_settle
+                   WHERE user_id=%s AND day BETWEEN %s AND %s""",
+                (worker_id, start_d, end_d))
+    _settled_days_set = set()
+    for _r in cur.fetchall():
+        _d = _r["day"]
+        _settled_days_set.add(_d.isoformat() if hasattr(_d, "isoformat") else str(_d))
     cur.close()
 
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
     AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
                  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
     days_list = []
+    settled_days_list = []   # أيام تمّت المحاسبة عليها بعدد الكتاكيت
+    pending_days_list = []   # أيام حضرها ولم تُصفَّ بعد
     total_share = 0.0
+    pending_share = 0.0
+    settled_share = 0.0
     total_month = 0
     days_attended = 0
     for r in rows:
         d = r["day"]
+        d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
+        wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
         tot = int(r["total_count"] or 0)
         att = int(r["attendees"] or 0)
         total_month += tot
         share = 0.0
+        is_settled = False
         if r["he_attended"] and att > 0:
             share = tot / att
             total_share += share
             days_attended += 1
+            is_settled = d_s in _settled_days_set
+            item = {"date": d_s, "weekday": wd, "chicks": int(share), "chicks_f": round(share, 2)}
+            if is_settled:
+                settled_share += share
+                settled_days_list.append(item)
+            else:
+                pending_share += share
+                pending_days_list.append(item)
         days_list.append({
-            "date": d.isoformat() if hasattr(d, "isoformat") else str(d),
-            "weekday": AR_DAYS[d.weekday()] if hasattr(d, "weekday") else "",
+            "date": d_s,
+            "weekday": wd,
             "total": tot,
             "attendees": att,
             "attended": bool(r["he_attended"]),
             "share": round(share, 2),
+            "settled": is_settled,
         })
 
     # نأخذ الجزء الصحيح فقط من النصيب (144.77 => 144) عشان الإضافي/الخصم يتحسب على 144 وليس على الكسور
@@ -964,8 +995,13 @@ def worker_stats(worker_id):
         amt = int(s["amount"] or 0)
         settle_list.append({"id": s["id"], "date": d_s, "weekday": wd, "amount": amt, "note": s["note"] or ""})
         settled_total += amt
-    total_due = net_money + adjust_net           # الإجمالي المستحق للعامل
-    remaining = total_due - settled_total        # المتبقي بعد التصفيات
+    total_due = net_money + adjust_net           # الإجمالي المستحق للعامل (شهري كامل قبل التصفيات)
+    remaining = total_due - settled_total        # المتبقي بعد التصفيات النقدية القديمة
+    # === النظام الجديد: كتاكيت متبقية = مجموع أيام حاضرها ولم يُحاسب عليها ===
+    pending_chicks = int(pending_share)                # الجزء الصحيح فقط
+    settled_chicks = int(settled_share)
+    pending_money  = pending_chicks * 55               # ج
+    pending_money_with_adj = pending_money + adjust_net - settled_total
 
     month_label = f"{AR_MONTHS[m-1]} {y}"
     return render_template("worker_stats.html",
@@ -982,6 +1018,12 @@ def worker_stats(worker_id):
                            settled_total=settled_total,
                            total_due=total_due,
                            remaining=remaining,
+                           settled_days_list=settled_days_list,
+                           pending_days_list=pending_days_list,
+                           pending_chicks=pending_chicks,
+                           settled_chicks=settled_chicks,
+                           pending_money=pending_money,
+                           pending_money_with_adj=pending_money_with_adj,
                            today_iso=date.today().isoformat(),
                            total_month=total_month,
                            days_attended=days_attended,
@@ -1266,6 +1308,47 @@ def admin_worker_settle_delete(sid):
     return redirect(url_for("worker_stats", worker_id=user_id))
 
 
+
+
+# ---- تصفية يوم بعدد الكتاكيت (تبديل/toggle) ----
+@app.route("/admin/worker-day-settle", methods=["POST"])
+@admin_required
+def admin_worker_day_settle():
+    u = current_user()
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+    except (TypeError, ValueError):
+        user_id = 0
+    day = _parse_day(request.form.get("day") or date.today().isoformat()).isoformat()
+    nxt = (request.form.get("next") or "").strip()
+    if not user_id:
+        return ("bad request", 400)
+    db = get_db(); cur = db.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_day_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, day)
+    )""")
+    cur.execute("SELECT 1 FROM worker_day_settle WHERE user_id=%s AND day=%s", (user_id, day))
+    exists = cur.fetchone() is not None
+    if exists:
+        cur.execute("DELETE FROM worker_day_settle WHERE user_id=%s AND day=%s", (user_id, day))
+        state = "unsettled"
+    else:
+        cur.execute("""INSERT INTO worker_day_settle(user_id, day, created_by)
+                       VALUES(%s,%s,%s) ON CONFLICT DO NOTHING""",
+                    (user_id, day, u["id"]))
+        state = "settled"
+    db.commit(); cur.close()
+    if request.headers.get("X-Requested-With") == "fetch" or request.args.get("ajax") == "1":
+        return {"ok": True, "state": state}
+    if nxt == "close-page":
+        return redirect(url_for("admin_close_page", day=day))
+    return redirect(url_for("worker_stats", worker_id=user_id))
+
+
 @app.route("/admin/reopen-day", methods=["POST"])
 @admin_required
 def admin_reopen_day():
@@ -1469,14 +1552,22 @@ def admin_close_page():
     cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (_admin_u["id"], day_s))
     admin_checked_in = cur.fetchone() is not None
     # كل المستخدمين (عمال + المسؤول) — يظهروا كقائمة تحضير مع حالة الحضور + التعديل
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_day_settle (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(user_id, day)
+    )""")
     cur.execute("""
         SELECT u.id, u.full_name, u.role, u.avatar,
                EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present,
                COALESCE((SELECT amount FROM worker_adjustments wa
-                          WHERE wa.user_id=u.id AND wa.day=%s), 0) AS adjust
+                          WHERE wa.user_id=u.id AND wa.day=%s), 0) AS adjust,
+               EXISTS(SELECT 1 FROM worker_day_settle ws WHERE ws.user_id=u.id AND ws.day=%s) AS day_settled
         FROM users u
         ORDER BY (u.role='admin') DESC, u.full_name
-    """, (day_s, day_s))
+    """, (day_s, day_s, day_s))
     all_people = cur.fetchall()
     cur.close()
     return render_template("admin_close_day.html",
