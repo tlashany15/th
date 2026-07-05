@@ -42,7 +42,7 @@
       </div>
     </div>
     <form method="post" action="{{ url_for('admin_period_clear') }}"
-          onsubmit="return confirm('تصفير المدة كلها نهائيًا؟ سيتم مسح كل الإغلاقات والحضور والتحصينات والمحاسبات.');"
+          onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم مسح كل الإغلاقات والحضور والتحصينات والمحاسبات نهائيًا.',{title:'تصفير المدة كلها نهائيًا؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير المدة كلها نهائيًا؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;"
           style="margin-inline-start:auto;">
       <input type="hidden" name="year"  value="{{ period_year }}">
       <input type="hidden" name="month" value="{{ period_month }}">
@@ -78,7 +78,7 @@
         <div class="ps-action">
           <a href="{{ url_for('worker_stats', worker_id=r.id, year=period_year, month=period_month, half=period_half) }}" class="ps-link">عرض</a>
           <form method="post" action="{{ url_for('admin_period_settle_toggle') }}"
-                onsubmit="return confirm('{% if r.period_settled %}إلغاء محاسبة العامل على المدة؟{% else %}تأكيد: العامل اتحاسب على هذه المدة؟{% endif %}');">
+                onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('{% if r.period_settled %}إلغاء محاسبة العامل على المدة؟{% else %}تأكيد: العامل اتحاسب على هذه المدة؟{% endif %}',{danger:{{ 'true' if r.period_settled else 'false' }}}):Promise.resolve(confirm('{% if r.period_settled %}إلغاء محاسبة العامل على المدة؟{% else %}تأكيد المحاسبة؟{% endif %}'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
             <input type="hidden" name="user_id" value="{{ r.id }}">
             <input type="hidden" name="year"    value="{{ period_year }}">
             <input type="hidden" name="month"   value="{{ period_month }}">

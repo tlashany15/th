@@ -73,7 +73,7 @@
     <div class="acc-body">
       {% if is_admin_view %}
       <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
-            onsubmit="return confirm('تأكيد استلام أموال هذه المدة؟\nسيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.');"
+            onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.',{title:'تأكيد استلام أموال هذه المدة؟',danger:true,okText:'تصفير وتأكيد'}):Promise.resolve(confirm('تأكيد استلام أموال هذه المدة؟ سيتم تصفير المدة نهائيًا.'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;"
             class="u-w-full">
         <input type="hidden" name="user_id" value="{{ worker.id }}">
         <input type="hidden" name="year"    value="{{ p.y }}">
@@ -149,7 +149,8 @@
             {% for it in p.settled_days_list %}
             <div class="row-item">
               <span class="d">{{ it.date }} · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
-              <form method="post" action="{{ url_for('admin_worker_day_settle') }}" onsubmit="return confirm('إلغاء المحاسبة لهذا اليوم؟');">
+              <form method="post" action="{{ url_for('admin_worker_day_settle') }}"
+                    onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('إلغاء المحاسبة لهذا اليوم؟',{danger:true,okText:'إلغاء المحاسبة'}):Promise.resolve(confirm('إلغاء المحاسبة لهذا اليوم؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
                 <input type="hidden" name="user_id" value="{{ worker.id }}">
                 <input type="hidden" name="day" value="{{ it.date }}">
                 <button type="submit" class="rm" title="إلغاء المحاسبة">✕</button>
@@ -185,7 +186,8 @@
               <span class="d">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
               <span class="u-flex u-center u-gap-6">
                 <span class="a neg">- {{ '{:,}'.format(it.amount) }} ج</span>
-                <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}" onsubmit="return confirm('حذف هذه التصفية؟');">
+                <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}"
+                      onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('حذف هذه التصفية؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('حذف هذه التصفية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
                   <input type="hidden" name="user_id" value="{{ worker.id }}">
                   <button type="submit" class="rm">✕</button>
                 </form>
