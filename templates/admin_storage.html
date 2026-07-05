@@ -10,7 +10,7 @@
         إدارة المساحة
       </span>
       <h1 class="hero-h1">مساحة قاعدة البيانات</h1>
-      <p class="hero-sub">راجع حجم كل جدول، احذف اللي مش محتاجه، والملفات بتتحفظ قبل الحذف.</p>
+      <p class="hero-sub">حجم الجداول، وحذف آمن مع نسخة احتياطية.</p>
     </div>
   </div>
   <div class="kpi-grid kpi-grid-2">
@@ -28,7 +28,7 @@
     <div class="usage-bar-fill" style="width: {{ usage_pct }}%; background: {% if usage_pct > 85 %}#ef4444{% elif usage_pct > 60 %}#f59e0b{% else %}#38b26a{% endif %};"></div>
   </div>
   <div style="text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;">
-    {{ usage_pct }}% من الحد المسموح — لو عدّى الحد، أقدم رسائل/إشعارات هتتأرشف تلقائيًا (أقدم من {{ keep_days }} يوم).
+    {{ usage_pct }}% من الحد المسموح
   </div>
 </section>
 
@@ -41,7 +41,7 @@
       </div>
       <div>
         <div class="sec-h-t">جداول قاعدة البيانات</div>
-        <div class="sec-h-s">اختر جدول واحذف السطور القديمة — هتتحفظ في ملف قبل الحذف</div>
+        <div class="sec-h-s">حذف آمن مع نسخة احتياطية تلقائية</div>
       </div>
     </div>
   </div>
@@ -83,7 +83,7 @@
       </div>
       <div>
         <div class="sec-h-t">تشغيل الأرشيف التلقائي</div>
-        <div class="sec-h-s">يشيل السطور الأقدم من {{ keep_days }} يوم لو المساحة عدّت الحد — من غير ما تضيع حاجة</div>
+        <div class="sec-h-s">أرشفة تلقائية للسطور الأقدم من {{ keep_days }} يوم</div>
       </div>
     </div>
   </div>
@@ -140,7 +140,7 @@
       </div>
       <div>
         <div class="sec-h-t">معلومات السيرفر</div>
-        <div class="sec-h-s">قيَم فعلية مقروءة مباشرة من Runtime وقاعدة البيانات · <span class="sv-live"><span class="sv-dot {% if server_info.db_ok %}ok{% else %}bad{% endif %}"></span>{% if server_info.db_ok %}قاعدة البيانات تعمل{% else %}خطأ في القاعدة{% endif %}</span></div>
+        <div class="sec-h-s"><span class="sv-live"><span class="sv-dot {% if server_info.db_ok %}ok{% else %}bad{% endif %}"></span>{% if server_info.db_ok %}قاعدة البيانات تعمل{% else %}خطأ في القاعدة{% endif %}</span></div>
       </div>
     </div>
   </div>
