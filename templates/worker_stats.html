@@ -4,7 +4,7 @@
 <!-- ===== HERO ===== -->
 <section class="hero-admin">
   <div class="hero-mesh"></div>
-  <div class="hero-row" style="align-items:center;gap:14px;">
+  <div class="hero-row u-center u-gap-14">
     <div class="sidebar-avatar" style="width:56px;height:56px;font-size:24px;flex-shrink:0;">
       {% if worker.avatar %}<img src="{{ worker.avatar }}" alt="">{% else %}{{ (worker.full_name or '?')[:1] }}{% endif %}
     </div>
@@ -13,12 +13,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 1115 0v.75H4.5v-.75z"/></svg>
         نصيب العامل
       </span>
-      <h1 class="hero-h1" style="margin-top:6px;">{{ worker.full_name }}</h1>
-      <p class="hero-sub">كل المدد المفتوحة (لسه ما اتأكدش استلام أموالها)</p>
+      <h1 class="hero-h1 u-mt-6">{{ worker.full_name }}</h1>
+      <p class="hero-sub">كل المدد المفتوحة — بتفضل ظاهرة لحد ما المسؤول يأكد استلام أموالها</p>
     </div>
   </div>
 
-  <div class="kpi-grid">
+  <div class="kpi-grid kpi-grid-2">
     <div class="kpi kpi-gold">
       <div class="kpi-ico">
         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,215 +42,224 @@
   </div>
 </section>
 
-{% for p in periods %}
-<div class="card">
-  <div class="sec-head" style="align-items:center;">
-    <div class="sec-h-l">
-      <div class="sec-h-ico sec-h-ico-blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
-      </div>
-      <div>
-        <div class="sec-h-t">
-          {{ p.label }}
-          {% if p.is_current %}<span class="badge badge-green sm" style="margin-right:6px;">المدة الحالية</span>{% endif %}
+<!-- ===== PERIODS (accordion — only current period open by default) ===== -->
+<div class="acc">
+  {% for p in periods %}
+  <details class="acc-item" {% if p.is_current %}open{% endif %}>
+    <summary>
+      <div class="acc-summary-main">
+        <div class="sec-h-ico sec-h-ico-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
         </div>
-        <div class="sec-h-s">{{ p.days_attended }} يوم حضور · إجمالي المدة {{ '{:,}'.format(p.total_period) }}</div>
-      </div>
-    </div>
-    {% if is_admin_view %}
-    <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
-          onsubmit="return confirm('تأكيد استلام أموال هذه المدة؟\nسيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.');"
-          style="margin:0;">
-      <input type="hidden" name="user_id" value="{{ worker.id }}">
-      <input type="hidden" name="year"    value="{{ p.y }}">
-      <input type="hidden" name="month"   value="{{ p.m }}">
-      <input type="hidden" name="half"    value="{{ p.half }}">
-      <button type="submit" class="btn-clear-period" title="تأكيد استلام وتصفير المدة">
-        ✓ تأكيد الاستلام وتصفير
-      </button>
-    </form>
-    {% endif %}
-  </div>
-
-  {% if is_admin_view %}
-  <div class="chick-grid">
-    <div class="chick-cell chick-pending">
-      <div class="chick-l">كتاكيت متبقية</div>
-      <div class="chick-v">{{ '{:,}'.format(p.pending_chicks) }} <span class="chick-u">كتكوت</span></div>
-      <div class="chick-sub">من {{ p.pending_days_list|length }} يوم لم يُحاسب عليها</div>
-    </div>
-    <div class="chick-cell chick-settled">
-      <div class="chick-l">تمت المحاسبة</div>
-      <div class="chick-v">{{ '{:,}'.format(p.settled_chicks) }} <span class="chick-u">كتكوت</span></div>
-      <div class="chick-sub">في {{ p.settled_days_list|length }} يوم</div>
-    </div>
-  </div>
-
-  {% if p.settled_days_list %}
-  <div class="adj-block">
-    <div class="adj-h" style="color:#7ee2a1;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-      أيام تمّت المحاسبة ({{ p.settled_days_list|length }})
-    </div>
-    {% for it in p.settled_days_list %}
-    <div class="adj-item settle-day-item">
-      <span class="adj-day">تم الحساب يوم <b>{{ it.date }}</b> · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
-      <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;" onsubmit="return confirm('إلغاء المحاسبة لهذا اليوم؟');">
-        <input type="hidden" name="user_id" value="{{ worker.id }}">
-        <input type="hidden" name="day" value="{{ it.date }}">
-        <button type="submit" title="إلغاء المحاسبة" style="background:none;border:0;color:#ff8080;cursor:pointer;font-size:14px;">✕</button>
-      </form>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  {% if p.pending_days_list %}
-  <div class="adj-block">
-    <div class="adj-h" style="color:#f5c17c;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
-      أيام لم تُصفَّ ({{ p.pending_days_list|length }})
-    </div>
-    {% for it in p.pending_days_list %}
-    <div class="adj-item settle-day-item">
-      <span class="adj-day">{{ it.date }} · {{ it.weekday }} — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
-      <form method="post" action="{{ url_for('admin_worker_day_settle') }}" style="display:inline;">
-        <input type="hidden" name="user_id" value="{{ worker.id }}">
-        <input type="hidden" name="day" value="{{ it.date }}">
-        <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده">✓ تم</button>
-      </form>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <div class="money-box">
-    <div class="money-l">قيمة الكتاكيت المتبقية</div>
-    <div class="money-calc">{{ '{:,}'.format(p.pending_chicks) }} كتكوت × 55 ج =
-      <b>{{ '{:,}'.format(p.pending_money) }} ج</b></div>
-    {% if p.bonus_total or p.deduct_total %}
-    <div class="money-adj">
-      {% if p.bonus_total %}+ إضافي {{ '{:,}'.format(p.bonus_total) }} ج{% endif %}
-      {% if p.deduct_total %} − خصم {{ '{:,}'.format(p.deduct_total) }} ج{% endif %}
-    </div>
-    {% endif %}
-    <div class="money-final">
-      المستحق حاليًا:
-      <span class="money-final-v">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }} ج</span>
-    </div>
-  </div>
-
-  {% if p.bonus_list %}
-  <div class="adj-block">
-    <div class="adj-h pos">إضافي ({{ p.bonus_list|length }})</div>
-    {% for it in p.bonus_list %}
-    <div class="adj-item"><span class="adj-day">{{ it.date }} · {{ it.weekday }}</span><span class="adj-amt pos">+ {{ '{:,}'.format(it.amount) }} ج</span></div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% if p.deduct_list %}
-  <div class="adj-block">
-    <div class="adj-h neg">خصم ({{ p.deduct_list|length }})</div>
-    {% for it in p.deduct_list %}
-    <div class="adj-item"><span class="adj-day">{{ it.date }} · {{ it.weekday }}</span><span class="adj-amt neg">- {{ '{:,}'.format(it.amount) }} ج</span></div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% if p.settle_list %}
-  <div class="adj-block">
-    <div class="adj-h neg">تصفيات ({{ p.settle_list|length }})</div>
-    {% for it in p.settle_list %}
-    <div class="adj-item">
-      <span class="adj-day">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
-      <span style="display:flex;gap:6px;align-items:center;">
-        <span class="adj-amt neg">- {{ '{:,}'.format(it.amount) }} ج</span>
-        <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}" style="display:inline;" onsubmit="return confirm('حذف هذه التصفية؟');">
-          <input type="hidden" name="user_id" value="{{ worker.id }}">
-          <button type="submit" style="background:none;border:0;color:#ff8080;cursor:pointer;font-size:14px;">✕</button>
-        </form>
-      </span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% endif %}
-
-  <!-- تفاصيل أيام المدة -->
-  {% if p.days %}
-  <div class="tl" style="margin-top:12px;">
-    {% for d in p.days %}
-    <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
-      <div class="tl-date">
-        <div class="tl-num">{{ d.date.split('-')[-1] }}</div>
-        <div class="tl-wd">{{ d.weekday }}</div>
-      </div>
-      <div class="tl-bar"></div>
-      <div class="tl-body">
-        <div class="tl-row-top">
-          <div class="tl-total">
-            <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
-            <div class="tl-tlab">إجمالي اليوم</div>
+        <div class="acc-summary-text">
+          <div class="acc-summary-title">
+            {{ p.label }}
+            {% if p.is_current %}<span class="badge badge-green sm">المدة الحالية</span>{% endif %}
           </div>
-          {% if d.attended %}
-            <span class="badge badge-green sm">حاضر</span>
-          {% else %}
-            <span class="badge sm" style="background:rgba(255,255,255,.06);color:var(--text-3);">غائب</span>
-          {% endif %}
-        </div>
-        <div class="tl-meta" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-          <span class="mini-chip">{{ d.attendees }} عامل</span>
-          <span class="mini-chip" style="font-family:monospace;">{{ d.date }}</span>
-          {% if d.attended %}
-            <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
-              نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
-            </span>
-          {% endif %}
+          <div class="acc-summary-sub">{{ p.days_attended }} يوم حضور · إجمالي {{ '{:,}'.format(p.total_period) }}</div>
         </div>
       </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty" style="margin-top:8px;">مفيش أيام مسجلة في المدة دي لسه.</div>
-  {% endif %}
-</div>
-{% else %}
-<div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
-{% endfor %}
+      {% if is_admin_view %}
+      <div class="acc-summary-figure">
+        <div class="n">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }}</div>
+        <div class="l">مستحق (ج)</div>
+      </div>
+      {% endif %}
+      <span class="acc-chevron">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </span>
+    </summary>
 
-<div class="card" style="text-align:center;font-size:12.5px;color:var(--text-3);padding:12px;">
-  المدة متفضل ظاهره لحد ما المسؤول يأكد استلام الأموال ويصفّرها.
+    <div class="acc-body">
+      {% if is_admin_view %}
+      <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
+            onsubmit="return confirm('تأكيد استلام أموال هذه المدة؟\nسيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.');"
+            class="u-w-full">
+        <input type="hidden" name="user_id" value="{{ worker.id }}">
+        <input type="hidden" name="year"    value="{{ p.y }}">
+        <input type="hidden" name="month"   value="{{ p.m }}">
+        <input type="hidden" name="half"    value="{{ p.half }}">
+        <button type="submit" class="btn btn-danger btn-sm u-w-full">
+          ✓ تأكيد الاستلام وتصفير المدة نهائيًا
+        </button>
+      </form>
+
+      <div class="stat-row">
+        <div class="stat-cell tone-gold">
+          <div class="l">كتاكيت متبقية</div>
+          <div class="v">{{ '{:,}'.format(p.pending_chicks) }}</div>
+          <div class="s">{{ p.pending_days_list|length }} يوم لم يُحاسب عليها</div>
+        </div>
+        <div class="stat-cell tone-green">
+          <div class="l">تمت المحاسبة</div>
+          <div class="v">{{ '{:,}'.format(p.settled_chicks) }}</div>
+          <div class="s">{{ p.settled_days_list|length }} يوم</div>
+        </div>
+      </div>
+
+      <div class="money-box">
+        <div class="l">قيمة الكتاكيت المتبقية</div>
+        <div class="calc">{{ '{:,}'.format(p.pending_chicks) }} كتكوت × 55 ج = <b>{{ '{:,}'.format(p.pending_money) }} ج</b></div>
+        {% if p.bonus_total or p.deduct_total %}
+        <div class="adj">
+          {% if p.bonus_total %}+ إضافي {{ '{:,}'.format(p.bonus_total) }} ج{% endif %}
+          {% if p.deduct_total %} − خصم {{ '{:,}'.format(p.deduct_total) }} ج{% endif %}
+        </div>
+        {% endif %}
+        <div class="final">
+          المستحق حاليًا
+          <span class="v">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }} ج</span>
+        </div>
+      </div>
+
+      {% if p.settled_days_list or p.pending_days_list or p.bonus_list or p.deduct_list or p.settle_list %}
+      <details class="acc-item" style="box-shadow:none;">
+        <summary style="padding:10px 12px;">
+          <span class="u-sm u-bold">تفاصيل الأيام والتعديلات</span>
+          <span class="acc-chevron" style="width:24px;height:24px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </span>
+        </summary>
+        <div class="acc-body">
+          {% if p.pending_days_list %}
+          <div class="row-list">
+            <div class="row-list-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+              أيام لم تُصفَّ ({{ p.pending_days_list|length }})
+            </div>
+            {% for it in p.pending_days_list %}
+            <div class="row-item">
+              <span class="d">{{ it.date }} · {{ it.weekday }} — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+              <form method="post" action="{{ url_for('admin_worker_day_settle') }}">
+                <input type="hidden" name="user_id" value="{{ worker.id }}">
+                <input type="hidden" name="day" value="{{ it.date }}">
+                <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده">✓ تم</button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if p.settled_days_list %}
+          <div class="row-list">
+            <div class="row-list-head pos">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              أيام تمّت المحاسبة ({{ p.settled_days_list|length }})
+            </div>
+            {% for it in p.settled_days_list %}
+            <div class="row-item">
+              <span class="d">{{ it.date }} · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+              <form method="post" action="{{ url_for('admin_worker_day_settle') }}" onsubmit="return confirm('إلغاء المحاسبة لهذا اليوم؟');">
+                <input type="hidden" name="user_id" value="{{ worker.id }}">
+                <input type="hidden" name="day" value="{{ it.date }}">
+                <button type="submit" class="rm" title="إلغاء المحاسبة">✕</button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if p.bonus_list %}
+          <div class="row-list">
+            <div class="row-list-head pos">إضافي ({{ p.bonus_list|length }})</div>
+            {% for it in p.bonus_list %}
+            <div class="row-item"><span class="d">{{ it.date }} · {{ it.weekday }}</span><span class="a pos">+ {{ '{:,}'.format(it.amount) }} ج</span></div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if p.deduct_list %}
+          <div class="row-list">
+            <div class="row-list-head neg">خصم ({{ p.deduct_list|length }})</div>
+            {% for it in p.deduct_list %}
+            <div class="row-item"><span class="d">{{ it.date }} · {{ it.weekday }}</span><span class="a neg">- {{ '{:,}'.format(it.amount) }} ج</span></div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if p.settle_list %}
+          <div class="row-list">
+            <div class="row-list-head neg">تصفيات ({{ p.settle_list|length }})</div>
+            {% for it in p.settle_list %}
+            <div class="row-item">
+              <span class="d">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
+              <span class="u-flex u-center u-gap-6">
+                <span class="a neg">- {{ '{:,}'.format(it.amount) }} ج</span>
+                <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}" onsubmit="return confirm('حذف هذه التصفية؟');">
+                  <input type="hidden" name="user_id" value="{{ worker.id }}">
+                  <button type="submit" class="rm">✕</button>
+                </form>
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </details>
+      {% endif %}
+      {% endif %}
+
+      <!-- سجل أيام المدة يوم بيوم -->
+      {% if p.days %}
+      <details class="acc-item" style="box-shadow:none;">
+        <summary style="padding:10px 12px;">
+          <span class="u-sm u-bold">سجل الأيام ({{ p.days|length }})</span>
+          <span class="acc-chevron" style="width:24px;height:24px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </span>
+        </summary>
+        <div class="acc-body">
+          <div class="tl">
+            {% for d in p.days %}
+            <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
+              <div class="tl-date">
+                <div class="tl-num">{{ d.date.split('-')[-1] }}</div>
+                <div class="tl-wd">{{ d.weekday }}</div>
+              </div>
+              <div class="tl-bar"></div>
+              <div class="tl-body">
+                <div class="tl-row-top">
+                  <div class="tl-total">
+                    <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
+                    <div class="tl-tlab">إجمالي اليوم</div>
+                  </div>
+                  {% if d.attended %}
+                    <span class="badge badge-green sm">حاضر</span>
+                  {% else %}
+                    <span class="badge sm" style="background:rgba(255,255,255,.06);color:var(--text-3);">غائب</span>
+                  {% endif %}
+                </div>
+                <div class="tl-meta u-flex u-wrap u-gap-8 u-mt-8">
+                  <span class="mini-chip">{{ d.attendees }} عامل</span>
+                  <span class="mini-chip u-mono">{{ d.date }}</span>
+                  {% if d.attended %}
+                    <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
+                      نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+      {% else %}
+      <div class="empty">مفيش أيام مسجلة في المدة دي لسه.</div>
+      {% endif %}
+    </div>
+  </details>
+  {% else %}
+  <div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
+  {% endfor %}
+</div>
+
+<div class="card u-center-text u-xs u-muted" style="padding:12px;">
+  المدة بتفضل ظاهرة لحد ما المسؤول يأكد استلام الأموال ويصفّرها — مفيش أي تصفير تلقائي.
 </div>
 
 <style>
-.chick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
-.chick-cell{padding:14px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
-.chick-cell.chick-pending{background:linear-gradient(135deg,rgba(245,193,124,.14),rgba(255,255,255,.02));border-color:rgba(245,193,124,.4)}
-.chick-cell.chick-settled{background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(255,255,255,.02));border-color:rgba(52,211,153,.4)}
-.chick-l{font-size:11.5px;color:var(--text-3);font-weight:800}
-.chick-v{font-size:22px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums}
-.chick-u{font-size:11px;font-weight:700;color:var(--text-3)}
-.chick-sub{font-size:11px;color:var(--text-3);margin-top:2px}
-.settle-day-item{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .mini-settle-btn{background:rgba(52,211,153,.16);color:#c6f5da;border:1px solid rgba(52,211,153,.45);border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
 .mini-settle-btn:hover{background:rgba(52,211,153,.28)}
-.money-box{margin-top:14px;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(120,170,255,.10),rgba(255,255,255,.02));border:1px solid rgba(120,170,255,.28)}
-.money-l{font-size:11.5px;color:var(--text-3);font-weight:800}
-.money-calc{font-size:13.5px;color:var(--text-2);margin-top:4px}
-.money-adj{font-size:12px;color:var(--text-3);margin-top:3px}
-.money-final{font-size:14px;font-weight:800;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.12);display:flex;justify-content:space-between;align-items:center}
-.money-final-v{font-size:20px;color:#dbeafe;font-variant-numeric:tabular-nums}
-.adj-block{margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
-.adj-h{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;margin-bottom:6px}
-.adj-h svg{width:14px;height:14px}
-.adj-h.pos{color:#7ff0c1}.adj-h.neg{color:#ffb0b0}
-.adj-item{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;font-size:12.5px}
-.adj-item + .adj-item{border-top:1px dashed rgba(255,255,255,.06)}
-.adj-day{color:var(--text-3);font-family:monospace}
-.adj-amt{font-weight:800;font-variant-numeric:tabular-nums}
-.adj-amt.pos{color:#7ff0c1}.adj-amt.neg{color:#ffb0b0}
-.btn-clear-period{background:linear-gradient(135deg,#e94560,#c81d38);color:#fff;border:0;border-radius:10px;
-  padding:9px 14px;font-size:12.5px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(233,69,96,.35)}
-.btn-clear-period:hover{filter:brightness(1.08)}
 </style>
 {% endblock %}

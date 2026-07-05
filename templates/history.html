@@ -11,126 +11,140 @@
         {{ 'اجمالي اعداد الشهر' if not (current_user and current_user.role == 'admin') else 'سجل التحصين' }}
       </span>
       <h1 class="hero-h1">كل يوم بتفاصيله</h1>
-      <p class="hero-sub">
-        {% if current_user and current_user.role == 'admin' %}
-          مقسوم على فترات نصف الشهر • الجمعة إجازة 🌙
-        {% else %}
-          إجمالي الشهر الحالي • يتصفّى تلقائيًا مع بداية كل شهر جديد 🌙
-        {% endif %}
-      </p>
+      <p class="hero-sub">مقسوم على فترات نصف الشهر • بتفضل ظاهرة لحد ما المسؤول يصفّرها يدويًا • الجمعة إجازة 🌙</p>
     </div>
   </div>
-
-
 </section>
 
 {% set is_admin = current_user and current_user.role == 'admin' %}
-{% for p in periods %}
-<div class="card period-card">
-  <div class="period-head">
-    <div class="period-stripe"></div>
-    <div class="period-label">{{ p.label }}</div>
-    {% if is_admin and p.days %}
-      {% set p_start = p.days[0].date %}
-      {% set p_end = p.days[-1].date %}
-      <form method="post" action="{{ url_for('admin_reset_period') }}" class="period-reset-form"
-            onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير الفترة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
-        <input type="hidden" name="start" value="{{ p_start }}">
-        <input type="hidden" name="end"   value="{{ p_end }}">
-        <button type="submit" class="btn-reset-period" title="تصفير الفترة">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 006.34 6.34M4 16a8 8 0 0013.66 1.66"/></svg>
-          تصفير الفترة
-        </button>
-      </form>
-    {% endif %}
-  </div>
 
-  <!-- نقاط ملخّصة (heat dots) -->
-  <div class="heat-row">
-    {% for d in p.days %}
-      <span class="heat
-        {% if d.holiday %}heat-h{% elif d.has_data %}heat-d{% else %}heat-e{% endif %}"
-        title="{{ d.day_num }} {{ d.weekday }}"></span>
-    {% endfor %}
-  </div>
-
-  <!-- تفاصيل الأيام -->
-  <div class="tl">
-    {% for d in p.days %}
-    <div class="tl-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}" id="day-{{ d.date }}">
-      <div class="tl-date">
-        <div class="tl-num">{{ d.day_num }}</div>
-        <div class="tl-wd">{{ d.weekday }}</div>
+<div class="acc">
+  {% for p in periods %}
+  <details class="acc-item" {% if p.is_current %}open{% endif %}>
+    <summary>
+      <div class="acc-summary-main">
+        <div class="sec-h-ico sec-h-ico-gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
+        </div>
+        <div class="acc-summary-text">
+          <div class="acc-summary-title">
+            {{ p.label }}
+            {% if p.is_current %}<span class="badge badge-green sm">المدة الحالية</span>{% endif %}
+          </div>
+          <div class="acc-summary-sub">
+            {% set done = p.days|selectattr('has_data')|list|length %}
+            {{ done }} يوم مسجَّل من {{ p.days|length }}
+          </div>
+        </div>
       </div>
-      <div class="tl-bar"></div>
-      <div class="tl-body">
-        {% if d.holiday %}
-          <div class="tl-tag tl-tag-gold">🌙 إجازة</div>
-        {% elif d.has_data %}
-          <div class="tl-row-top">
-            <div class="tl-total">
-              <div class="tl-tnum">{{ d.total }}</div>
-              <div class="tl-tlab">كتكوت</div>
-            </div>
-            <span class="badge badge-green sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:11px;height:11px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>مغلق</span>
+      <span class="acc-chevron">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </span>
+    </summary>
+
+    <div class="acc-body">
+      {% if is_admin and p.days %}
+        {% set p_start = p.days[0].date %}
+        {% set p_end = p.days[-1].date %}
+        <form method="post" action="{{ url_for('admin_reset_period') }}" class="u-w-full"
+              onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها نهائيًا من قاعدة البيانات.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير الفترة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+          <input type="hidden" name="start" value="{{ p_start }}">
+          <input type="hidden" name="end"   value="{{ p_end }}">
+          <button type="submit" class="btn btn-danger btn-sm u-w-full" title="تصفير الفترة">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 006.34 6.34M4 16a8 8 0 0013.66 1.66"/></svg>
+            تصفير الفترة نهائيًا
+          </button>
+        </form>
+      {% endif %}
+
+      <!-- نقاط ملخّصة (heat dots) -->
+      <div class="heat-row">
+        {% for d in p.days %}
+          <span class="heat
+            {% if d.holiday %}heat-h{% elif d.has_data %}heat-d{% else %}heat-e{% endif %}"
+            title="{{ d.day_num }} {{ d.weekday }}"></span>
+        {% endfor %}
+      </div>
+
+      <!-- تفاصيل الأيام -->
+      <div class="tl">
+        {% for d in p.days %}
+        <div class="tl-row {% if d.holiday %}is-holiday{% elif d.has_data %}is-done{% else %}is-empty{% endif %}" id="day-{{ d.date }}">
+          <div class="tl-date">
+            <div class="tl-num">{{ d.day_num }}</div>
+            <div class="tl-wd">{{ d.weekday }}</div>
           </div>
-          {% if is_admin %}
-          <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="tl-edit-form">
-            <input type="hidden" name="day" value="{{ d.date }}">
-            <input type="number" min="0" name="total_count" value="{{ d.total }}" required>
-            <button type="submit" title="حفظ التعديل">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-              حفظ
-            </button>
-          </form>
-          {% endif %}
-          {% if d.names %}
-          <div class="tl-meta">
-            <span class="mini-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg> {{ d.names|length }} عامل</span>
+          <div class="tl-bar"></div>
+          <div class="tl-body">
+            {% if d.holiday %}
+              <div class="tl-tag tl-tag-gold">🌙 إجازة</div>
+            {% elif d.has_data %}
+              <div class="tl-row-top">
+                <div class="tl-total">
+                  <div class="tl-tnum">{{ d.total }}</div>
+                  <div class="tl-tlab">كتكوت</div>
+                </div>
+                <span class="badge badge-green sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:11px;height:11px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>مغلق</span>
+              </div>
+              {% if is_admin %}
+              <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="tl-edit-form">
+                <input type="hidden" name="day" value="{{ d.date }}">
+                <input type="number" min="0" name="total_count" value="{{ d.total }}" required>
+                <button type="submit" title="حفظ التعديل">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                  حفظ
+                </button>
+              </form>
+              {% endif %}
+              {% if d.names %}
+              <div class="tl-meta">
+                <span class="mini-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;display:inline-block;vertical-align:-2px;margin-left:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg> {{ d.names|length }} عامل</span>
+              </div>
+              <div class="tl-names">
+                {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}
+              </div>
+              {% endif %}
+              {% if is_admin and all_workers %}
+              <details class="tl-att-edit">
+                <summary>تعديل الحضور</summary>
+                <div class="tl-att-list">
+                  {% for w in all_workers %}
+                    {% set present = w.id in d.attendee_ids %}
+                    <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="tl-att-form">
+                      <input type="hidden" name="day" value="{{ d.date }}">
+                      <input type="hidden" name="user_id" value="{{ w.id }}">
+                      <input type="hidden" name="next" value="history">
+                      <button type="submit" class="tl-att-chip {% if present %}is-on{% else %}is-off{% endif %}"
+                              title="{% if present %}تسجيل غياب{% else %}تسجيل حضور{% endif %}">
+                        {% if present %}✓{% else %}+{% endif %} {{ w.full_name }}
+                      </button>
+                    </form>
+                  {% endfor %}
+                </div>
+              </details>
+              {% endif %}
+            {% else %}
+              <div class="tl-empty">— لم يُسجَّل —</div>
+              {% if is_admin %}
+              <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="tl-edit-form">
+                <input type="hidden" name="day" value="{{ d.date }}">
+                <input type="number" min="0" name="total_count" placeholder="ادخل إجمالي" required>
+                <button type="submit">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                  إضافة
+                </button>
+              </form>
+              {% endif %}
+            {% endif %}
           </div>
-          <div class="tl-names">
-            {% for n in d.names %}<span class="name-chip">{{ n }}</span>{% endfor %}
-          </div>
-          {% endif %}
-          {% if is_admin and all_workers %}
-          <details class="tl-att-edit">
-            <summary>تعديل الحضور</summary>
-            <div class="tl-att-list">
-              {% for w in all_workers %}
-                {% set present = w.id in d.attendee_ids %}
-                <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="tl-att-form">
-                  <input type="hidden" name="day" value="{{ d.date }}">
-                  <input type="hidden" name="user_id" value="{{ w.id }}">
-                  <input type="hidden" name="next" value="history">
-                  <button type="submit" class="tl-att-chip {% if present %}is-on{% else %}is-off{% endif %}"
-                          title="{% if present %}تسجيل غياب{% else %}تسجيل حضور{% endif %}">
-                    {% if present %}✓{% else %}+{% endif %} {{ w.full_name }}
-                  </button>
-                </form>
-              {% endfor %}
-            </div>
-          </details>
-          {% endif %}
-        {% else %}
-          <div class="tl-empty">— لم يُسجَّل —</div>
-          {% if is_admin %}
-          <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="tl-edit-form">
-            <input type="hidden" name="day" value="{{ d.date }}">
-            <input type="number" min="0" name="total_count" placeholder="ادخل إجمالي" required>
-            <button type="submit">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-              إضافة
-            </button>
-          </form>
-          {% endif %}
-        {% endif %}
+        </div>
+        {% endfor %}
       </div>
     </div>
-    {% endfor %}
-  </div>
+  </details>
+  {% else %}
+  <div class="card"><div class="empty">لا توجد بيانات بعد</div></div>
+  {% endfor %}
 </div>
-{% else %}
-<div class="card"><div class="empty">لا توجد بيانات بعد</div></div>
-{% endfor %}
 
 {% endblock %}
