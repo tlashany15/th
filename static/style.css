@@ -60,7 +60,7 @@
 html,body{ margin:0; padding:0; }
 html{ -webkit-text-size-adjust:100%; }
 body{
-  font-family:"Alexandria","IBM Plex Sans Arabic","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  font-family:"Cairo","Alexandria","IBM Plex Sans Arabic","Segoe UI","Helvetica Neue",Arial,sans-serif;
   font-feature-settings:"ss01","cv11";
   letter-spacing:-0.005em;
   background:
