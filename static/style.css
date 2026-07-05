@@ -2971,3 +2971,27 @@ a{ color:inherit; text-decoration:none; }
 .u-w-full{ width:100%; }
 .u-pointer{ cursor:pointer; }
 .u-danger-btn{ background:none; border:0; color:#ff8080; cursor:pointer; font-size:14px; }
+
+/* ============================================================
+   REDESIGN PASS — v4.1
+   More distinctive container shape (cards / accordion items)
+   ============================================================ */
+.card, .acc-item{
+  position:relative;
+  border-radius:22px;
+  isolation:isolate;
+}
+.card::before, .acc-item::before{
+  content:"";
+  position:absolute; inset:0 0 auto 0; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(245,185,80,.35), transparent);
+  border-radius:22px 22px 0 0;
+  pointer-events:none;
+}
+.card{
+  box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.acc-item{ transition:box-shadow .2s ease, border-color .2s ease; }
+.acc-item[open]{ border-color:rgba(245,185,80,.28); box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.04); }
+.acc-item > summary:hover{ background:rgba(255,255,255,.02); }
+.stat-cell, .row-list, .money-box{ border-radius:16px; }
