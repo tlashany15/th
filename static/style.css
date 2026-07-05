@@ -2849,3 +2849,125 @@ a{ color:inherit; text-decoration:none; }
   opacity: .7;
 }
 .snav-group:first-of-type{ padding-top: 4px; }
+
+/* ============================================================
+   REDESIGN PASS — v4
+   Accordion / Tabs / Stat-rows / Utilities
+   Added to declutter dense pages (period lists, day logs, etc.)
+   without touching every page's markup from scratch.
+   ============================================================ */
+
+/* ---------- Accordion (native <details>/<summary>) ---------- */
+.acc{ display:flex; flex-direction:column; gap:10px; }
+.acc-item{
+  background:var(--grad-surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-md);
+  overflow:hidden;
+}
+.acc-item > summary{
+  list-style:none;
+  cursor:pointer;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.acc-item > summary::-webkit-details-marker{ display:none; }
+.acc-item > summary::marker{ content:""; }
+.acc-chevron{
+  width:30px; height:30px; border-radius:10px; flex-shrink:0;
+  display:grid; place-items:center;
+  background:rgba(255,255,255,.05); border:1px solid var(--line-strong);
+  color:var(--text-3);
+  transition:transform .25s ease, background .2s, color .2s;
+}
+.acc-chevron svg{ width:15px; height:15px; }
+.acc-item[open] > summary .acc-chevron{ transform:rotate(180deg); background:var(--gold-soft); color:var(--gold-2); }
+.acc-item[open] > summary{ border-bottom:1px solid var(--line); }
+.acc-body{ padding:14px 16px 16px; display:flex; flex-direction:column; gap:12px; }
+.acc-summary-main{ display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
+.acc-summary-text{ min-width:0; }
+.acc-summary-title{ font-size:14.5px; font-weight:800; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.acc-summary-sub{ font-size:11.5px; color:var(--text-3); margin-top:3px; }
+.acc-summary-figure{ text-align:end; flex-shrink:0; }
+.acc-summary-figure .n{ font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; color:var(--gold-2); }
+.acc-summary-figure .l{ font-size:10.5px; color:var(--text-3); font-weight:700; }
+
+/* ---------- Tabs (segmented control) ---------- */
+.tabs{
+  display:grid; grid-auto-flow:column; grid-auto-columns:1fr;
+  gap:4px; padding:4px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+.tabs input{ display:none; }
+.tabs label{
+  text-align:center; padding:9px 6px; border-radius:10px;
+  font-size:12.5px; font-weight:800; color:var(--text-3);
+  cursor:pointer; transition:background .18s, color .18s;
+}
+.tabs input:checked + label{ background:var(--surface-3); color:var(--text); box-shadow:var(--shadow-sm); }
+.tab-panels{ margin-top:12px; }
+.tab-panel{ display:none; }
+
+/* ---------- Stat row (compact 2-3 col figures, replaces ad-hoc *-grid blocks) ---------- */
+.stat-row{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.stat-row.cols-3{ grid-template-columns:repeat(3,1fr); }
+.stat-cell{
+  padding:12px; border-radius:14px;
+  border:1px solid var(--line-strong);
+  background:rgba(255,255,255,.03);
+}
+.stat-cell .l{ font-size:11px; color:var(--text-3); font-weight:800; }
+.stat-cell .v{ font-size:19px; font-weight:900; margin-top:4px; font-variant-numeric:tabular-nums; }
+.stat-cell .s{ font-size:10.5px; color:var(--text-3); margin-top:2px; }
+.stat-cell.tone-gold{ background:linear-gradient(135deg,rgba(245,185,80,.14),rgba(255,255,255,.02)); border-color:rgba(245,185,80,.4); }
+.stat-cell.tone-gold .v{ color:var(--gold-2); }
+.stat-cell.tone-green{ background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(255,255,255,.02)); border-color:rgba(52,211,153,.4); }
+.stat-cell.tone-green .v{ color:#9ff5bd; }
+.stat-cell.tone-blue{ background:linear-gradient(135deg,rgba(120,170,255,.12),rgba(255,255,255,.02)); border-color:rgba(120,170,255,.32); }
+.stat-cell.tone-blue .v{ color:#dbeafe; }
+
+/* ---------- Compact list rows (replaces .adj-item / .adj-block ad-hoc styling) ---------- */
+.row-list{ display:flex; flex-direction:column; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:rgba(255,255,255,.02); }
+.row-list-head{ display:flex; align-items:center; gap:6px; padding:9px 12px; font-size:12px; font-weight:800; background:rgba(255,255,255,.03); }
+.row-list-head svg{ width:14px; height:14px; }
+.row-list-head.pos{ color:#7ff0c1; } .row-list-head.neg{ color:#ffb0b0; }
+.row-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 12px; font-size:12.5px; }
+.row-item + .row-item{ border-top:1px dashed var(--line); }
+.row-item .d{ color:var(--text-3); font-family:monospace; }
+.row-item .a{ font-weight:800; font-variant-numeric:tabular-nums; }
+.row-item .a.pos{ color:#7ff0c1; } .row-item .a.neg{ color:#ffb0b0; }
+.row-item .rm{ background:none; border:0; color:#ff8080; cursor:pointer; font-size:14px; padding:2px 4px; }
+
+/* ---------- Money summary box (replaces .money-box) ---------- */
+.money-box{ padding:14px; border-radius:14px; background:linear-gradient(135deg,rgba(120,170,255,.10),rgba(255,255,255,.02)); border:1px solid rgba(120,170,255,.28); }
+.money-box .l{ font-size:11.5px; color:var(--text-3); font-weight:800; }
+.money-box .calc{ font-size:13px; color:var(--text-2); margin-top:4px; }
+.money-box .adj{ font-size:11.5px; color:var(--text-3); margin-top:3px; }
+.money-box .final{ font-size:13.5px; font-weight:800; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line-strong); display:flex; justify-content:space-between; align-items:center; }
+.money-box .final .v{ font-size:19px; color:#dbeafe; font-variant-numeric:tabular-nums; }
+
+/* ---------- Small utility classes (replace ad-hoc inline style=) ---------- */
+.u-flex{ display:flex; }
+.u-center{ align-items:center; }
+.u-between{ justify-content:space-between; }
+.u-wrap{ flex-wrap:wrap; }
+.u-gap-4{ gap:4px; } .u-gap-6{ gap:6px; } .u-gap-8{ gap:8px; } .u-gap-10{ gap:10px; } .u-gap-14{ gap:14px; }
+.u-mt-6{ margin-top:6px; } .u-mt-8{ margin-top:8px; } .u-mt-12{ margin-top:12px; } .u-mt-16{ margin-top:16px; }
+.u-muted{ color:var(--text-3); }
+.u-center-text{ text-align:center; }
+.u-mono{ font-family:monospace; }
+.u-sm{ font-size:12px; }
+.u-xs{ font-size:11px; }
+.u-bold{ font-weight:800; }
+.u-inline{ display:inline-flex; align-items:center; }
+.u-w-full{ width:100%; }
+.u-pointer{ cursor:pointer; }
+.u-danger-btn{ background:none; border:0; color:#ff8080; cursor:pointer; font-size:14px; }
