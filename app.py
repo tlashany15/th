@@ -808,12 +808,10 @@ def history():
     cur.close()
 
     today = date.today()
-    if is_admin:
-        months = set((d.year, d.month) for d in by_day.keys())
-        months.add((today.year, today.month))
-    else:
-        # العمال يشوفوا سجل الشهر الجاري بالكامل (النصفين) — يتصفّى تلقائيًا مع بداية كل شهر جديد
-        months = {(today.year, today.month)}
+    # نفس السجل لكل الناس (عامل أو مسؤول) — من غير أي تصفير تلقائي.
+    # البيانات فضل ظاهرة لحد ما المسؤول يصفّرها يدويًا من زرار "تصفير الفترة".
+    months = set((d.year, d.month) for d in by_day.keys())
+    months.add((today.year, today.month))
     current_half = 1 if today.day <= 15 else 2
     periods = []
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
@@ -842,6 +840,7 @@ def history():
             periods.append({
                 "label": f"{AR_MONTHS[m-1]} {y} — {'النصف الأول (1-15)' if half==1 else f'النصف الثاني (16-{last_day})'}",
                 "days": days_list,
+                "is_current": (y == today.year and m == today.month and half == current_half),
             })
     return render_template("history.html", periods=periods, all_workers=all_workers)
 
