@@ -86,15 +86,18 @@
 .rr2-person:hover{background:rgba(255,190,87,.06)}
 .rr2-person.sel{background:linear-gradient(90deg,rgba(255,190,87,.16),transparent)}
 .rr2-avatar{
-  width:34px;height:34px;flex:0 0 34px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:900;font-size:13px;color:#1a0800;
+  width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font-weight:900;font-size:14px;color:#1a0800;
   background:linear-gradient(135deg,#ffbe57,#ef9d3a);
   box-shadow:0 4px 10px -4px rgba(255,150,40,.7);
+  border:2px solid rgba(255,190,87,.35);
+  position:relative;
 }
+.rr2-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .rr2-pname{flex:1;font-size:13.5px;font-weight:700;color:#fff;min-width:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rr2-pcheck{width:18px;height:18px;color:#ffbe57;opacity:0;transition:.2s}
+.rr2-pcheck{width:18px;height:18px;color:#ffbe57;opacity:0;transition:.2s;flex-shrink:0}
 .rr2-person.sel .rr2-pcheck{opacity:1}
 
 /* quick date presets */
@@ -112,21 +115,31 @@
 .rr2-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .rr2-date{position:relative}
 .rr2-date label{
-  position:absolute;top:-8px;inset-inline-start:12px;
+  position:absolute;top:-8px;inset-inline-start:14px;
   font-size:10.5px;font-weight:800;color:#ffbe57;padding:0 6px;
   background:#150e08;border-radius:6px;z-index:2;
 }
 .rr2-date input{
-  width:100%;padding:14px 40px 14px 14px;border-radius:14px;
+  width:100%;padding:14px 14px 14px 40px;border-radius:14px;
   background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.2);
   color:#fff;font-size:14px;font-weight:700;outline:none;transition:.2s;
   box-sizing:border-box;font-family:inherit;
   color-scheme:dark;
+  text-align:center;
+  direction:ltr;
+  cursor:pointer;
+  -webkit-appearance:none;appearance:none;
 }
 .rr2-date input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
+/* إخفاء أيقونة المتصفح الافتراضية عشان تبقى النتيجة موحّدة */
+.rr2-date input::-webkit-calendar-picker-indicator{
+  position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
+}
+.rr2-date input::-webkit-inner-spin-button,
+.rr2-date input::-webkit-clear-button{display:none;-webkit-appearance:none}
 .rr2-date-ico{
-  position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%);
-  width:16px;height:16px;color:#ffbe57;pointer-events:none;
+  position:absolute;top:50%;inset-inline-start:14px;transform:translateY(-50%);
+  width:16px;height:16px;color:#ffbe57;pointer-events:none;z-index:1;
 }
 
 /* submit */
@@ -285,7 +298,13 @@
       <div class="rr2-persons" id="rrPersons">
         {% for p in people_list %}
         <div class="rr2-person" data-id="{{ p.id }}" data-name="{{ p.full_name }}">
-          <div class="rr2-avatar">{{ p.full_name[:1] }}</div>
+          <div class="rr2-avatar">
+            {% if p.avatar %}
+              <img src="{{ p.avatar }}" alt="" loading="lazy">
+            {% else %}
+              {{ p.full_name[:1] }}
+            {% endif %}
+          </div>
           <div class="rr2-pname">{{ p.full_name }}</div>
           <svg class="rr2-pcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>
         </div>
