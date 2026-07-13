@@ -1140,32 +1140,18 @@ def admin_worker_clear_period():
             days_snapshot INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (user_id, year, month, half)
         )""")
-        # snapshot لعدد كتاكيت العامل وأيامه في المدة قبل ما نخفيها
-        cur.execute("""SELECT COUNT(*) AS d FROM attendance
-                       WHERE user_id=%s AND day BETWEEN %s AND %s""", (user_id, s, e))
-        days_snap = int(cur.fetchone()["d"] or 0)
-        cur.execute("""SELECT COALESCE(SUM(c.total_count::float /
-                          NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
-                       ),0) AS shr
-                       FROM day_closures c
-                       WHERE c.day BETWEEN %s AND %s
-                         AND EXISTS(SELECT 1 FROM attendance a2
-                                    WHERE a2.day=c.day AND a2.user_id=%s)""",
-                    (s, e, user_id))
-        total_snap = int(cur.fetchone()["shr"] or 0)
-        # نمسح فقط الحاجات الخاصة بالعامل ده (ملهاش تأثير على غيره)
+        # نمسح فقط الحاجات الخاصة بالعامل ده (ملهاش تأثير على غيره) — بدون أي أرشيف
         cur.execute("DELETE FROM worker_adjustments  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
         cur.execute("DELETE FROM worker_day_settle   WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
         cur.execute("DELETE FROM worker_settlements  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
-        # نسجّل إن المدة اتسلّمت للعامل ده — من غير ما نلمس الحضور
+        # نسجّل علامة "تم استلام" فقط (بدون snapshot لأي أعداد) — عشان المدة تختفي من نصيبي
         cur.execute("""INSERT INTO worker_period_clears
             (user_id, year, month, half, cleared_by, total_snapshot, days_snapshot)
-            VALUES(%s,%s,%s,%s,%s,%s,%s)
+            VALUES(%s,%s,%s,%s,%s,0,0)
             ON CONFLICT (user_id, year, month, half) DO UPDATE SET
               cleared_at=NOW(), cleared_by=EXCLUDED.cleared_by,
-              total_snapshot=EXCLUDED.total_snapshot,
-              days_snapshot=EXCLUDED.days_snapshot""",
-                    (user_id, y, m, half, me_u["id"], total_snap, days_snap))
+              total_snapshot=0, days_snapshot=0""",
+                    (user_id, y, m, half, me_u["id"]))
         db.commit()
         flash("تم تأكيد استلام الأموال وتصفير المدة ✓ — توزيع الكتاكيت على باقي العمال متغيّرش", "success")
     except Exception as ex:
@@ -1779,15 +1765,10 @@ def admin_gross_log():
                    GROUP BY 1,2,3
                    ORDER BY 1 DESC, 2 DESC, 3 DESC""")
     all_periods = cur.fetchall()
-    cur.execute("SELECT year, month, half, total_snapshot, days_snapshot, cleared_at FROM no_deduct_clears ORDER BY year DESC, month DESC, half DESC")
-    cleared_rows = cur.fetchall()
-    cleared_keys = set((r["year"], r["month"], r["half"]) for r in cleared_rows)
     past_periods = []
     for p in all_periods:
         k = (p["y"], p["m"], p["half"])
         if k == (today.year, today.month, cur_half):
-            continue
-        if k in cleared_keys:
             continue
         last_d = _cal.monthrange(p["y"], p["m"])[1]
         if p["half"] == 1:
@@ -1799,25 +1780,11 @@ def admin_gross_log():
             "label": lab, "total": int(p["s"] or 0), "days": int(p["c"] or 0),
         })
 
-    cleared_list = []
-    for r in cleared_rows:
-        last_d = _cal.monthrange(r["year"], r["month"])[1]
-        if r["half"] == 1:
-            lab = f"النصف الأول (1-15) — {r['month']}/{r['year']}"
-        else:
-            lab = f"النصف الثاني (16-{last_d}) — {r['month']}/{r['year']}"
-        cleared_list.append({
-            "year": r["year"], "month": r["month"], "half": r["half"], "label": lab,
-            "total": int(r["total_snapshot"] or 0), "days": int(r["days_snapshot"] or 0),
-            "cleared_at": r["cleared_at"],
-        })
-
     cur.close()
     return render_template("admin_gross_log.html",
                            rows=rows, grand=grand,
                            current_period=current_period,
-                           past_periods=past_periods,
-                           cleared_list=cleared_list)
+                           past_periods=past_periods)
 
 
 @app.route("/admin/gross-log/clear-period", methods=["POST"])
@@ -1842,30 +1809,10 @@ def admin_gross_clear_period():
     me_u = current_user()
     db = get_db(); cur = db.cursor()
     try:
-        cur.execute("""CREATE TABLE IF NOT EXISTS no_deduct_clears (
-            year INTEGER NOT NULL, month INTEGER NOT NULL,
-            half INTEGER NOT NULL CHECK(half IN (1,2)),
-            cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            cleared_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-            total_snapshot INTEGER NOT NULL DEFAULT 0,
-            days_snapshot INTEGER NOT NULL DEFAULT 0,
-            PRIMARY KEY (year, month, half)
-        )""")
-        cur.execute("""SELECT COALESCE(SUM(no_deduct_total),0) AS s, COUNT(*) AS c
-                       FROM day_closures WHERE day BETWEEN %s AND %s""", (s, e))
-        r = cur.fetchone()
-        total = int(r["s"] or 0); days = int(r["c"] or 0)
-        cur.execute("""INSERT INTO no_deduct_clears(year,month,half,cleared_by,total_snapshot,days_snapshot)
-                       VALUES(%s,%s,%s,%s,%s,%s)
-                       ON CONFLICT (year,month,half) DO UPDATE SET
-                         cleared_at=NOW(), cleared_by=EXCLUDED.cleared_by,
-                         total_snapshot=EXCLUDED.total_snapshot,
-                         days_snapshot=EXCLUDED.days_snapshot""",
-                    (y, m, half, me_u["id"], total, days))
-        # نصفّر عمود no_deduct_total للأيام دي (بس أعمدة اليوم/التوزيع بتفضل زي ما هي)
+        # تصفير نهائي: مسح قيمة الأعداد بدون خصم لأيام المدة — من غير أي أرشيف/snapshot
         cur.execute("UPDATE day_closures SET no_deduct_total=0 WHERE day BETWEEN %s AND %s", (s, e))
         db.commit()
-        flash(f"تم تصفير الأعداد بدون خصم للمدة ({total:,}) ✓", "success")
+        flash("تم تصفير الأعداد بدون خصم للمدة ✓", "success")
     except Exception as ex:
         db.rollback()
         flash("خطأ: " + str(ex), "error")
@@ -2079,16 +2026,23 @@ def admin_range_report():
                 cur.execute("SELECT full_name FROM users WHERE id=%s AND role='admin'", (aid,))
                 ar = cur.fetchone()
                 if ar:
-                    cur.execute("""SELECT COALESCE(SUM(total_count),0) AS s,
-                                          COUNT(*) AS c
-                                   FROM day_closures
-                                   WHERE closed_by=%s AND day BETWEEN %s AND %s""",
-                                (aid, s_iso, e_iso))
+                    # نصيب المسؤول (بيتحاسب زي العامل تمامًا) = نصيبه من التوزيع على أيام حضوره
+                    cur.execute("""
+                        SELECT COALESCE(SUM(c.total_count::float /
+                                 NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
+                               ),0) AS shr,
+                               (SELECT COUNT(*) FROM attendance a2
+                                WHERE a2.user_id=%s AND a2.day BETWEEN %s AND %s) AS att_days
+                        FROM day_closures c
+                        WHERE c.day BETWEEN %s AND %s
+                          AND EXISTS(SELECT 1 FROM attendance a3
+                                     WHERE a3.day=c.day AND a3.user_id=%s)
+                    """, (aid, s_iso, e_iso, s_iso, e_iso, aid))
                     r3 = cur.fetchone()
-                    total = int(r3["s"] or 0)
-                    days_count = int(r3["c"] or 0)
+                    total = int(r3["shr"] or 0)
+                    days_count = int(r3["att_days"] or 0)
                     target_kind = "admin"; target_id = aid
-                    target_label = f"أيام أقفلها المسؤول: {ar['full_name']}"
+                    target_label = f"نصيب المسؤول: {ar['full_name']}"
 
         cur.execute(
             "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total, target_kind, target_id, target_label) "
