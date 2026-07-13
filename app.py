@@ -1946,9 +1946,11 @@ def admin_range_report():
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_label TEXT")
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS chick_count INTEGER NOT NULL DEFAULT 0")
 
-    # قايمة كل العمال + المسؤولين للـ dropdown
-    cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
+    # قائمة موحّدة للعمال + المسؤولين للـ dropdown (بدون تمييز في الواجهة)
+    cur.execute("SELECT id, full_name, role FROM users WHERE role IN ('worker','admin') ORDER BY full_name")
     all_people = cur.fetchall()
+    # نخلطهم كلهم في قائمة واحدة "people_list" باسم عام "نصيب"
+    people_list = list(all_people)
     workers_list = [p for p in all_people if p["role"] == "worker"]
     admins_list  = [p for p in all_people if p["role"] == "admin"]
 
@@ -1993,16 +1995,17 @@ def admin_range_report():
         elif target == "after_deduct":
             target_kind = "after_deduct"; target_label = "إجمالي بعد الخصم (الموزَّع)"
             total = s_dist
-        elif target.startswith("worker:"):
+        elif target.startswith(("worker:", "admin:", "person:")):
             try:
-                wid = int(target.split(":", 1)[1])
+                pid = int(target.split(":", 1)[1])
             except ValueError:
-                wid = 0
-            if wid:
-                cur.execute("SELECT full_name FROM users WHERE id=%s AND role='worker'", (wid,))
-                wr = cur.fetchone()
-                if wr:
-                    # نصيب العامل = مجموع (total_count / عدد الحضور في اليوم) على الأيام اللي حضرها
+                pid = 0
+            if pid:
+                # نتعامل مع العامل والمسؤول بنفس الطريقة تمامًا وبنفس التسمية
+                # عشان محدش يقدر يميّز من التقرير مين مسؤول ومين عامل
+                cur.execute("SELECT full_name, role FROM users WHERE id=%s", (pid,))
+                pr = cur.fetchone()
+                if pr:
                     cur.execute("""
                         SELECT COALESCE(SUM(c.total_count::float /
                                  NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
@@ -2013,40 +2016,14 @@ def admin_range_report():
                         WHERE c.day BETWEEN %s AND %s
                           AND EXISTS(SELECT 1 FROM attendance a3
                                      WHERE a3.day=c.day AND a3.user_id=%s)
-                    """, (wid, s_iso, e_iso, s_iso, e_iso, wid))
+                    """, (pid, s_iso, e_iso, s_iso, e_iso, pid))
                     r2 = cur.fetchone()
                     chick_count = int(r2["shr"] or 0)
                     total = chick_count * 55
                     days_count = int(r2["att_days"] or 0)
-                    target_kind = "worker"; target_id = wid
-                    target_label = f"نصيب العامل: {wr['full_name']}"
-        elif target.startswith("admin:"):
-            try:
-                aid = int(target.split(":", 1)[1])
-            except ValueError:
-                aid = 0
-            if aid:
-                cur.execute("SELECT full_name FROM users WHERE id=%s AND role='admin'", (aid,))
-                ar = cur.fetchone()
-                if ar:
-                    # نصيب المسؤول (بيتحاسب زي العامل تمامًا) = نصيبه من التوزيع على أيام حضوره
-                    cur.execute("""
-                        SELECT COALESCE(SUM(c.total_count::float /
-                                 NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
-                               ),0) AS shr,
-                               (SELECT COUNT(*) FROM attendance a2
-                                WHERE a2.user_id=%s AND a2.day BETWEEN %s AND %s) AS att_days
-                        FROM day_closures c
-                        WHERE c.day BETWEEN %s AND %s
-                          AND EXISTS(SELECT 1 FROM attendance a3
-                                     WHERE a3.day=c.day AND a3.user_id=%s)
-                    """, (aid, s_iso, e_iso, s_iso, e_iso, aid))
-                    r3 = cur.fetchone()
-                    chick_count = int(r3["shr"] or 0)
-                    total = chick_count * 55
-                    days_count = int(r3["att_days"] or 0)
-                    target_kind = "admin"; target_id = aid
-                    target_label = f"نصيب المسؤول: {ar['full_name']}"
+                    # نخزّن kind='worker' دايمًا (بدون تمييز) ونستخدم نفس التسمية العامة
+                    target_kind = "worker"; target_id = pid
+                    target_label = f"نصيب: {pr['full_name']}"
 
         cur.execute(
             "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total, target_kind, target_id, target_label, chick_count) "
@@ -2074,6 +2051,7 @@ def admin_range_report():
     cur.close()
     return render_template("admin_range_report.html",
                            result=result, reports=reports,
+                           people_list=people_list,
                            workers_list=workers_list, admins_list=admins_list)
 
 
