@@ -21,12 +21,12 @@
         <option value="after_deduct">إجمالي بعد الخصم (الموزَّع على العمال)</option>
         <optgroup label="عامل محدد">
           {% for w in workers_list %}
-            <option value="worker:{{ w.id }}">نصيب: {{ w.full_name }}</option>
+            <option value="worker:{{ w.id }}">{{ w.full_name }}</option>
           {% endfor %}
         </optgroup>
         <optgroup label="مسؤول محدد">
           {% for a in admins_list %}
-            <option value="admin:{{ a.id }}">نصيب: {{ a.full_name }}</option>
+            <option value="admin:{{ a.id }}">{{ a.full_name }}</option>
           {% endfor %}
         </optgroup>
       </select>
@@ -67,10 +67,18 @@
       <div class="kpi-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       </div>
-      <div class="kpi-v">{{ '{:,}'.format(result.total) }}</div>
+      <div class="kpi-v">{{ '{:,}'.format(result.total) }}{% if result.is_money %} ج{% endif %}</div>
       <div class="kpi-l">{{ result.target_label }}</div>
     </div>
   </div>
+
+  {% if result.is_money %}
+  <div class="money-box" style="margin-top:10px;">
+    <div class="l">تفصيل الحساب</div>
+    <div class="calc">{{ '{:,}'.format(result.chick_count) }} كتكوت × 55 ج = <b>{{ '{:,}'.format(result.total) }} ج</b></div>
+  </div>
+  {% endif %}
+
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-3);">
     <span class="mini-chip">بدون خصم: <b>{{ '{:,}'.format(result.no_deduct_total) }}</b></span>
     <span class="mini-chip">بعد الخصم: <b>{{ '{:,}'.format(result.distributed_total) }}</b></span>
@@ -103,10 +111,13 @@
             <span style="color:var(--text-3);">- {{ r.days_count }} يوم</span>
           </div>
           <div class="rr-meta">{{ r.target_label or 'إجمالي بدون خصم' }} · حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}</div>
+          {% if r.target_kind in ('worker', 'admin') %}
+          <div class="rr-meta">{{ '{:,}'.format(r.chick_count) }} كتكوت × 55 ج</div>
+          {% endif %}
         </div>
         <div style="text-align:left;display:flex;gap:8px;align-items:center;">
           <div>
-            <div class="rr-total">{{ '{:,}'.format(r.total) }}</div>
+            <div class="rr-total">{{ '{:,}'.format(r.total) }}{% if r.target_kind in ('worker', 'admin') %} ج{% endif %}</div>
             <div class="rr-meta" style="text-align:left;">{{ r.target_label or 'بدون خصم' }}</div>
           </div>
           <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
