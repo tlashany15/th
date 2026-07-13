@@ -1947,7 +1947,7 @@ def admin_range_report():
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS chick_count INTEGER NOT NULL DEFAULT 0")
 
     # قائمة موحّدة للعمال + المسؤولين للـ dropdown (بدون تمييز في الواجهة)
-    cur.execute("SELECT id, full_name, role FROM users WHERE role IN ('worker','admin') ORDER BY full_name")
+    cur.execute("SELECT id, full_name, role, avatar FROM users WHERE role IN ('worker','admin') ORDER BY full_name")
     all_people = cur.fetchall()
     # نخلطهم كلهم في قائمة واحدة "people_list" باسم عام "نصيب"
     people_list = list(all_people)
