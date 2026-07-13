@@ -111,43 +111,44 @@
 .rr2-preset:hover{background:rgba(255,190,87,.16);color:#fff}
 .rr2-preset.active{background:linear-gradient(180deg,#ffbe57,#e88a2e);color:#1a0800;border-color:transparent}
 
-/* date fields — مصغّرة عشان متبرزش برّة إطار الصفحة */
+/* date fields — عرض واضح ومتناسق */
 .rr2-dates{
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:8px;margin-bottom:12px;min-width:0;
+  display:grid;grid-template-columns:1fr;
+  gap:10px;margin-bottom:14px;min-width:0;
+}
+@media (min-width:420px){
+  .rr2-dates{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 }
 .rr2-date{position:relative;min-width:0}
 .rr2-date label{
-  position:absolute;top:-7px;inset-inline-start:10px;
-  font-size:10px;font-weight:800;color:#ffbe57;padding:0 5px;
-  background:#150e08;border-radius:6px;z-index:2;
+  position:absolute;top:-8px;inset-inline-start:12px;
+  font-size:10.5px;font-weight:800;color:#ffbe57;padding:0 6px;
+  background:#150e08;border-radius:6px;z-index:2;letter-spacing:.2px;
 }
 .rr2-date input{
-  width:100%;max-width:100%;padding:10px 8px 10px 28px;border-radius:12px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.2);
-  color:#fff;font-size:12.5px;font-weight:700;outline:none;transition:.2s;
+  width:100%;max-width:100%;
+  padding:13px 14px 13px 40px;
+  border-radius:12px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.22);
+  color:#fff;font-size:14px;font-weight:700;letter-spacing:.3px;
+  outline:none;transition:.2s;
   box-sizing:border-box;font-family:inherit;
   color-scheme:dark;
-  text-align:center;
-  direction:ltr;
-  cursor:pointer;min-width:0;
+  direction:ltr;text-align:left;
+  cursor:pointer;min-width:0;line-height:1.2;
   -webkit-appearance:none;appearance:none;
+  min-height:46px;
 }
 .rr2-date input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
-/* إخفاء أيقونة المتصفح الافتراضية عشان تبقى النتيجة موحّدة */
+.rr2-date input::-webkit-date-and-time-value{text-align:left}
 .rr2-date input::-webkit-calendar-picker-indicator{
   position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
 }
 .rr2-date input::-webkit-inner-spin-button,
 .rr2-date input::-webkit-clear-button{display:none;-webkit-appearance:none}
 .rr2-date-ico{
-  position:absolute;top:50%;inset-inline-start:8px;transform:translateY(-50%);
-  width:13px;height:13px;color:#ffbe57;pointer-events:none;z-index:1;
-}
-@media (max-width:360px){
-  .rr2-date input{padding:9px 6px 9px 24px;font-size:11.5px}
-  .rr2-date-ico{inset-inline-start:6px;width:12px;height:12px}
-  .rr2-dates{gap:6px}
+  position:absolute;top:50%;left:12px;transform:translateY(-50%);
+  width:16px;height:16px;color:#ffbe57;pointer-events:none;z-index:1;
 }
 
 /* submit */
