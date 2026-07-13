@@ -1413,6 +1413,33 @@ a{ color:inherit; text-decoration:none; }
 }
 .rr-form .rr-submit{ grid-column:1 / -1; margin-top:4px; }
 
+.rr-select-wrap{ position:relative; }
+.rr-select-wrap select.rr-select{
+  width:100%; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  padding-inline-start:14px; padding-inline-end:40px;
+  padding-top:12px; padding-bottom:12px;
+  border-radius:12px !important;
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid var(--line-strong) !important;
+  color:var(--text) !important; font-size:14px; font-weight:700;
+  height:auto !important; cursor:pointer;
+  transition:border-color .15s, background .15s, box-shadow .15s;
+}
+.rr-select-wrap select.rr-select:hover{ border-color:rgba(245,185,80,.3) !important; }
+.rr-select-wrap select.rr-select:focus{
+  outline:none; border-color:var(--gold) !important;
+  background:rgba(245,185,80,.06) !important;
+  box-shadow:0 0 0 3px rgba(245,185,80,.15);
+}
+.rr-select-wrap select.rr-select option,
+.rr-select-wrap select.rr-select optgroup{
+  background:#151c30; color:var(--text);
+}
+.rr-select-ico{
+  position:absolute; inset-inline-end:14px; top:50%; transform:translateY(-50%);
+  width:16px; height:16px; color:var(--text-3); pointer-events:none;
+}
+
 .rr-list{ display:flex; flex-direction:column; gap:10px; }
 .rr-item{
   position:relative; overflow:hidden;
