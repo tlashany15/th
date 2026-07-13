@@ -111,23 +111,26 @@
 .rr2-preset:hover{background:rgba(255,190,87,.16);color:#fff}
 .rr2-preset.active{background:linear-gradient(180deg,#ffbe57,#e88a2e);color:#1a0800;border-color:transparent}
 
-/* date fields */
-.rr2-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.rr2-date{position:relative}
+/* date fields — مصغّرة عشان متبرزش برّة إطار الصفحة */
+.rr2-dates{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:8px;margin-bottom:12px;min-width:0;
+}
+.rr2-date{position:relative;min-width:0}
 .rr2-date label{
-  position:absolute;top:-8px;inset-inline-start:14px;
-  font-size:10.5px;font-weight:800;color:#ffbe57;padding:0 6px;
+  position:absolute;top:-7px;inset-inline-start:10px;
+  font-size:10px;font-weight:800;color:#ffbe57;padding:0 5px;
   background:#150e08;border-radius:6px;z-index:2;
 }
 .rr2-date input{
-  width:100%;padding:14px 14px 14px 40px;border-radius:14px;
+  width:100%;max-width:100%;padding:10px 8px 10px 28px;border-radius:12px;
   background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.2);
-  color:#fff;font-size:14px;font-weight:700;outline:none;transition:.2s;
+  color:#fff;font-size:12.5px;font-weight:700;outline:none;transition:.2s;
   box-sizing:border-box;font-family:inherit;
   color-scheme:dark;
   text-align:center;
   direction:ltr;
-  cursor:pointer;
+  cursor:pointer;min-width:0;
   -webkit-appearance:none;appearance:none;
 }
 .rr2-date input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
@@ -138,8 +141,13 @@
 .rr2-date input::-webkit-inner-spin-button,
 .rr2-date input::-webkit-clear-button{display:none;-webkit-appearance:none}
 .rr2-date-ico{
-  position:absolute;top:50%;inset-inline-start:14px;transform:translateY(-50%);
-  width:16px;height:16px;color:#ffbe57;pointer-events:none;z-index:1;
+  position:absolute;top:50%;inset-inline-start:8px;transform:translateY(-50%);
+  width:13px;height:13px;color:#ffbe57;pointer-events:none;z-index:1;
+}
+@media (max-width:360px){
+  .rr2-date input{padding:9px 6px 9px 24px;font-size:11.5px}
+  .rr2-date-ico{inset-inline-start:6px;width:12px;height:12px}
+  .rr2-dates{gap:6px}
 }
 
 /* submit */
@@ -205,15 +213,16 @@
   background:rgba(255,190,87,.08);border:1px solid rgba(255,190,87,.16);color:#f5d9a8;
 }
 .rr2-chip b{color:#fff}
-.rr2-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.rr2-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
 .rr2-act{
-  all:unset;cursor:pointer;flex:1;min-width:130px;text-align:center;
-  padding:11px;border-radius:12px;font-size:12.5px;font-weight:800;
+  all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 auto;min-width:0;text-align:center;
+  padding:10px 8px;border-radius:12px;font-size:12px;font-weight:800;
   border:1px solid rgba(255,190,87,.22);color:#ffbe57;
   background:rgba(0,0,0,.35);transition:.2s;
-  display:flex;align-items:center;justify-content:center;gap:6px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.rr2-act svg{width:14px;height:14px}
+.rr2-act svg{width:14px;height:14px;flex-shrink:0}
 .rr2-act:hover{background:rgba(255,190,87,.1);color:#fff}
 .rr2-act.primary{
   background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border-color:transparent;
