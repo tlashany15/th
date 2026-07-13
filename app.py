@@ -896,6 +896,22 @@ def worker_stats(worker_id):
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY(user_id, day)
     )""")
+    # علامة "تم استلام / تصفير المدة" لكل عامل — من غير ما نلمس الحضور
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_period_clears (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        half INTEGER NOT NULL CHECK(half IN (1,2)),
+        cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        cleared_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        total_snapshot INTEGER NOT NULL DEFAULT 0,
+        days_snapshot INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, year, month, half)
+    )""")
+
+    # نجيب المدد اللي المسؤول أكّد إنه استلم فلوسها للعامل ده — نخفيها
+    cur.execute("""SELECT year, month, half FROM worker_period_clears WHERE user_id=%s""", (worker_id,))
+    cleared_keys = set((r["year"], r["month"], r["half"]) for r in cur.fetchall())
 
     # هات كل (سنة/شهر/نصف) فيه أي بيانات للعامل ده — عشان المدد القديمة
     # اللي لسه المسؤول ما أكّدش استلامها متفضل ظاهره.
@@ -916,6 +932,9 @@ def worker_stats(worker_id):
     cur_half = 1 if today.day <= 15 else 2
     # المدة الحالية دايماً بتتعرض — حتى لو فاضية
     period_keys.add((today.year, today.month, cur_half))
+    # نستبعد المدد اللي المسؤول أكّد استلامها بالفعل
+    period_keys = period_keys - cleared_keys
+    current_key = (today.year, today.month, cur_half)
 
     AR_DAYS = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"]
     AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -1048,6 +1067,21 @@ def worker_stats(worker_id):
 
     cur.close()
 
+    # ==== المدة الحالية فقط (لعرض "نصيبي هذا الشهر" في الهيرو) ====
+    current_pending_chicks = 0
+    current_pending_money  = 0
+    current_bonus = 0
+    current_deduct = 0
+    current_settled_chicks = 0
+    for _p in periods_out:
+        if _p["is_current"]:
+            current_pending_chicks = _p["pending_chicks"]
+            current_pending_money  = _p["pending_money"]
+            current_bonus          = _p["bonus_total"]
+            current_deduct         = _p["deduct_total"]
+            current_settled_chicks = _p["settled_chicks"]
+            break
+
     return render_template("worker_stats.html",
                            worker=worker,
                            periods=periods_out,
@@ -1056,6 +1090,11 @@ def worker_stats(worker_id):
                            grand_bonus=grand_bonus,
                            grand_deduct=grand_deduct,
                            grand_settled_chicks=grand_settled_chicks,
+                           current_pending_chicks=current_pending_chicks,
+                           current_pending_money=current_pending_money,
+                           current_bonus=current_bonus,
+                           current_deduct=current_deduct,
+                           current_settled_chicks=current_settled_chicks,
                            today_iso=today.isoformat(),
                            is_admin_view=(me["role"] == "admin"),
                            is_self=(me["id"] == worker_id))
@@ -1066,9 +1105,10 @@ def worker_stats(worker_id):
 @admin_required
 def admin_worker_clear_period():
     """
-    المسؤول يأكد إنه استلم أموال العامل عن المدة دي (نصف شهر) —
-    البيانات الخاصة بالعامل في المدة (حضور + تعديلات + تصفيات + محاسبة يومية)
-    بتتمسح من قاعدة البيانات، والمدة بتختفي من عرض العامل.
+    المسؤول يأكد إنه استلم أموال العامل عن المدة دي (نصف شهر).
+    مهم: مابنمسحش صفوف الحضور (attendance) عشان توزيع الكتاكيت على باقي
+    العمال يفضل زي ما هو. بنعلّم المدة كـ "متسلَّمة" للعامل ده بس، ومسح
+    الحاجات الخاصة بيه فقط (تعديلات/تصفيات/محاسبات يومية).
     """
     try:
         user_id = int(request.form.get("user_id") or 0)
@@ -1087,14 +1127,47 @@ def admin_worker_clear_period():
         s = date(y, m, 1).isoformat();  e = date(y, m, min(15, last_day)).isoformat()
     else:
         s = date(y, m, 16).isoformat(); e = date(y, m, last_day).isoformat()
+    me_u = current_user()
     db = get_db(); cur = db.cursor()
     try:
-        cur.execute("DELETE FROM attendance          WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+        cur.execute("""CREATE TABLE IF NOT EXISTS worker_period_clears (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            year INTEGER NOT NULL, month INTEGER NOT NULL,
+            half INTEGER NOT NULL CHECK(half IN (1,2)),
+            cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            cleared_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            total_snapshot INTEGER NOT NULL DEFAULT 0,
+            days_snapshot INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, year, month, half)
+        )""")
+        # snapshot لعدد كتاكيت العامل وأيامه في المدة قبل ما نخفيها
+        cur.execute("""SELECT COUNT(*) AS d FROM attendance
+                       WHERE user_id=%s AND day BETWEEN %s AND %s""", (user_id, s, e))
+        days_snap = int(cur.fetchone()["d"] or 0)
+        cur.execute("""SELECT COALESCE(SUM(c.total_count::float /
+                          NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
+                       ),0) AS shr
+                       FROM day_closures c
+                       WHERE c.day BETWEEN %s AND %s
+                         AND EXISTS(SELECT 1 FROM attendance a2
+                                    WHERE a2.day=c.day AND a2.user_id=%s)""",
+                    (s, e, user_id))
+        total_snap = int(cur.fetchone()["shr"] or 0)
+        # نمسح فقط الحاجات الخاصة بالعامل ده (ملهاش تأثير على غيره)
         cur.execute("DELETE FROM worker_adjustments  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
         cur.execute("DELETE FROM worker_day_settle   WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
         cur.execute("DELETE FROM worker_settlements  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+        # نسجّل إن المدة اتسلّمت للعامل ده — من غير ما نلمس الحضور
+        cur.execute("""INSERT INTO worker_period_clears
+            (user_id, year, month, half, cleared_by, total_snapshot, days_snapshot)
+            VALUES(%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (user_id, year, month, half) DO UPDATE SET
+              cleared_at=NOW(), cleared_by=EXCLUDED.cleared_by,
+              total_snapshot=EXCLUDED.total_snapshot,
+              days_snapshot=EXCLUDED.days_snapshot""",
+                    (user_id, y, m, half, me_u["id"], total_snap, days_snap))
         db.commit()
-        flash("تم تأكيد استلام الأموال وتصفير المدة ✓ — البيانات اتشالت من قاعدة البيانات", "success")
+        flash("تم تأكيد استلام الأموال وتصفير المدة ✓ — توزيع الكتاكيت على باقي العمال متغيّرش", "success")
     except Exception as ex:
         db.rollback()
         flash("خطأ أثناء التصفير: " + str(ex), "error")
@@ -1651,8 +1724,19 @@ def admin_close_page():
 @app.route("/admin/gross-log")
 @admin_required
 def admin_gross_log():
+    import calendar as _cal
     db = get_db()
     cur = db.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS no_deduct_clears (
+        year INTEGER NOT NULL, month INTEGER NOT NULL,
+        half INTEGER NOT NULL CHECK(half IN (1,2)),
+        cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        cleared_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        total_snapshot INTEGER NOT NULL DEFAULT 0,
+        days_snapshot INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (year, month, half)
+    )""")
+
     cur.execute("""SELECT day, total_count, no_deduct_total, closed_at
                    FROM day_closures
                    WHERE COALESCE(no_deduct_total,0) > 0
@@ -1660,8 +1744,150 @@ def admin_gross_log():
     rows = cur.fetchall()
     cur.execute("SELECT COALESCE(SUM(no_deduct_total),0) AS s FROM day_closures")
     grand = int(cur.fetchone()["s"] or 0)
+
+    # المدة الحالية (نصف شهر)
+    today = date.today()
+    cur_half = 1 if today.day <= 15 else 2
+    last_day = _cal.monthrange(today.year, today.month)[1]
+    if cur_half == 1:
+        cur_s = date(today.year, today.month, 1).isoformat()
+        cur_e = date(today.year, today.month, min(15, last_day)).isoformat()
+        cur_label = f"النصف الأول (1-15) — {today.month}/{today.year}"
+    else:
+        cur_s = date(today.year, today.month, 16).isoformat()
+        cur_e = date(today.year, today.month, last_day).isoformat()
+        cur_label = f"النصف الثاني (16-{last_day}) — {today.month}/{today.year}"
+    cur.execute("""SELECT COALESCE(SUM(no_deduct_total),0) AS s, COUNT(*) AS c
+                   FROM day_closures WHERE day BETWEEN %s AND %s
+                     AND COALESCE(no_deduct_total,0)>0""",
+                (cur_s, cur_e))
+    r = cur.fetchone()
+    current_period = {
+        "year": today.year, "month": today.month, "half": cur_half,
+        "label": cur_label, "start": cur_s, "end": cur_e,
+        "total": int(r["s"] or 0), "days": int(r["c"] or 0),
+    }
+
+    # المدد السابقة اللي فيها بيانات ومش متصفّرة
+    cur.execute("""SELECT EXTRACT(YEAR FROM day)::int AS y,
+                          EXTRACT(MONTH FROM day)::int AS m,
+                          CASE WHEN EXTRACT(DAY FROM day)<=15 THEN 1 ELSE 2 END AS half,
+                          COALESCE(SUM(no_deduct_total),0) AS s,
+                          COUNT(*) AS c
+                   FROM day_closures
+                   WHERE COALESCE(no_deduct_total,0)>0
+                   GROUP BY 1,2,3
+                   ORDER BY 1 DESC, 2 DESC, 3 DESC""")
+    all_periods = cur.fetchall()
+    cur.execute("SELECT year, month, half, total_snapshot, days_snapshot, cleared_at FROM no_deduct_clears ORDER BY year DESC, month DESC, half DESC")
+    cleared_rows = cur.fetchall()
+    cleared_keys = set((r["year"], r["month"], r["half"]) for r in cleared_rows)
+    past_periods = []
+    for p in all_periods:
+        k = (p["y"], p["m"], p["half"])
+        if k == (today.year, today.month, cur_half):
+            continue
+        if k in cleared_keys:
+            continue
+        last_d = _cal.monthrange(p["y"], p["m"])[1]
+        if p["half"] == 1:
+            lab = f"النصف الأول (1-15) — {p['m']}/{p['y']}"
+        else:
+            lab = f"النصف الثاني (16-{last_d}) — {p['m']}/{p['y']}"
+        past_periods.append({
+            "year": p["y"], "month": p["m"], "half": p["half"],
+            "label": lab, "total": int(p["s"] or 0), "days": int(p["c"] or 0),
+        })
+
+    cleared_list = []
+    for r in cleared_rows:
+        last_d = _cal.monthrange(r["year"], r["month"])[1]
+        if r["half"] == 1:
+            lab = f"النصف الأول (1-15) — {r['month']}/{r['year']}"
+        else:
+            lab = f"النصف الثاني (16-{last_d}) — {r['month']}/{r['year']}"
+        cleared_list.append({
+            "year": r["year"], "month": r["month"], "half": r["half"], "label": lab,
+            "total": int(r["total_snapshot"] or 0), "days": int(r["days_snapshot"] or 0),
+            "cleared_at": r["cleared_at"],
+        })
+
     cur.close()
-    return render_template("admin_gross_log.html", rows=rows, grand=grand)
+    return render_template("admin_gross_log.html",
+                           rows=rows, grand=grand,
+                           current_period=current_period,
+                           past_periods=past_periods,
+                           cleared_list=cleared_list)
+
+
+@app.route("/admin/gross-log/clear-period", methods=["POST"])
+@admin_required
+def admin_gross_clear_period():
+    import calendar as _cal
+    try:
+        y = int(request.form.get("year") or 0)
+        m = int(request.form.get("month") or 0)
+        half = int(request.form.get("half") or 0)
+    except (TypeError, ValueError):
+        flash("مدخلات غير صالحة", "error")
+        return redirect(url_for("admin_gross_log"))
+    if not (y and m and half in (1, 2)):
+        flash("مدخلات غير صالحة", "error")
+        return redirect(url_for("admin_gross_log"))
+    last_day = _cal.monthrange(y, m)[1]
+    if half == 1:
+        s = date(y, m, 1).isoformat();  e = date(y, m, min(15, last_day)).isoformat()
+    else:
+        s = date(y, m, 16).isoformat(); e = date(y, m, last_day).isoformat()
+    me_u = current_user()
+    db = get_db(); cur = db.cursor()
+    try:
+        cur.execute("""CREATE TABLE IF NOT EXISTS no_deduct_clears (
+            year INTEGER NOT NULL, month INTEGER NOT NULL,
+            half INTEGER NOT NULL CHECK(half IN (1,2)),
+            cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            cleared_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            total_snapshot INTEGER NOT NULL DEFAULT 0,
+            days_snapshot INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (year, month, half)
+        )""")
+        cur.execute("""SELECT COALESCE(SUM(no_deduct_total),0) AS s, COUNT(*) AS c
+                       FROM day_closures WHERE day BETWEEN %s AND %s""", (s, e))
+        r = cur.fetchone()
+        total = int(r["s"] or 0); days = int(r["c"] or 0)
+        cur.execute("""INSERT INTO no_deduct_clears(year,month,half,cleared_by,total_snapshot,days_snapshot)
+                       VALUES(%s,%s,%s,%s,%s,%s)
+                       ON CONFLICT (year,month,half) DO UPDATE SET
+                         cleared_at=NOW(), cleared_by=EXCLUDED.cleared_by,
+                         total_snapshot=EXCLUDED.total_snapshot,
+                         days_snapshot=EXCLUDED.days_snapshot""",
+                    (y, m, half, me_u["id"], total, days))
+        # نصفّر عمود no_deduct_total للأيام دي (بس أعمدة اليوم/التوزيع بتفضل زي ما هي)
+        cur.execute("UPDATE day_closures SET no_deduct_total=0 WHERE day BETWEEN %s AND %s", (s, e))
+        db.commit()
+        flash(f"تم تصفير الأعداد بدون خصم للمدة ({total:,}) ✓", "success")
+    except Exception as ex:
+        db.rollback()
+        flash("خطأ: " + str(ex), "error")
+    finally:
+        cur.close()
+    return redirect(url_for("admin_gross_log"))
+
+
+@app.route("/admin/gross-log/undo-clear", methods=["POST"])
+@admin_required
+def admin_gross_undo_clear():
+    try:
+        y = int(request.form.get("year") or 0)
+        m = int(request.form.get("month") or 0)
+        half = int(request.form.get("half") or 0)
+    except (TypeError, ValueError):
+        return redirect(url_for("admin_gross_log"))
+    db = get_db(); cur = db.cursor()
+    cur.execute("DELETE FROM no_deduct_clears WHERE year=%s AND month=%s AND half=%s", (y, m, half))
+    db.commit(); cur.close()
+    flash("تم حذف علامة التصفير — المدة رجعت للعرض", "success")
+    return redirect(url_for("admin_gross_log"))
 
 
 # ---- بروفايل العامل ----
@@ -1768,11 +1994,21 @@ def admin_range_report():
     """)
     # عمود إضافي لحفظ إجمالي "الأعداد بدون خصم" داخل التقرير كمرجع
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS distributed_total INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_kind TEXT")
+    cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_id INTEGER")
+    cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_label TEXT")
+
+    # قايمة كل العمال + المسؤولين للـ dropdown
+    cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
+    all_people = cur.fetchall()
+    workers_list = [p for p in all_people if p["role"] == "worker"]
+    admins_list  = [p for p in all_people if p["role"] == "admin"]
 
     result = None
     if request.method == "POST":
         start_s = (request.form.get("start_day") or "").strip()
         end_s   = (request.form.get("end_day") or "").strip()
+        target  = (request.form.get("target") or "no_deduct").strip()
         note    = None
         try:
             start_d = datetime.strptime(start_s, "%Y-%m-%d").date()
@@ -1783,36 +2019,102 @@ def admin_range_report():
             return redirect(url_for("admin_range_report"))
         if end_d < start_d:
             start_d, end_d = end_d, start_d
+        s_iso = start_d.isoformat(); e_iso = end_d.isoformat()
+
+        # أساسيات مشتركة (مرجع)
         cur.execute(
             "SELECT COALESCE(SUM(no_deduct_total),0) AS s_nd, "
             "COALESCE(SUM(total_count),0) AS s_dist, COUNT(*) AS c "
             "FROM day_closures WHERE day BETWEEN %s AND %s",
-            (start_d.isoformat(), end_d.isoformat()),
+            (s_iso, e_iso),
         )
         row = cur.fetchone()
-        total = int(row["s_nd"] or 0)                # الإجمالي المحسوب من "الأعداد بدون خصم"
-        distributed_total = int(row["s_dist"] or 0)  # الإجمالي الموزّع على العمال (مرجع فقط)
+        s_nd   = int(row["s_nd"] or 0)
+        s_dist = int(row["s_dist"] or 0)
         days_count = int(row["c"] or 0)
+
+        target_kind  = "no_deduct"
+        target_id    = None
+        target_label = "إجمالي بدون خصم"
+        total = s_nd
+
+        if target == "no_deduct":
+            target_kind = "no_deduct"; target_label = "إجمالي بدون خصم"
+            total = s_nd
+        elif target == "after_deduct":
+            target_kind = "after_deduct"; target_label = "إجمالي بعد الخصم (الموزَّع)"
+            total = s_dist
+        elif target.startswith("worker:"):
+            try:
+                wid = int(target.split(":", 1)[1])
+            except ValueError:
+                wid = 0
+            if wid:
+                cur.execute("SELECT full_name FROM users WHERE id=%s AND role='worker'", (wid,))
+                wr = cur.fetchone()
+                if wr:
+                    # نصيب العامل = مجموع (total_count / عدد الحضور في اليوم) على الأيام اللي حضرها
+                    cur.execute("""
+                        SELECT COALESCE(SUM(c.total_count::float /
+                                 NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
+                               ),0) AS shr,
+                               (SELECT COUNT(*) FROM attendance a2
+                                WHERE a2.user_id=%s AND a2.day BETWEEN %s AND %s) AS att_days
+                        FROM day_closures c
+                        WHERE c.day BETWEEN %s AND %s
+                          AND EXISTS(SELECT 1 FROM attendance a3
+                                     WHERE a3.day=c.day AND a3.user_id=%s)
+                    """, (wid, s_iso, e_iso, s_iso, e_iso, wid))
+                    r2 = cur.fetchone()
+                    total = int(r2["shr"] or 0)
+                    days_count = int(r2["att_days"] or 0)
+                    target_kind = "worker"; target_id = wid
+                    target_label = f"نصيب العامل: {wr['full_name']}"
+        elif target.startswith("admin:"):
+            try:
+                aid = int(target.split(":", 1)[1])
+            except ValueError:
+                aid = 0
+            if aid:
+                cur.execute("SELECT full_name FROM users WHERE id=%s AND role='admin'", (aid,))
+                ar = cur.fetchone()
+                if ar:
+                    cur.execute("""SELECT COALESCE(SUM(total_count),0) AS s,
+                                          COUNT(*) AS c
+                                   FROM day_closures
+                                   WHERE closed_by=%s AND day BETWEEN %s AND %s""",
+                                (aid, s_iso, e_iso))
+                    r3 = cur.fetchone()
+                    total = int(r3["s"] or 0)
+                    days_count = int(r3["c"] or 0)
+                    target_kind = "admin"; target_id = aid
+                    target_label = f"أيام أقفلها المسؤول: {ar['full_name']}"
+
         cur.execute(
-            "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-            (u["id"], start_d.isoformat(), end_d.isoformat(), total, days_count, note, distributed_total),
+            "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total, target_kind, target_id, target_label) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+            (u["id"], s_iso, e_iso, total, days_count, note, s_dist, target_kind, target_id, target_label),
         )
         db.commit()
         result = {
-            "start": start_d.isoformat(), "end": end_d.isoformat(),
-            "total": total, "distributed_total": distributed_total,
+            "start": s_iso, "end": e_iso,
+            "total": total, "distributed_total": s_dist,
+            "no_deduct_total": s_nd,
             "days": days_count, "note": note,
+            "target_kind": target_kind, "target_label": target_label,
         }
-        flash("تم حساب التقرير من (الأعداد بدون خصم) وحفظه ✓", "success")
+        flash(f"تم حساب التقرير ({target_label}) وحفظه ✓", "success")
 
     cur.execute(
-        "SELECT id, start_day, end_day, total, days_count, note, created_at, distributed_total "
+        "SELECT id, start_day, end_day, total, days_count, note, created_at, "
+        "distributed_total, target_kind, target_label "
         "FROM range_reports ORDER BY created_at DESC LIMIT 100"
     )
     reports = cur.fetchall()
     cur.close()
-    return render_template("admin_range_report.html", result=result, reports=reports)
+    return render_template("admin_range_report.html",
+                           result=result, reports=reports,
+                           workers_list=workers_list, admins_list=admins_list)
 
 
 @app.route("/admin/range-report/<int:rid>/delete", methods=["POST"])
