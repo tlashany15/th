@@ -1,0 +1,143 @@
+/* ============================================================
+   Polish v2 — يوحّد "روح" صفحة تقرير الفترة على باقي التطبيق:
+   - حقول التاريخ مضبوطة ما تبرزش برّة إطار الصفحة
+   - أزرار مشاركة واتساب بلمسة موحّدة (أخضر مدرّج)
+   - شرائح فلاتر / أزرار أكشن هادية ومحترمة
+   - كل عناصر النماذج آمنة داخل الجريد (min-width:0)
+   بدون ما نغيّر أي منطق للتطبيق.
+   ============================================================ */
+
+/* ---------- 1) أمان الحقول جوّه الجريد ---------- */
+.container form, .container .card, .container .rr2-card{ min-width:0; }
+.field, .rr-field, .rr2-date, .rr2-person-wrap{ min-width:0; }
+
+/* ---------- 2) حقول التاريخ في كل التطبيق ---------- */
+/* أمان بس: مايبرزش برّة الإطار + تنسيق فوكس ذهبي.
+   ما بنغيّرش شكل عرض التاريخ ولا أيقونة المتصفح الافتراضية
+   عشان التاريخ يفضل يظهر بشكله الطبيعي المعتاد. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="time"]{
+  box-sizing:border-box;
+  max-width:100%;
+  min-width:0;
+  color-scheme:dark;
+  font-variant-numeric:tabular-nums;
+}
+/* focus بذوق الصفحة الذهبية */
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="month"]:focus,
+input[type="time"]:focus{
+  border-color:#ffbe57 !important;
+  box-shadow:0 0 0 3px rgba(255,190,87,.18) !important;
+  outline:none;
+}
+
+/* شبكات "من / إلى" ما تفلتش برّة الصفحة */
+.rr-dates, .rr2-dates, .date-range, .range-dates{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:8px;min-width:0;
+}
+.rr-dates > *, .date-range > *, .range-dates > *{ min-width:0; }
+
+/* ---------- 3) زر مشاركة واتساب موحّد ---------- */
+.wa-share,
+a.contact-btn-wa,
+a.contact-dev-btn{
+  background:linear-gradient(135deg,#25d366,#128c7e) !important;
+  color:#fff !important;
+  border:1px solid transparent !important;
+  box-shadow:0 10px 24px -12px rgba(37,211,102,.55),
+             inset 0 1px 0 rgba(255,255,255,.25) !important;
+  transition:transform .15s ease, filter .15s ease, box-shadow .15s ease;
+}
+.wa-share:hover,
+a.contact-btn-wa:hover,
+a.contact-dev-btn:hover{
+  filter:brightness(1.08);
+  transform:translateY(-1px);
+  box-shadow:0 14px 30px -12px rgba(37,211,102,.7),
+             inset 0 1px 0 rgba(255,255,255,.3) !important;
+}
+.wa-share:active,
+a.contact-btn-wa:active,
+a.contact-dev-btn:active{ transform:scale(.97); }
+
+.wa-share{
+  all:unset;box-sizing:border-box;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 14px;border-radius:12px;
+  font-size:13px;font-weight:800;white-space:nowrap;
+}
+.wa-share svg{ width:16px;height:16px;flex-shrink:0; }
+
+/* ---------- 4) شرائح الفلاتر + أزرار أكشن هادية ---------- */
+.chip-row{ display:flex;flex-wrap:wrap;gap:6px; }
+.chip-btn{
+  all:unset;cursor:pointer;box-sizing:border-box;
+  font-size:11.5px;font-weight:700;
+  padding:7px 12px;border-radius:999px;
+  color:#f5d9a8;
+  background:rgba(255,190,87,.08);
+  border:1px solid rgba(255,190,87,.18);
+  transition:background .18s ease, color .18s ease, transform .12s ease;
+  white-space:nowrap;
+}
+.chip-btn:hover{ background:rgba(255,190,87,.16);color:#fff; }
+.chip-btn:active{ transform:scale(.96); }
+.chip-btn.active{
+  background:linear-gradient(180deg,#ffbe57,#e88a2e);
+  color:#1a0800;border-color:transparent;
+}
+
+.act-row{ display:flex;gap:6px;flex-wrap:wrap; }
+.act-btn{
+  all:unset;box-sizing:border-box;cursor:pointer;
+  flex:1 1 auto;min-width:0;text-align:center;
+  padding:10px 8px;border-radius:12px;
+  font-size:12px;font-weight:800;
+  color:#ffbe57;border:1px solid rgba(255,190,87,.22);
+  background:rgba(0,0,0,.35);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .15s ease, color .15s ease, transform .12s ease;
+}
+.act-btn svg{ width:14px;height:14px;flex-shrink:0; }
+.act-btn:hover{ background:rgba(255,190,87,.1);color:#fff; }
+.act-btn:active{ transform:scale(.97); }
+.act-btn.primary{
+  background:linear-gradient(135deg,#25d366,#128c7e);
+  color:#fff;border-color:transparent;
+}
+
+/* ---------- 5) كارت "ذهبي" اختياري بنفس روح التقرير ---------- */
+.gold-card{
+  background:linear-gradient(180deg,rgba(28,20,14,.9),rgba(18,12,8,.92));
+  border:1px solid rgba(255,190,87,.14);
+  border-radius:20px;padding:16px;margin-bottom:14px;
+  box-shadow:0 12px 40px -24px rgba(0,0,0,.9),
+             inset 0 1px 0 rgba(255,255,255,.03);
+}
+.gold-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:800;letter-spacing:.3px;
+  padding:6px 12px;border-radius:999px;color:#ffd58a;
+  background:linear-gradient(180deg,rgba(255,190,87,.16),rgba(255,190,87,.06));
+  border:1px solid rgba(255,190,87,.35);
+}
+
+/* ---------- 6) شاشات ضيّقة: تشديد المسافات ---------- */
+@media (max-width:360px){
+  .rr-dates, .rr2-dates, .date-range, .range-dates{ gap:6px; }
+  input[type="date"], input[type="datetime-local"]{ font-size:12.5px; }
+  .chip-btn{ font-size:11px;padding:6px 10px; }
+  .act-btn{ font-size:11.5px;padding:9px 6px; }
+  .wa-share{ font-size:12.5px;padding:10px 12px; }
+}
+
+/* ---------- 7) أزرار واتساب اللي في الصفحات الحالية ---------- */
+/* login / dashboard "تواصل مع المطوّر" بيبقوا موحّدين بروح التقرير */
+a.contact-btn-wa svg,
+a.contact-dev-btn svg{ filter:drop-shadow(0 1px 0 rgba(0,0,0,.2)); }
