@@ -143,8 +143,20 @@
 .rr2-date-input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
 .rr2-date-input.is-invalid{border-color:#ff5d5d;box-shadow:0 0 0 3px rgba(255,93,93,.16)}
 .rr2-date-ico{
-  position:absolute;top:50%;left:12px;transform:translateY(-50%);
-  width:16px;height:16px;color:#ffbe57;pointer-events:none;z-index:1;
+  position:absolute;top:50%;left:6px;transform:translateY(-50%);
+  width:32px;height:32px;color:#ffbe57;z-index:2;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;cursor:pointer;
+  background:transparent;border:0;padding:0;
+  transition:.15s;
+}
+.rr2-date-ico svg{width:18px;height:18px}
+.rr2-date-btn:hover{background:rgba(255,190,87,.14);color:#fff}
+.rr2-date-btn:active{transform:translateY(-50%) scale(.94)}
+.rr2-date-native{
+  position:absolute;inset:0;width:100%;height:100%;
+  opacity:0;pointer-events:none;border:0;padding:0;margin:0;
+  color-scheme:dark;
 }
 
 /* submit */
@@ -334,13 +346,19 @@
         <label for="start_day">من</label>
         <input class="rr2-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="1/7/2026" required>
         <input type="hidden" id="start_day" name="start_day">
-        <svg class="rr2-date-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+        <input type="date" class="rr2-date-native" id="start_day_native" aria-hidden="true" tabindex="-1">
+        <button type="button" class="rr2-date-ico rr2-date-btn" id="start_day_btn" aria-label="اختر التاريخ من التقويم">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+        </button>
       </div>
       <div class="rr2-date">
         <label for="end_day">إلى</label>
         <input class="rr2-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="1/7/2026" required>
         <input type="hidden" id="end_day" name="end_day">
-        <svg class="rr2-date-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+        <input type="date" class="rr2-date-native" id="end_day_native" aria-hidden="true" tabindex="-1">
+        <button type="button" class="rr2-date-ico rr2-date-btn" id="end_day_btn" aria-label="اختر التاريخ من التقويم">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+        </button>
       </div>
     </div>
 
@@ -526,6 +544,33 @@
     const hidden = i === 0 ? sd : ed;
     input.addEventListener('blur', () => syncDate(hidden, input));
     input.addEventListener('input', () => input.classList.remove('is-invalid'));
+  });
+
+  // Native calendar picker — tap the icon to open OS date picker
+  const sdNative = document.getElementById('start_day_native');
+  const edNative = document.getElementById('end_day_native');
+  const sdBtn = document.getElementById('start_day_btn');
+  const edBtn = document.getElementById('end_day_btn');
+  function openPicker(native){
+    if (!native) return;
+    native.style.pointerEvents = 'auto';
+    try { native.focus({preventScroll:true}); } catch(_) { native.focus(); }
+    if (typeof native.showPicker === 'function') {
+      try { native.showPicker(); } catch(_) { native.click(); }
+    } else {
+      native.click();
+    }
+    setTimeout(() => { native.style.pointerEvents = 'none'; }, 300);
+  }
+  [[sdBtn, sdNative, sd, sdView], [edBtn, edNative, ed, edView]].forEach(([btn, native, hidden, view]) => {
+    if (!btn || !native) return;
+    btn.addEventListener('click', (e) => { e.preventDefault(); native.value = hidden.value || ''; openPicker(native); });
+    native.addEventListener('change', () => {
+      if (!native.value) return;
+      const [y, m, d] = native.value.split('-').map(Number);
+      const dt = new Date(y, m - 1, d, 12, 0, 0, 0);
+      if (!isNaN(dt.getTime())) setDatePair(hidden, view, dt);
+    });
   });
 
   // Presets
