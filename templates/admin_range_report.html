@@ -125,27 +125,23 @@
   font-size:10.5px;font-weight:800;color:#ffbe57;padding:0 6px;
   background:#150e08;border-radius:6px;z-index:2;letter-spacing:.2px;
 }
-.rr2-date input{
+.rr2-date-input{
   width:100%;max-width:100%;
   padding:13px 14px 13px 40px;
   border-radius:12px;
   background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.22);
-  color:#fff;font-size:14px;font-weight:700;letter-spacing:.3px;
+  color:#fff;font-size:16px;font-weight:800;letter-spacing:0;
   outline:none;transition:.2s;
   box-sizing:border-box;font-family:inherit;
-  color-scheme:dark;
   direction:ltr;text-align:left;
-  cursor:pointer;min-width:0;line-height:1.2;
+  cursor:text;min-width:0;line-height:1.2;
   -webkit-appearance:none;appearance:none;
   min-height:46px;
+  unicode-bidi:plaintext;
 }
-.rr2-date input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
-.rr2-date input::-webkit-date-and-time-value{text-align:left}
-.rr2-date input::-webkit-calendar-picker-indicator{
-  position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
-}
-.rr2-date input::-webkit-inner-spin-button,
-.rr2-date input::-webkit-clear-button{display:none;-webkit-appearance:none}
+.rr2-date-input::placeholder{color:rgba(255,255,255,.42);font-weight:700}
+.rr2-date-input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
+.rr2-date-input.is-invalid{border-color:#ff5d5d;box-shadow:0 0 0 3px rgba(255,93,93,.16)}
 .rr2-date-ico{
   position:absolute;top:50%;left:12px;transform:translateY(-50%);
   width:16px;height:16px;color:#ffbe57;pointer-events:none;z-index:1;
@@ -336,12 +332,14 @@
     <div class="rr2-dates">
       <div class="rr2-date">
         <label for="start_day">من</label>
-        <input type="date" id="start_day" name="start_day" required>
+        <input class="rr2-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="1/7/2026" required>
+        <input type="hidden" id="start_day" name="start_day">
         <svg class="rr2-date-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
       </div>
       <div class="rr2-date">
         <label for="end_day">إلى</label>
-        <input type="date" id="end_day" name="end_day" required>
+        <input class="rr2-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="1/7/2026" required>
+        <input type="hidden" id="end_day" name="end_day">
         <svg class="rr2-date-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
       </div>
     </div>
@@ -361,7 +359,7 @@
     </div>
     <div style="flex:1;min-width:0">
       <div class="rr2-r-t">نتيجة الفترة</div>
-      <div class="rr2-r-s">{{ result.start }} → {{ result.end }} · {{ result.days }} يوم</div>
+      <div class="rr2-r-s">{{ result.start_display or result.start }} → {{ result.end_display or result.end }} · {{ result.days }} يوم</div>
       <span class="rr2-r-label">{{ result.target_label }}</span>
     </div>
   </div>
@@ -420,7 +418,7 @@
       <div class="rr2-item">
         <div class="rr2-item-l">
           <div class="rr2-item-range">
-            {{ r.start_day }} → {{ r.end_day }}
+            {{ r.start_day.day }}/{{ r.start_day.month }}/{{ r.start_day.year }} → {{ r.end_day.day }}/{{ r.end_day.month }}/{{ r.end_day.year }}
             <small>{{ r.days_count }} يوم</small>
           </div>
           <div class="rr2-item-meta">{{ r.target_label or 'إجمالي بدون خصم' }}</div>
@@ -495,8 +493,42 @@
     });
   });
 
+  // Dates: show day/month/year (1/7/2026) while submitting ISO to the server
+  const sdView = document.getElementById('start_day_display');
+  const edView = document.getElementById('end_day_display');
+  const pad = n => String(n).padStart(2, '0');
+  const fmtIso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const fmtDisplay = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  function parseDisplayDate(v){
+    const m = String(v || '').trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/);
+    if (!m) return null;
+    const day = Number(m[1]);
+    const month = Number(m[2]);
+    let year = Number(m[3]);
+    if (year < 100) year += 2000;
+    if (day < 1 || month < 1 || month > 12) return null;
+    const d = new Date(year, month - 1, day, 12, 0, 0, 0);
+    if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+    return d;
+  }
+  function setDatePair(hidden, visible, date){
+    hidden.value = fmtIso(date);
+    visible.value = fmtDisplay(date);
+    visible.classList.remove('is-invalid');
+  }
+  function syncDate(hidden, visible){
+    const d = parseDisplayDate(visible.value);
+    if (!d) { hidden.value = ''; visible.classList.add('is-invalid'); return false; }
+    setDatePair(hidden, visible, d);
+    return true;
+  }
+  [sdView, edView].forEach((input, i) => {
+    const hidden = i === 0 ? sd : ed;
+    input.addEventListener('blur', () => syncDate(hidden, input));
+    input.addEventListener('input', () => input.classList.remove('is-invalid'));
+  });
+
   // Presets
-  const fmt = d => d.toISOString().slice(0,10);
   presetsBox.addEventListener('click', e => {
     const b = e.target.closest('.rr2-preset');
     if (!b) return;
@@ -515,11 +547,17 @@
         en = new Date(now.getFullYear(), now.getMonth(), 0);
         break;
     }
-    sd.value = fmt(s); ed.value = fmt(en);
+    setDatePair(sd, sdView, s); setDatePair(ed, edView, en);
   });
 
   // Validate before submit
   form.addEventListener('submit', e => {
+    const datesOk = syncDate(sd, sdView) & syncDate(ed, edView);
+    if (!datesOk) {
+      e.preventDefault();
+      alert('اكتب التاريخ بالشكل ده: 1/7/2026');
+      return;
+    }
     if (target.value === 'person:' || target.value === 'person:null') {
       e.preventDefault();
       alert('اختار شخص من القائمة الأول');
@@ -530,7 +568,7 @@
   {% if result %}
   const total = "{{ '{:,}'.format(result.total) }}";
   const label = "{{ result.target_label }}";
-  const range = "{{ result.start }} → {{ result.end }}";
+  const range = "{{ result.start_display or result.start }} → {{ result.end_display or result.end }}";
   const days  = "{{ result.days }}";
   const money = {{ 'true' if result.is_money else 'false' }};
   const chicks = "{{ '{:,}'.format(result.chick_count) }}";
@@ -569,7 +607,7 @@
   {% endif %}
 
   // Default: today
-  if (!sd.value) { const t = new Date(); t.setHours(12,0,0,0); sd.value = fmt(t); ed.value = fmt(t); }
+  if (!sd.value) { const t = new Date(); t.setHours(12,0,0,0); setDatePair(sd, sdView, t); setDatePair(ed, edView, t); }
 })();
 </script>
 
