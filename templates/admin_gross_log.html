@@ -49,7 +49,7 @@
   </div>
   {% if current_period.total > 0 %}
   <form method="post" action="{{ url_for('admin_gross_clear_period') }}" style="margin-top:10px;"
-        onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير عمود (بدون خصم) لأيام هذه المدة وحفظها كـ snapshot.',{title:'تصفير أعداد بدون خصم للمدة الحالية؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير أعداد بدون خصم للمدة الحالية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+        onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير عمود (بدون خصم) لأيام هذه المدة نهائيًا بدون أرشيف.',{title:'تصفير أعداد بدون خصم للمدة الحالية؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير أعداد بدون خصم للمدة الحالية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
     <input type="hidden" name="year"  value="{{ current_period.year }}">
     <input type="hidden" name="month" value="{{ current_period.month }}">
     <input type="hidden" name="half"  value="{{ current_period.half }}">
@@ -94,38 +94,6 @@
 </div>
 {% endif %}
 
-<!-- ==== المدد المتصفَّرة (سجل) ==== -->
-{% if cleared_list %}
-<div class="card">
-  <div class="sec-head">
-    <div class="sec-h-l">
-      <div class="sec-h-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-      </div>
-      <div>
-        <div class="sec-h-t">مدد اتصفّرت (مرجع)</div>
-        <div class="sec-h-s">snapshot لكل مدة قبل التصفير</div>
-      </div>
-    </div>
-  </div>
-  <div class="gl-list">
-    {% for p in cleared_list %}
-    <div class="gl-row" style="flex-wrap:wrap;opacity:.85;">
-      <div class="gl-body" style="flex:1 1 60%;">
-        <div class="gl-nd" style="color:#8fe0b3;">{{ '{:,}'.format(p.total) }} <span>بدون خصم (متصفَّرة)</span></div>
-        <div class="gl-tot">{{ p.label }} · {{ p.days }} يوم</div>
-      </div>
-      <form method="post" action="{{ url_for('admin_gross_undo_clear') }}">
-        <input type="hidden" name="year"  value="{{ p.year }}">
-        <input type="hidden" name="month" value="{{ p.month }}">
-        <input type="hidden" name="half"  value="{{ p.half }}">
-        <button type="submit" class="btn btn-ghost" style="padding:6px 10px;font-size:11px;">تراجع</button>
-      </form>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
 
 <div class="card">
   <div class="sec-head">

@@ -26,7 +26,7 @@
         </optgroup>
         <optgroup label="مسؤول محدد">
           {% for a in admins_list %}
-            <option value="admin:{{ a.id }}">أيام أقفلها: {{ a.full_name }}</option>
+            <option value="admin:{{ a.id }}">نصيب: {{ a.full_name }}</option>
           {% endfor %}
         </optgroup>
       </select>
