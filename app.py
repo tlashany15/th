@@ -1944,6 +1944,7 @@ def admin_range_report():
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_kind TEXT")
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_id INTEGER")
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_label TEXT")
+    cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS chick_count INTEGER NOT NULL DEFAULT 0")
 
     # قايمة كل العمال + المسؤولين للـ dropdown
     cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
@@ -1984,6 +1985,7 @@ def admin_range_report():
         target_id    = None
         target_label = "إجمالي بدون خصم"
         total = s_nd
+        chick_count = 0
 
         if target == "no_deduct":
             target_kind = "no_deduct"; target_label = "إجمالي بدون خصم"
@@ -2013,7 +2015,8 @@ def admin_range_report():
                                      WHERE a3.day=c.day AND a3.user_id=%s)
                     """, (wid, s_iso, e_iso, s_iso, e_iso, wid))
                     r2 = cur.fetchone()
-                    total = int(r2["shr"] or 0)
+                    chick_count = int(r2["shr"] or 0)
+                    total = chick_count * 55
                     days_count = int(r2["att_days"] or 0)
                     target_kind = "worker"; target_id = wid
                     target_label = f"نصيب العامل: {wr['full_name']}"
@@ -2039,15 +2042,16 @@ def admin_range_report():
                                      WHERE a3.day=c.day AND a3.user_id=%s)
                     """, (aid, s_iso, e_iso, s_iso, e_iso, aid))
                     r3 = cur.fetchone()
-                    total = int(r3["shr"] or 0)
+                    chick_count = int(r3["shr"] or 0)
+                    total = chick_count * 55
                     days_count = int(r3["att_days"] or 0)
                     target_kind = "admin"; target_id = aid
                     target_label = f"نصيب المسؤول: {ar['full_name']}"
 
         cur.execute(
-            "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total, target_kind, target_id, target_label) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-            (u["id"], s_iso, e_iso, total, days_count, note, s_dist, target_kind, target_id, target_label),
+            "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total, target_kind, target_id, target_label, chick_count) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+            (u["id"], s_iso, e_iso, total, days_count, note, s_dist, target_kind, target_id, target_label, chick_count),
         )
         db.commit()
         result = {
@@ -2056,12 +2060,14 @@ def admin_range_report():
             "no_deduct_total": s_nd,
             "days": days_count, "note": note,
             "target_kind": target_kind, "target_label": target_label,
+            "chick_count": chick_count,
+            "is_money": target_kind in ("worker", "admin"),
         }
         flash(f"تم حساب التقرير ({target_label}) وحفظه ✓", "success")
 
     cur.execute(
         "SELECT id, start_day, end_day, total, days_count, note, created_at, "
-        "distributed_total, target_kind, target_label "
+        "distributed_total, target_kind, target_label, chick_count "
         "FROM range_reports ORDER BY created_at DESC LIMIT 100"
     )
     reports = cur.fetchall()
