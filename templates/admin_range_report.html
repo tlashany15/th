@@ -15,21 +15,20 @@
   <form method="post" class="rr-form">
     <div class="rr-field" style="grid-column:1/-1;">
       <label for="target">احسب لـ</label>
-      <select id="target" name="target" required
-              style="width:100%;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.25);color:var(--text-1);border:1px solid rgba(255,255,255,.12);font-weight:700;">
-        <option value="no_deduct">إجمالي بدون خصم (كل الأيام)</option>
-        <option value="after_deduct">إجمالي بعد الخصم (الموزَّع على العمال)</option>
-        <optgroup label="عامل محدد">
-          {% for w in workers_list %}
-            <option value="worker:{{ w.id }}">{{ w.full_name }}</option>
-          {% endfor %}
-        </optgroup>
-        <optgroup label="مسؤول محدد">
-          {% for a in admins_list %}
-            <option value="admin:{{ a.id }}">{{ a.full_name }}</option>
-          {% endfor %}
-        </optgroup>
-      </select>
+      <div class="rr-select-wrap">
+        <select id="target" name="target" required class="rr-select">
+          <option value="no_deduct">إجمالي بدون خصم (كل الأيام)</option>
+          <option value="after_deduct">إجمالي بعد الخصم (الموزَّع على العمال)</option>
+          {% if workers_list %}
+          <optgroup label="عامل محدد">
+            {% for w in workers_list %}
+              <option value="worker:{{ w.id }}">{{ w.full_name }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endif %}
+        </select>
+        <svg class="rr-select-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+      </div>
     </div>
     <div class="rr-field">
       <label for="start_day">من يوم</label>
@@ -58,7 +57,7 @@
       <div>
         <div style="font-weight:800;font-size:16px;">نتيجة الفترة</div>
         <div style="font-size:12px;color:var(--text-3);">{{ result.start }} → {{ result.end }} · {{ result.days }} يوم</div>
-        <div style="font-size:12px;color:var(--gold-2);font-weight:800;margin-top:2px;">{{ result.target_label }}</div>
+        <div style="font-size:12px;color:var(--gold-2);font-weight:800;margin-top:2px;">{{ result.target_label if result.target_kind != 'admin' else 'نصيب مسؤول' }}</div>
       </div>
     </div>
   </div>
@@ -68,7 +67,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format(result.total) }}{% if result.is_money %} ج{% endif %}</div>
-      <div class="kpi-l">{{ result.target_label }}</div>
+      <div class="kpi-l">{{ result.target_label if result.target_kind != 'admin' else 'نصيب مسؤول' }}</div>
     </div>
   </div>
 
@@ -110,7 +109,7 @@
             <b>{{ r.start_day }}</b> → <b>{{ r.end_day }}</b>
             <span style="color:var(--text-3);">- {{ r.days_count }} يوم</span>
           </div>
-          <div class="rr-meta">{{ r.target_label or 'إجمالي بدون خصم' }} · حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}</div>
+          <div class="rr-meta">{{ (r.target_label if r.target_kind != 'admin' else 'نصيب مسؤول') or 'إجمالي بدون خصم' }} · حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}</div>
           {% if r.target_kind in ('worker', 'admin') %}
           <div class="rr-meta">{{ '{:,}'.format(r.chick_count) }} كتكوت × 55 ج</div>
           {% endif %}
@@ -118,7 +117,7 @@
         <div style="text-align:left;display:flex;gap:8px;align-items:center;">
           <div>
             <div class="rr-total">{{ '{:,}'.format(r.total) }}{% if r.target_kind in ('worker', 'admin') %} ج{% endif %}</div>
-            <div class="rr-meta" style="text-align:left;">{{ r.target_label or 'بدون خصم' }}</div>
+            <div class="rr-meta" style="text-align:left;">{{ (r.target_label if r.target_kind != 'admin' else 'نصيب مسؤول') or 'بدون خصم' }}</div>
           </div>
           <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
                 onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تحذف التقرير ده؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('تحذف التقرير ده؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;" style="margin:0;">
