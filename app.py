@@ -2033,6 +2033,8 @@ def admin_range_report():
         db.commit()
         result = {
             "start": s_iso, "end": e_iso,
+            "start_display": f"{start_d.day}/{start_d.month}/{start_d.year}",
+            "end_display": f"{end_d.day}/{end_d.month}/{end_d.year}",
             "total": total, "distributed_total": s_dist,
             "no_deduct_total": s_nd,
             "days": days_count, "note": note,
