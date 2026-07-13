@@ -14,7 +14,7 @@
         نصيب العامل
       </span>
       <h1 class="hero-h1 u-mt-6">{{ worker.full_name }}</h1>
-      <p class="hero-sub">المدد المفتوحة لحد ما يتم استلام أموالها.</p>
+      <p class="hero-sub">نصيبك في المدة الحالية — المدد الأقدم تحت.</p>
     </div>
   </div>
 
@@ -29,17 +29,24 @@
           <path d="M28 26 L32 30 L36 26 Z" fill="#ff8c00"/>
         </svg>
       </div>
-      <div class="kpi-v">{{ '{:,}'.format(grand_pending_chicks) }}</div>
-      <div class="kpi-l">كتاكيت متبقية</div>
+      <div class="kpi-v">{{ '{:,}'.format(current_pending_chicks) }}</div>
+      <div class="kpi-l">نصيبي هذا الشهر (كتاكيت)</div>
     </div>
     <div class="kpi kpi-green">
       <div class="kpi-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       </div>
-      <div class="kpi-v">{{ '{:,}'.format(grand_pending_money + grand_bonus - grand_deduct) }} <span style="font-size:14px;">ج</span></div>
-      <div class="kpi-l">إجمالي مستحق</div>
+      <div class="kpi-v">{{ '{:,}'.format(current_pending_money + current_bonus - current_deduct) }} <span style="font-size:14px;">ج</span></div>
+      <div class="kpi-l">مستحقي هذا الشهر</div>
     </div>
   </div>
+  {% if grand_pending_chicks > current_pending_chicks %}
+  <div class="card" style="margin-top:10px;padding:10px 12px;font-size:12px;color:var(--text-3);">
+    فيه مدد سابقة لسه مفتوحة —
+    إجمالي غير المُستلم كله: <b style="color:var(--gold-2);">{{ '{:,}'.format(grand_pending_chicks) }}</b> كتكوت
+    ({{ '{:,}'.format(grand_pending_money + grand_bonus - grand_deduct) }} ج)
+  </div>
+  {% endif %}
 </section>
 
 <!-- ===== PERIODS (accordion — only current period open by default) ===== -->

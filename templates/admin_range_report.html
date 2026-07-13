@@ -8,11 +8,29 @@
     تقرير فترة مخصّصة
   </span>
   <h1 class="hero-h1" style="margin-top:6px;">اجمالي الفترة</h1>
-  <p class="hero-sub">حدّد فترة لحساب <b>الأعداد بدون خصم</b>.</p>
+  <p class="hero-sub">حدّد فترة واختار <b>احسب لـ</b> عشان تجيب النتيجة.</p>
 </section>
 
 <div class="card">
   <form method="post" class="rr-form">
+    <div class="rr-field" style="grid-column:1/-1;">
+      <label for="target">احسب لـ</label>
+      <select id="target" name="target" required
+              style="width:100%;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.25);color:var(--text-1);border:1px solid rgba(255,255,255,.12);font-weight:700;">
+        <option value="no_deduct">إجمالي بدون خصم (كل الأيام)</option>
+        <option value="after_deduct">إجمالي بعد الخصم (الموزَّع على العمال)</option>
+        <optgroup label="عامل محدد">
+          {% for w in workers_list %}
+            <option value="worker:{{ w.id }}">نصيب: {{ w.full_name }}</option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="مسؤول محدد">
+          {% for a in admins_list %}
+            <option value="admin:{{ a.id }}">أيام أقفلها: {{ a.full_name }}</option>
+          {% endfor %}
+        </optgroup>
+      </select>
+    </div>
     <div class="rr-field">
       <label for="start_day">من يوم</label>
       <input type="date" id="start_day" name="start_day" required>
@@ -39,7 +57,8 @@
       </div>
       <div>
         <div style="font-weight:800;font-size:16px;">نتيجة الفترة</div>
-        <div style="font-size:12px;color:var(--text-3);">{{ result.start }} → {{ result.end }}</div>
+        <div style="font-size:12px;color:var(--text-3);">{{ result.start }} → {{ result.end }} · {{ result.days }} يوم</div>
+        <div style="font-size:12px;color:var(--gold-2);font-weight:800;margin-top:2px;">{{ result.target_label }}</div>
       </div>
     </div>
   </div>
@@ -49,8 +68,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
       </div>
       <div class="kpi-v">{{ '{:,}'.format(result.total) }}</div>
-      <div class="kpi-l">إجمالي الفترة (بدون خصم)</div>
+      <div class="kpi-l">{{ result.target_label }}</div>
     </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-3);">
+    <span class="mini-chip">بدون خصم: <b>{{ '{:,}'.format(result.no_deduct_total) }}</b></span>
+    <span class="mini-chip">بعد الخصم: <b>{{ '{:,}'.format(result.distributed_total) }}</b></span>
   </div>
 </div>
 {% endif %}
@@ -79,12 +102,12 @@
             <b>{{ r.start_day }}</b> → <b>{{ r.end_day }}</b>
             <span style="color:var(--text-3);">- {{ r.days_count }} يوم</span>
           </div>
-          <div class="rr-meta">حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}</div>
+          <div class="rr-meta">{{ r.target_label or 'إجمالي بدون خصم' }} · حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}</div>
         </div>
         <div style="text-align:left;display:flex;gap:8px;align-items:center;">
           <div>
             <div class="rr-total">{{ '{:,}'.format(r.total) }}</div>
-            <div class="rr-meta" style="text-align:left;">بدون خصم</div>
+            <div class="rr-meta" style="text-align:left;">{{ r.target_label or 'بدون خصم' }}</div>
           </div>
           <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
                 onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تحذف التقرير ده؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('تحذف التقرير ده؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;" style="margin:0;">
