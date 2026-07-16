@@ -172,20 +172,37 @@
     return lines.join('\n');
   }
 
+  var GROUP_URL = 'https://chat.whatsapp.com/HHgUtbhgS8mAOdxXSZB4jY?s=cl&p=a&ilr=0';
+
+  async function copyText(text){
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch(e){
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch(_){ return false; }
+    }
+  }
+
+  function openGroup(){
+    // نفتح رابط الجروب في تبويب جديد — المستخدم بيلصق النص المنسوخ
+    try { window.open(GROUP_URL, '_blank', 'noopener'); }
+    catch(_){ window.location.href = GROUP_URL; }
+  }
+
   btn.addEventListener('click', async function(){
     var text = buildText();
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'حضور اليوم', text: text });
-        return;
-      }
-    } catch(e){ /* المستخدم لغى المشاركة */ if (e && e.name === 'AbortError') return; }
-    try {
-      await navigator.clipboard.writeText(text);
-      (window.appAlert || alert)('تم نسخ الأسماء والتاريخ ✓', 'success');
-    } catch(e){
-      (window.appAlert || alert)(text, 'info');
+    // ننسخ الأول عشان المستخدم يقدر يلصق النص في الجروب
+    var copied = await copyText(text);
+    if (copied){
+      (window.appAlert || function(m){ /* silent */ })('تم نسخ الأسماء والتاريخ ✓ — الصقها في الجروب', 'success');
     }
+    // بنفتح الجروب مباشرة (لازم يتم من ضغطة المستخدم عشان الميتصفح ما يمنعش النافذة)
+    openGroup();
   });
 })();
 </script>

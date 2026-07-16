@@ -102,7 +102,7 @@
     <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
     {% else %}
     <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية</span></a>
-    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>اجمالي اعداد الشهر</span></a>
+    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>اجمالي اعداد المده</span></a>
     <a href="{{ url_for('worker_stats', worker_id=current_user.id) }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>نصيبي هذا الشهر</span></a>
     <a href="{{ url_for('worker_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي وكلمة السر</span></a>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>

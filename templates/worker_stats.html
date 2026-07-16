@@ -52,7 +52,39 @@
 <!-- ===== PERIODS (accordion — only current period open by default) ===== -->
 <div class="acc">
   {% for p in periods %}
-  <details class="acc-item" {% if p.is_current %}open{% endif %}>
+    {% if not p.is_current %}
+      {# مدة سابقة لسه المسؤول ما صفّرش أموالها — نعرض ملخص بس، من غير أي تفاصيل يوم بيوم #}
+      <div class="acc-item ws-past-period">
+        <div class="ws-past-head">
+          <div class="sec-h-ico sec-h-ico-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
+          </div>
+          <div class="ws-past-text">
+            <div class="ws-past-title">{{ p.label }}</div>
+            <div class="ws-past-msg">
+              حسابك في المدة:
+              <b>{{ '{:,}'.format(p.pending_chicks) }}</b> كتكوت
+              × 55 = <b class="ws-past-money">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }} ج</b>
+            </div>
+            <div class="ws-past-hint">لسه المسؤول ما استلمش أموال المدة دي.</div>
+          </div>
+        </div>
+        {% if is_admin_view %}
+        <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
+              onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.',{title:'تأكيد استلام أموال هذه المدة؟',danger:true,okText:'تصفير وتأكيد'}):Promise.resolve(confirm('تأكيد استلام أموال هذه المدة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;"
+              class="u-w-full">
+          <input type="hidden" name="user_id" value="{{ worker.id }}">
+          <input type="hidden" name="year"    value="{{ p.y }}">
+          <input type="hidden" name="month"   value="{{ p.m }}">
+          <input type="hidden" name="half"    value="{{ p.half }}">
+          <button type="submit" class="btn btn-danger btn-sm u-w-full" style="margin-top:10px;">
+            ✓ تأكيد الاستلام وتصفير المدة نهائيًا
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    {% else %}
+    <details class="acc-item" open>
     <summary>
       <div class="acc-summary-main">
         <div class="sec-h-ico sec-h-ico-blue">
@@ -231,10 +263,21 @@
       {% endif %}
     </div>
   </details>
+    {% endif %}
   {% else %}
   <div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
   {% endfor %}
 </div>
+
+<style>
+.ws-past-period{padding:14px;display:block}
+.ws-past-head{display:flex;gap:12px;align-items:flex-start}
+.ws-past-text{min-width:0;flex:1}
+.ws-past-title{font-size:14px;font-weight:900;color:var(--text-1,#fff);margin-bottom:6px}
+.ws-past-msg{font-size:13px;color:var(--text-2,#d1d5db);line-height:1.7}
+.ws-past-money{color:var(--gold-2,#f4c542);font-weight:900}
+.ws-past-hint{font-size:11px;color:var(--text-3,#9ba3af);margin-top:6px}
+</style>
 
 <div class="card u-center-text u-xs u-muted" style="padding:12px;">
   المدة بتفضل ظاهرة لحد ما المسؤول يأكد استلام الأموال ويصفّرها — مفيش أي تصفير تلقائي.
