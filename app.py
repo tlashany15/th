@@ -484,6 +484,51 @@ def get_day_closure_total(day_s):
     return _row["total_count"]
 
 
+def _farm_label(farm):
+    return "بياض" if farm == "bayad" else ("تسمين" if farm == "tasmeen" else "")
+
+
+def _closure_total_for_farm(row, farm):
+    """يرجع رقم القسم الذي حضر فيه العامل فقط، بدون جمع التسمين والبياض."""
+    if not row or farm not in ("tasmeen", "bayad"):
+        return 0
+    total_count = int(row.get("total_count") or 0)
+    tasmeen_after = int(row.get("tasmeen_after") or 0)
+    bayad_after = int(row.get("bayad_after") or 0)
+    # توافق مع الأيام القديمة قبل فصل التسمين/البياض: القديم يُعامل كتسمين فقط.
+    if farm == "tasmeen":
+        return tasmeen_after if (tasmeen_after or bayad_after) else total_count
+    return bayad_after
+
+
+def _worker_closed_day_total(cur, day_s, user_id):
+    """إجمالي اليوم للعامل = إجمالي القسم الذي حضر فيه فقط."""
+    cur.execute("""
+        SELECT c.total_count, COALESCE(c.tasmeen_after,0) AS tasmeen_after,
+               COALESCE(c.bayad_after,0) AS bayad_after,
+               COALESCE(c.reopened,FALSE) AS reopened,
+               (SELECT a.farm FROM attendance a WHERE a.day=c.day AND a.user_id=%s LIMIT 1) AS my_farm
+        FROM day_closures c
+        WHERE c.day=%s
+    """, (user_id, day_s))
+    row = cur.fetchone()
+    if not row or bool(row["reopened"]) or not row["my_farm"]:
+        return None, None
+    return _closure_total_for_farm(row, row["my_farm"]), row["my_farm"]
+
+
+def _visible_group_body_for_user(body, kind, user):
+    """إخفاء أرقام الإغلاق/ملخص الفترة عن العمال؛ تظهر للمسؤول فقط."""
+    text = body or ""
+    if not user or user.get("role") == "admin":
+        return text
+    if kind == "attendance" and ("[CLOSED:" in text or "تم إغلاق اليوم" in text or "إغلاق يوم" in text):
+        return "[ICON:check] تم إغلاق اليوم\nالأرقام تظهر لكل عامل حسب القسم الذي حضر فيه فقط من صفحته."
+    if kind == "system" and "ملخص" in text:
+        return "[ICON:chart] ملخص الفترة\nالأرقام تظهر للمسؤول فقط."
+    return text
+
+
 def _purge_closure_message(cur, day):
     """يحذف/ينضف رسايل ملخّص إغلاق اليوم اللي فيها ماركر [CLOSED:{day}]."""
     import re as _re
@@ -712,29 +757,35 @@ def dashboard():
     closure_total = get_day_closure_total(today)
     closed = closure_total is not None
 
-    cur.execute("SELECT 1 FROM attendance WHERE user_id=%s AND day=%s", (u["id"], today))
-    checked_in = cur.fetchone() is not None
+    cur.execute("SELECT farm FROM attendance WHERE user_id=%s AND day=%s", (u["id"], today))
+    my_attendance = cur.fetchone()
+    checked_in = my_attendance is not None
+    my_farm = my_attendance["farm"] if my_attendance else None
 
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE user_id=%s AND day=%s",
                 (u["id"], today))
     my_total = cur.fetchone()["s"]
 
     if closed:
-        team_total = closure_total
+        team_total, my_farm = _worker_closed_day_total(cur, today, u["id"])
+        team_total = team_total or 0
     else:
         cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (today,))
         team_total = cur.fetchone()["s"]
 
-    cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (today,))
-    present_count = cur.fetchone()["c"]
+    if my_farm:
+        cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s AND farm=%s", (today, my_farm))
+        present_count = cur.fetchone()["c"]
+    else:
+        present_count = 0
 
     present_list = []
-    if closed:
+    if closed and my_farm:
         cur.execute("""
             SELECT u.id, u.full_name, u.avatar
             FROM attendance a JOIN users u ON u.id=a.user_id
-            WHERE a.day=%s ORDER BY u.full_name
-        """, (today,))
+            WHERE a.day=%s AND a.farm=%s ORDER BY u.full_name
+        """, (today, my_farm))
         present_list = cur.fetchall()
 
     cur.execute("""SELECT v.*, u.full_name FROM vaccinations v
@@ -753,6 +804,7 @@ def dashboard():
         recent=recent,
         day_closed=closed,
         present_list=present_list,
+        my_farm_label=_farm_label(my_farm),
     )
 
 
@@ -793,22 +845,47 @@ def history():
     is_admin = (u and u["role"] == "admin")
     db = get_db()
     cur = db.cursor()
-    cur.execute("""
-        SELECT c.day, c.total_count, COALESCE(c.no_deduct_total,0) AS no_deduct_total,
-               COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
-                        FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
-               COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
-                        FILTER (WHERE u.id IS NOT NULL), '{}') AS ids
-        FROM day_closures c
-        LEFT JOIN attendance a ON a.day = c.day
-        LEFT JOIN users u ON u.id = a.user_id
-        GROUP BY c.day, c.total_count, c.no_deduct_total
-    """)
-    by_day = {r["day"]: {"total": r["total_count"],
-                          "no_deduct_total": r["no_deduct_total"],
-                          "names": list(r["names"] or []),
-                          "ids": list(r["ids"] or [])}
-              for r in cur.fetchall()}
+    if is_admin:
+        cur.execute("""
+            SELECT c.day, c.total_count, COALESCE(c.no_deduct_total,0) AS no_deduct_total,
+                   COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
+                            FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
+                   COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
+                            FILTER (WHERE u.id IS NOT NULL), '{}') AS ids
+            FROM day_closures c
+            LEFT JOIN attendance a ON a.day = c.day
+            LEFT JOIN users u ON u.id = a.user_id
+            GROUP BY c.day, c.total_count, c.no_deduct_total
+        """)
+        by_day = {r["day"]: {"total": r["total_count"],
+                              "no_deduct_total": r["no_deduct_total"],
+                              "names": list(r["names"] or []),
+                              "ids": list(r["ids"] or []),
+                              "farm": ""}
+                  for r in cur.fetchall()}
+    else:
+        cur.execute("""
+            SELECT c.day, c.total_count, COALESCE(c.tasmeen_after,0) AS tasmeen_after,
+                   COALESCE(c.bayad_after,0) AS bayad_after,
+                   COALESCE(c.no_deduct_total,0) AS no_deduct_total,
+                   a_self.farm AS my_farm,
+                   COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
+                            FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
+                   COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
+                            FILTER (WHERE u.id IS NOT NULL), '{}') AS ids
+            FROM day_closures c
+            JOIN attendance a_self ON a_self.day = c.day AND a_self.user_id = %s
+            LEFT JOIN attendance a ON a.day = c.day AND a.farm = a_self.farm
+            LEFT JOIN users u ON u.id = a.user_id
+            WHERE COALESCE(c.reopened,FALSE) = FALSE
+            GROUP BY c.day, c.total_count, c.tasmeen_after, c.bayad_after, c.no_deduct_total, a_self.farm
+        """, (u["id"],))
+        by_day = {r["day"]: {"total": _closure_total_for_farm(r, r["my_farm"]),
+                              "no_deduct_total": 0,
+                              "names": list(r["names"] or []),
+                              "ids": list(r["ids"] or []),
+                              "farm": _farm_label(r["my_farm"])}
+                  for r in cur.fetchall()}
 
     # قائمة كل العمال (للمسؤول عشان يقدر يعدّل الحضور من السجل)
     all_workers = []
@@ -845,6 +922,7 @@ def history():
                     "no_deduct_total": rec["no_deduct_total"] if rec else 0,
                     "names": rec["names"] if rec else [],
                     "attendee_ids": rec["ids"] if rec else [],
+                    "farm": rec["farm"] if rec else "",
                     "has_data": rec is not None,
                 })
             periods.append({
@@ -2256,10 +2334,14 @@ def chats_list():
     g_unread = cur.fetchone()["c"]
     cur.close()
 
+    g_last_preview = g_last
+    if g_last:
+        g_last_preview = dict(g_last)
+        g_last_preview["body"] = _visible_group_body_for_user(g_last_preview.get("body"), g_last_preview.get("kind"), u)
     group = {
         "name": gs["name"],
         "avatar": gs["avatar"],
-        "last_text": _msg_preview(g_last) if g_last else "ابدأ الكلام مع الفريق",
+        "last_text": _msg_preview(g_last_preview) if g_last_preview else "ابدأ الكلام مع الفريق",
         "last_time": _iso_utc(g_last["created_at"]) if g_last else None,
         "unread": g_unread,
     }
@@ -2351,11 +2433,12 @@ def chat_messages_api(other_id):
     cur.close()
     msgs = []
     for r in rows:
+        visible_body = _visible_group_body_for_user(r["body"], r["kind"], u)
         msgs.append({
             "id": r["id"],
             "sender_id": r["sender_id"],
             "kind": r["kind"],
-            "body": r["body"],
+            "body": visible_body,
             "created_at": _iso_utc(r["created_at"]),
             "mine": r["sender_id"] == u["id"],
             "read": r["read_at"] is not None,
@@ -2537,7 +2620,7 @@ def group_messages_api():
     reactions_updates = {str(mid): reactions_map.get(mid, []) for mid in recent_ids}
     return jsonify({
         "messages": msgs,
-        "pinned": ({"id": pinned["id"], "body": pinned["body"], "kind": pinned["kind"]} if pinned else None),
+        "pinned": ({"id": pinned["id"], "body": _visible_group_body_for_user(pinned["body"], pinned["kind"], u), "kind": pinned["kind"]} if pinned else None),
         "deleted_ids": deleted_ids,
         "reactions_updates": reactions_updates,
     })
