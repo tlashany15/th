@@ -50,10 +50,6 @@
   <div class="att-tools">
     <input id="workerSearch" class="att-search" type="search" inputmode="search" autocomplete="off" placeholder="ابحث باسم العامل…">
     <div class="att-farm-counts"><span class="farm-sec-badge farm-tasmeen">تسمين <b id="countTasmeen">{{ present_tasmeen }}</b></span><span class="farm-sec-badge farm-bayad">بياض <b id="countBayad">{{ present_bayad }}</b></span></div>
-    <button type="button" id="btnShareAttendees" class="btn-share-att">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:15px;height:15px"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185zm0 12.814a2.25 2.25 0 103.935 2.184 2.25 2.25 0 00-3.935-2.184z"/></svg>
-      مشاركة أسماء الحاضرين
-    </button>
   </div>
   <div class="att-scroll"><div class="att-list" id="attList">
     {% for p in all_people %}
@@ -80,7 +76,6 @@
 .nav-arr-disabled{opacity:.35;pointer-events:none}.sec-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;margin-bottom:10px}.sec-h-l{min-width:0}.att-total-chip{white-space:nowrap;border-radius:999px;padding:6px 10px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);color:#9ff5bd;font-weight:900;font-size:12px}.att-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:10px}.att-search{width:100%;height:42px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.22);color:var(--text);outline:none;padding:0 13px;font-weight:700}.att-search:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}.att-farm-counts{display:flex;gap:8px;flex-wrap:wrap}.farm-sec-badge{padding:5px 10px;border-radius:99px;font-size:12px;font-weight:900}.farm-sec-badge.farm-tasmeen{background:linear-gradient(135deg,rgba(212,175,55,.25),rgba(212,175,55,.08));color:#f2d675;border:1px solid rgba(212,175,55,.4)}.farm-sec-badge.farm-bayad{background:linear-gradient(135deg,rgba(80,150,255,.25),rgba(80,150,255,.08));color:#a8c8ff;border:1px solid rgba(80,150,255,.4)}
 .att-scroll{max-height:58vh;overflow:auto;padding-inline-end:2px}.att-scroll::-webkit-scrollbar{width:6px}.att-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}.att-list{display:flex;flex-direction:column;gap:7px}.att-row{padding:10px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.16s}.att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.32)}.att-row.farm-bayad{border-color:rgba(80,150,255,.32);background:linear-gradient(135deg,rgba(80,150,255,.09),rgba(255,255,255,.02))}.att-row.is-saving{opacity:.72}.att-main{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:9px}.att-av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;overflow:hidden}.att-av img{width:100%;height:100%;object-fit:cover}.att-body{min-width:0}.att-name{font-weight:900;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.att-sub{font-size:11px;color:var(--text-3);margin-top:2px}.att-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;width:128px}.farm-btn{height:34px;border-radius:11px;font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.05);color:var(--text-2);padding:0 8px}.farm-btn.tasmeen.on{background:rgba(212,175,55,.22);border-color:rgba(212,175,55,.55);color:#f2d675}.farm-btn.bayad.on{background:rgba(80,150,255,.22);border-color:rgba(80,150,255,.55);color:#cfe0ff}.att-status{display:inline-flex;align-items:center;justify-content:center;min-width:62px;height:32px;border-radius:999px;font-size:12px;font-weight:900;background:rgba(255,255,255,.05);color:var(--text-3)}.att-status.on{background:rgba(52,211,153,.16);color:#9ff5bd}.settle-mark-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}.settle-mark{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text-2);cursor:pointer;transition:.18s}.settle-mark .sm-ico{display:inline-flex;width:14px;height:14px}.settle-mark .sm-ico svg{width:14px;height:14px}.settle-mark.is-settled{background:linear-gradient(135deg,rgba(52,211,153,.24),rgba(52,211,153,.10));border-color:rgba(52,211,153,.55);color:#c6f5da}.att-row.is-settled{box-shadow:0 0 0 2px rgba(52,211,153,.08) inset}.settle-details{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;font-size:11.5px;font-weight:800;color:var(--text-3);background:rgba(120,170,255,.08);border:1px solid rgba(120,170,255,.22);text-decoration:none}.settle-details svg{width:13px;height:13px}.att-empty{padding:22px;text-align:center;color:var(--text-3);font-weight:800}
 @media(max-width:420px){.field-input{font-size:22px}.att-main{grid-template-columns:34px minmax(0,1fr) auto;gap:7px}.att-av{width:34px;height:34px}.att-actions{width:116px;gap:4px}.farm-btn{height:32px;font-size:11px;padding:0 5px}.sec-h-s{font-size:11px}}
-.btn-share-att{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:12px;font-family:inherit;font-size:12.5px;font-weight:900;cursor:pointer;color:#0b1418;background:linear-gradient(135deg,#7ee0b8 0%,#34d399 55%,#1fa97a 100%);border:1px solid rgba(52,211,153,.6);box-shadow:0 6px 18px -8px rgba(52,211,153,.55);transition:transform .15s ease,box-shadow .2s ease}.btn-share-att:hover{transform:translateY(-1px)}.btn-share-att:disabled{opacity:.65;cursor:wait}
 </style>
 
 <script>
@@ -95,42 +90,6 @@
   function sendToggle(uid,farm){var fd=new FormData();fd.append('day',day);fd.append('user_id',uid);fd.append('farm',farm);fd.append('next','close-page');return fetch("{{ url_for('admin_mark_attendance') }}",{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('bad');return r.json()})}
   document.querySelectorAll('.js-att-toggle').forEach(function(btn){btn.addEventListener('click',function(e){e.preventDefault();var row=btn.closest('.att-row');if(!row||row.classList.contains('is-saving'))return;var oldFarm=row.dataset.farm||'',nextFarm=oldFarm===btn.dataset.farm?'':btn.dataset.farm;row.classList.add('is-saving');updateRow(row,nextFarm);sendToggle(btn.dataset.uid,btn.dataset.farm).then(function(d){updateRow(row,d.state==='present'?d.farm:'');refreshCounts(d)}).catch(function(){updateRow(row,oldFarm);(window.appAlert||alert)('تعذّر حفظ الحضور','error')}).finally(function(){row.classList.remove('is-saving')})})});
   var search=document.getElementById('workerSearch'),empty=document.getElementById('attEmpty');if(search){search.addEventListener('input',function(){var q=(search.value||'').trim().toLowerCase(),visible=0;document.querySelectorAll('.att-row').forEach(function(row){var show=!q||(row.dataset.name||'').indexOf(q)!==-1;row.hidden=!show;if(show)visible++});if(empty)empty.hidden=visible!==0})}
-  var shareBtn=document.getElementById('btnShareAttendees');
-  if(shareBtn){
-    var AR_DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-    function buildShareText(){
-      var rows=document.querySelectorAll('.att-row[data-farm="tasmeen"], .att-row[data-farm="bayad"]');
-      var tasmeen=[], bayad=[];
-      rows.forEach(function(r){
-        var name=(r.querySelector('.att-name')||{}).textContent||'';
-        name=name.trim(); if(!name) return;
-        if(r.dataset.farm==='tasmeen') tasmeen.push(name); else bayad.push(name);
-      });
-      var parts=day.split('-'); var dt=new Date(parts[0], (parseInt(parts[1],10)||1)-1, parseInt(parts[2],10)||1);
-      var wd=AR_DAYS[dt.getDay()]||'';
-      var lines=['قائمة الحضور - '+wd+' '+day, ''];
-      lines.push('🐣 تسمين ('+tasmeen.length+'):');
-      lines.push(tasmeen.length?tasmeen.map(function(n){return '- '+n}).join('\n'):'- لا يوجد');
-      lines.push('');
-      lines.push('🥚 بياض ('+bayad.length+'):');
-      lines.push(bayad.length?bayad.map(function(n){return '- '+n}).join('\n'):'- لا يوجد');
-      return lines.join('\n');
-    }
-    shareBtn.addEventListener('click', function(){
-      var text=buildShareText();
-      if(navigator.share){
-        navigator.share({title:'قائمة الحضور '+day, text:text}).catch(function(){});
-      } else if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(text).then(function(){
-          (window.appAlert||alert)('تم نسخ قائمة الحضور','success');
-        }).catch(function(){
-          window.prompt('انسخ القائمة:', text);
-        });
-      } else {
-        window.prompt('انسخ القائمة:', text);
-      }
-    });
-  }
 })();
 (function(){document.querySelectorAll('.js-settle-mark').forEach(function(btn){var row=btn.closest('.att-row');btn.addEventListener('click',function(){if(btn.disabled)return;btn.disabled=true;var fd=new FormData();fd.append('user_id',btn.dataset.uid);fd.append('day',btn.dataset.day);fetch('/admin/worker-day-settle?ajax=1',{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(function(r){return r.json()}).then(function(d){var on=d&&d.state==='settled';btn.classList.toggle('is-settled',on);row&&row.classList.toggle('is-settled',on);btn.querySelector('.sm-lbl').textContent=on?'تمت المحاسبة ✓':'تم المحاسبة'}).catch(function(){(window.appAlert||alert)('تعذّر الحفظ','error')}).finally(function(){btn.disabled=false})})})})();
 </script>

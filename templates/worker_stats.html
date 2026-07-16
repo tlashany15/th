@@ -40,7 +40,7 @@
       <div class="kpi-l">مستحقي هذا الشهر</div>
     </div>
   </div>
-  {% if is_admin_view and grand_pending_chicks > current_pending_chicks %}
+  {% if grand_pending_chicks > current_pending_chicks %}
   <div class="card" style="margin-top:10px;padding:10px 12px;font-size:12px;color:var(--text-3);">
     فيه مدد سابقة لسه مفتوحة —
     إجمالي غير المُستلم كله: <b style="color:var(--gold-2);">{{ '{:,}'.format(grand_pending_chicks) }}</b> كتكوت
@@ -52,7 +52,6 @@
 <!-- ===== PERIODS (accordion — only current period open by default) ===== -->
 <div class="acc">
   {% for p in periods %}
-  {% if is_admin_view or p.is_current %}
   <details class="acc-item" {% if p.is_current %}open{% endif %}>
     <summary>
       <div class="acc-summary-main">
@@ -64,9 +63,7 @@
             {{ p.label }}
             {% if p.is_current %}<span class="badge badge-green sm">المدة الحالية</span>{% endif %}
           </div>
-          <div class="acc-summary-sub">
-            {{ p.days_attended }} يوم حضور{% if is_admin_view %} · إجمالي {{ '{:,}'.format(p.total_period) }}{% endif %}
-          </div>
+          <div class="acc-summary-sub">{{ p.days_attended }} يوم حضور · إجمالي {{ '{:,}'.format(p.total_period) }}</div>
         </div>
       </div>
       {% if is_admin_view %}
@@ -234,17 +231,14 @@
       {% endif %}
     </div>
   </details>
-  {% endif %}
   {% else %}
   <div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
   {% endfor %}
 </div>
 
-{% if is_admin_view %}
 <div class="card u-center-text u-xs u-muted" style="padding:12px;">
   المدة بتفضل ظاهرة لحد ما المسؤول يأكد استلام الأموال ويصفّرها — مفيش أي تصفير تلقائي.
 </div>
-{% endif %}
 
 <style>
 .mini-settle-btn{background:rgba(52,211,153,.16);color:#c6f5da;border:1px solid rgba(52,211,153,.45);border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
