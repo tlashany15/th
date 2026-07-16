@@ -995,21 +995,34 @@ def worker_stats(worker_id):
         for r in rows:
             d = r["day"]; d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
             wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
-            tot = int(r["total_count"] or 0); att = int(r["attendees"] or 0)
+            tot = int(r["total_count"] or 0)
             total_period += tot
-            share = 0.0; is_settled = False
-            if r["he_attended"] and att > 0:
-                share = tot / att; total_share += share; days_attended += 1
-                is_settled = d_s in _settled_days_set
-                item = {"date": d_s, "weekday": wd,
-                        "chicks": int(share), "chicks_f": round(share, 2)}
-                if is_settled:
-                    settled_share += share; settled_days_list.append(item)
-                else:
-                    pending_share += share; pending_days_list.append(item)
-            days_list.append({"date": d_s, "weekday": wd, "total": tot,
-                              "attendees": att, "attended": bool(r["he_attended"]),
-                              "share": round(share, 2), "settled": is_settled})
+            my_farm = r["my_farm"]
+            # لو مش حاضر خالص في اليوم ده — بنتخطاه ومنعرضش تاريخه
+            if not my_farm:
+                continue
+            if my_farm == "tasmeen":
+                farm_total = int(r["tasmeen_after"] or 0)
+                farm_att   = int(r["att_tasmeen"] or 0)
+                farm_lbl   = "تسمين"
+            else:
+                farm_total = int(r["bayad_after"] or 0)
+                farm_att   = int(r["att_bayad"] or 0)
+                farm_lbl   = "بياض"
+            share = (farm_total / farm_att) if farm_att > 0 else 0.0
+            total_share += share; days_attended += 1
+            is_settled = d_s in _settled_days_set
+            item = {"date": d_s, "weekday": wd,
+                    "chicks": int(share), "chicks_f": round(share, 2),
+                    "farm": farm_lbl}
+            if is_settled:
+                settled_share += share; settled_days_list.append(item)
+            else:
+                pending_share += share; pending_days_list.append(item)
+            days_list.append({"date": d_s, "weekday": wd, "total": farm_total,
+                              "attendees": farm_att, "attended": True,
+                              "share": round(share, 2), "settled": is_settled,
+                              "farm": farm_lbl})
 
         bonus_list = []; deduct_list = []; bonus_total = 0; deduct_total = 0
         for a in adj_rows:
