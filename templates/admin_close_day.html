@@ -57,8 +57,9 @@
       <div>
         <div class="closed-hero-t">اليوم مغلق</div>
         <div class="closed-hero-s">
-          الإجمالي <strong>{{ '{:,}'.format(day_total) }}</strong> كتكوت
-          {% if no_deduct_total %} · بدون خصم <strong>{{ '{:,}'.format(no_deduct_total) }}</strong>{% endif %}
+          تسمين <strong>{{ '{:,}'.format(tasmeen_after or 0) }}</strong> · بياض <strong>{{ '{:,}'.format(bayad_after or 0) }}</strong>
+          · الإجمالي <strong>{{ '{:,}'.format(day_total) }}</strong>
+          {% if no_deduct_total %}<br>بدون خصم: <strong>{{ '{:,}'.format(no_deduct_total) }}</strong>{% endif %}
         </div>
       </div>
     </div>
@@ -69,21 +70,21 @@
 
     <div class="close-grid">
       <label class="field-wrap field-gold">
-        <span class="field-lbl">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-          إجمالي التحصين
-        </span>
-        <input id="closeTotalInput" name="total_count" type="number" inputmode="numeric" min="0" required placeholder="0" value="{{ day_total or '' }}" class="field-input">
-        <span class="field-hint">هيتوزع على الحاضرين</span>
+        <span class="field-lbl">🐣 تسمين بعد الخصم</span>
+        <input id="closeTasmeenInput" name="tasmeen_after" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ tasmeen_after or '' }}" class="field-input">
+        <span class="field-hint">يتوزع على حاضري التسمين</span>
       </label>
-
       <label class="field-wrap field-blue">
-        <span class="field-lbl">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12M6 12h12"/></svg>
-          الأعداد بدون خصم
-        </span>
+        <span class="field-lbl">🥚 بياض بعد الخصم</span>
+        <input id="closeBayadInput" name="bayad_after" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ bayad_after or '' }}" class="field-input">
+        <span class="field-hint">يتوزع على حاضري البياض</span>
+      </label>
+    </div>
+    <div class="close-grid" style="margin-top:10px;">
+      <label class="field-wrap" style="grid-column:1/-1;background:linear-gradient(140deg,rgba(180,180,180,.08),rgba(255,255,255,.02))">
+        <span class="field-lbl">Σ إجمالي الأعداد بدون خصم</span>
         <input id="closeNoDeductInput" name="no_deduct_total" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_total or '' }}" class="field-input">
-        <span class="field-hint">للمحاسبة فقط</span>
+        <span class="field-hint">مرجع فقط — إجمالي مشترك للمعملين</span>
       </label>
     </div>
 
@@ -128,64 +129,68 @@
         <div class="sec-h-s">حضور + إضافي/خصم لكل عامل</div>
       </div>
     </div>
-    {% if not day_closed %}
-    <div style="display:flex;gap:6px;">
-      <button type="button" class="btn btn-ghost btn-sm" id="btnPresentAll">حضّر الكل</button>
-      <button type="button" class="btn btn-ghost btn-sm" id="btnAbsentAll">شيل الكل</button>
-    </div>
-    {% endif %}
+
   </div>
 
   <div class="att-scroll">
-  <div class="att-list" id="attList">
-    {% for p in all_people %}
-    <div class="att-row {% if p.present %}is-on{% endif %} {% if p.day_settled %}is-settled{% endif %}" data-uid="{{ p.id }}">
-      <div class="att-main">
-        <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{% if p.avatar %}<img src="{{ p.avatar }}" alt="">{% else %}{{ (p.full_name or '?')[:1] }}{% endif %}</div>
-        <div class="att-body">
-          <div class="att-name">{{ p.full_name }}</div>
-          <div class="att-sub att-sub-txt">{% if p.present %}حاضر{% else %}غير مُحضَّر{% endif %}</div>
+    {% for section in [('tasmeen','حضور التسمين',present_tasmeen),('bayad','حضور البياض',present_bayad)] %}
+    <div class="farm-sec">
+      <div class="farm-sec-head">
+        <span class="farm-sec-badge farm-{{ section[0] }}">{{ section[1] }}</span>
+        <span class="farm-sec-count">{{ section[2] }} حاضر</span>
+      </div>
+      <div class="att-list" id="attList_{{ section[0] }}">
+        {% for p in all_people %}
+        {% set is_here = (p.att_farm == section[0]) %}
+        <div class="att-row {% if is_here %}is-on{% endif %} {% if p.day_settled and is_here %}is-settled{% endif %}" data-uid="{{ p.id }}" data-farm="{{ section[0] }}">
+          <div class="att-main">
+            <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{% if p.avatar %}<img src="{{ p.avatar }}" alt="">{% else %}{{ (p.full_name or '?')[:1] }}{% endif %}</div>
+            <div class="att-body">
+              <div class="att-name">{{ p.full_name }}</div>
+              <div class="att-sub att-sub-txt">
+                {% if is_here %}حاضر في {{ section[1] }}
+                {% elif p.att_farm %}موجود في المعمل الآخر
+                {% else %}غير مُحضَّر{% endif %}
+              </div>
+            </div>
+            {% if not day_closed %}
+            <button type="button" class="att-toggle {% if is_here %}on{% else %}off{% endif %} js-att-toggle"
+                    data-uid="{{ p.id }}" data-farm="{{ section[0] }}"
+                    {% if p.att_farm and not is_here %}title="سيتم نقله من المعمل الآخر"{% endif %}>
+              {% if is_here %}✓ حاضر{% else %}+ حضّر{% endif %}
+            </button>
+            {% else %}
+            <span class="att-toggle {% if is_here %}on{% else %}off{% endif %}" style="pointer-events:none;">{% if is_here %}حاضر{% else %}—{% endif %}</span>
+            {% endif %}
+          </div>
+          {% if is_here %}
+          <div class="settle-mark-row">
+            <button type="button" class="settle-mark js-settle-mark {% if p.day_settled %}is-settled{% endif %}" data-uid="{{ p.id }}" data-day="{{ day }}">
+              <span class="sm-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </span>
+              <span class="sm-lbl">{% if p.day_settled %}تمت المحاسبة ✓{% else %}تم المحاسبة{% endif %}</span>
+            </button>
+            <a class="settle-details" href="{{ url_for('worker_stats', worker_id=p.id) }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              التفاصيل
+            </a>
+          </div>
+          {% endif %}
         </div>
-        {% if not day_closed %}
-        <button type="button" class="att-toggle {% if p.present %}on{% else %}off{% endif %} js-att-toggle" data-uid="{{ p.id }}">
-          {% if p.present %}✓ حاضر{% else %}+ حضّر{% endif %}
-        </button>
-        {% else %}
-        <span class="att-toggle {% if p.present %}on{% else %}off{% endif %}" style="pointer-events:none;">{% if p.present %}حاضر{% else %}غائب{% endif %}</span>
-        {% endif %}
+        {% endfor %}
       </div>
-
-      {% if p.present %}
-      <div class="settle-mark-row">
-        <button type="button" class="settle-mark js-settle-mark {% if p.day_settled %}is-settled{% endif %}" data-uid="{{ p.id }}" data-day="{{ day }}">
-          <span class="sm-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-          </span>
-          <span class="sm-lbl">{% if p.day_settled %}تمت المحاسبة ✓{% else %}تم المحاسبة{% endif %}</span>
-        </button>
-        <a class="settle-details" href="{{ url_for('worker_stats', worker_id=p.id) }}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          التفاصيل
-        </a>
-      </div>
-      {% endif %}
-
-      {% if not day_closed %}
-      <div class="adj-row">
-        <span class="adj-lbl">إضافي / خصم (جنيه):</span>
-        <input type="number" class="adj-input" data-uid="{{ p.id }}" value="{{ p.adjust or '' }}" placeholder="0" step="1" inputmode="numeric">
-        <span class="adj-hint">مثال: 20 = إضافي · -15 = خصم</span>
-      </div>
-      {% elif p.adjust %}
-      <div class="adj-row is-locked">
-        <span class="adj-lbl">{{ 'إضافي' if p.adjust > 0 else 'خصم' }}:</span>
-        <strong class="adj-val {% if p.adjust > 0 %}pos{% else %}neg{% endif %}">{{ '{:,}'.format(p.adjust|abs) }} ج</strong>
-      </div>
-      {% endif %}
     </div>
     {% endfor %}
   </div>
-  </div>
+  <style>
+    .farm-sec{margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.02)}
+    .farm-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .farm-sec-badge{padding:4px 10px;border-radius:99px;font-size:12px;font-weight:800}
+    .farm-sec-badge.farm-tasmeen{background:linear-gradient(135deg,rgba(212,175,55,.25),rgba(212,175,55,.08));color:#f2d675;border:1px solid rgba(212,175,55,.4)}
+    .farm-sec-badge.farm-bayad{background:linear-gradient(135deg,rgba(80,150,255,.25),rgba(80,150,255,.08));color:#a8c8ff;border:1px solid rgba(80,150,255,.4)}
+    .farm-sec-count{font-size:12px;color:var(--text-3);font-weight:700}
+  </style>
 </div>
 
 <div class="card">
@@ -287,16 +292,17 @@
 (function(){
   var b = document.getElementById('btnConfirmClose');
   var form = document.getElementById('closeDayForm');
-  var input = document.getElementById('closeTotalInput');
+  var tIn = document.getElementById('closeTasmeenInput');
+  var bIn = document.getElementById('closeBayadInput');
   var isClosed = {{ 'true' if day_closed else 'false' }};
-  if (b && form && input){
+  if (b && form && tIn && bIn){
     b.addEventListener('click', function(){
-      var v = parseInt((input.value||'0'), 10);
-      if (isNaN(v) || v < 0){ (window.appAlert||alert)('ادخل رقم صحيح','error'); input.focus(); return; }
-      var msg = isClosed
-        ? 'تحديث إغلاق يوم {{ day }} ليبقى الإجمالي ' + v.toLocaleString('ar-EG') + ' كتكوت؟'
-        : 'تسجيل ' + v.toLocaleString('ar-EG') + ' كتكوت كإجمالي نهائي لليوم؟';
-      window.appConfirm(msg, {okText: isClosed ? 'تأكيد التحديث' : 'تأكيد الإغلاق'}).then(function(ok){
+      var t = parseInt((tIn.value||'0'), 10) || 0;
+      var y = parseInt((bIn.value||'0'), 10) || 0;
+      if (t < 0 || y < 0){ (window.appAlert||alert)('ادخل أرقام صحيحة','error'); return; }
+      var sum = t + y;
+      var msg = 'تسمين: ' + t.toLocaleString('ar-EG') + ' · بياض: ' + y.toLocaleString('ar-EG') + ' · الإجمالي: ' + sum.toLocaleString('ar-EG') + '. تأكيد؟';
+      (window.appConfirm ? window.appConfirm(msg, {okText: isClosed ? 'تأكيد التحديث' : 'تأكيد الإغلاق'}) : Promise.resolve(confirm(msg))).then(function(ok){
         if (ok) form.submit();
       });
     });
@@ -320,9 +326,9 @@
     if (kpi) kpi.textContent = document.querySelectorAll('#attList .att-row.is-on').length;
   }
 
-  function sendToggle(uid){
+  function sendToggle(uid, farm){
     var fd = new FormData();
-    fd.append('day', day); fd.append('user_id', uid); fd.append('next', 'close-page');
+    fd.append('day', day); fd.append('user_id', uid); fd.append('farm', farm); fd.append('next', 'close-page');
     return fetch("{{ url_for('admin_mark_attendance') }}", {
       method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}, credentials:'same-origin'
     });
@@ -331,55 +337,7 @@
   document.querySelectorAll('.js-att-toggle').forEach(function(btn){
     btn.addEventListener('click', function(e){
       e.preventDefault();
-      var row = btn.closest('.att-row');
-      toggleUI(row);
-      sendToggle(btn.dataset.uid).catch(function(){ toggleUI(row); });
-    });
-  });
-
-  var bAll = document.getElementById('btnPresentAll');
-  var bNone = document.getElementById('btnAbsentAll');
-  function bulk(makePresent){
-    var rows = document.querySelectorAll('#attList .att-row');
-    var chain = Promise.resolve();
-    rows.forEach(function(row){
-      var isOn = row.classList.contains('is-on');
-      if (isOn !== makePresent){
-        toggleUI(row);
-        var uid = row.dataset.uid;
-        chain = chain.then(function(){ return sendToggle(uid); });
-      }
-    });
-  }
-  if (bAll)  bAll.addEventListener('click', function(){ bulk(true); });
-  if (bNone) bNone.addEventListener('click', function(){ bulk(false); });
-
-  // ==== حفظ التعديل (إضافي/خصم) لحظة تغيير الحقل ====
-  function paint(inp){
-    var v = parseInt(inp.value||'0',10) || 0;
-    inp.classList.toggle('pos', v>0);
-    inp.classList.toggle('neg', v<0);
-  }
-  function saveAdj(uid, amount){
-    var fd = new FormData();
-    fd.append('user_id', uid); fd.append('day', day); fd.append('amount', amount);
-    return fetch("{{ url_for('admin_worker_adjust') }}", {
-      method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}, credentials:'same-origin'
-    }).then(function(r){ return r.json(); });
-  }
-  var timers = {};
-  document.querySelectorAll('.adj-input').forEach(function(inp){
-    paint(inp);
-    inp.addEventListener('input', function(){
-      paint(inp);
-      var uid = inp.dataset.uid;
-      clearTimeout(timers[uid]);
-      timers[uid] = setTimeout(function(){
-        var amt = parseInt(inp.value||'0',10) || 0;
-        saveAdj(uid, amt).then(function(res){
-          if (res && res.ok && window.appAlert) window.appAlert('اتحفظ ✓','success');
-        }).catch(function(){ if (window.appAlert) window.appAlert('فشل الحفظ','error'); });
-      }, 600);
+      sendToggle(btn.dataset.uid, btn.dataset.farm).then(function(){ location.reload(); }).catch(function(){});
     });
   });
 })();

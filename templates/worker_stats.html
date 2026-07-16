@@ -107,12 +107,7 @@
       <div class="money-box">
         <div class="l">قيمة الكتاكيت المتبقية</div>
         <div class="calc">{{ '{:,}'.format(p.pending_chicks) }} كتكوت × 55 ج = <b>{{ '{:,}'.format(p.pending_money) }} ج</b></div>
-        {% if p.bonus_total or p.deduct_total %}
-        <div class="adj">
-          {% if p.bonus_total %}+ إضافي {{ '{:,}'.format(p.bonus_total) }} ج{% endif %}
-          {% if p.deduct_total %} − خصم {{ '{:,}'.format(p.deduct_total) }} ج{% endif %}
-        </div>
-        {% endif %}
+
         <div class="final">
           المستحق حاليًا
           <span class="v">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }} ج</span>
@@ -136,7 +131,7 @@
             </div>
             {% for it in p.pending_days_list %}
             <div class="row-item">
-              <span class="d">{{ it.date }} · {{ it.weekday }} — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+              <span class="d">{{ it.date }} · {{ it.weekday }} · <span class="mini-chip">{{ it.farm }}</span> — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
               <form method="post" action="{{ url_for('admin_worker_day_settle') }}">
                 <input type="hidden" name="user_id" value="{{ worker.id }}">
                 <input type="hidden" name="day" value="{{ it.date }}">
@@ -155,7 +150,7 @@
             </div>
             {% for it in p.settled_days_list %}
             <div class="row-item">
-              <span class="d">{{ it.date }} · {{ it.weekday }} على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+              <span class="d">{{ it.date }} · {{ it.weekday }} · <span class="mini-chip">{{ it.farm }}</span> على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
               <form method="post" action="{{ url_for('admin_worker_day_settle') }}"
                     onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('إلغاء المحاسبة لهذا اليوم؟',{danger:true,okText:'إلغاء المحاسبة'}):Promise.resolve(confirm('إلغاء المحاسبة لهذا اليوم؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
                 <input type="hidden" name="user_id" value="{{ worker.id }}">
@@ -167,23 +162,7 @@
           </div>
           {% endif %}
 
-          {% if p.bonus_list %}
-          <div class="row-list">
-            <div class="row-list-head pos">إضافي ({{ p.bonus_list|length }})</div>
-            {% for it in p.bonus_list %}
-            <div class="row-item"><span class="d">{{ it.date }} · {{ it.weekday }}</span><span class="a pos">+ {{ '{:,}'.format(it.amount) }} ج</span></div>
-            {% endfor %}
-          </div>
-          {% endif %}
 
-          {% if p.deduct_list %}
-          <div class="row-list">
-            <div class="row-list-head neg">خصم ({{ p.deduct_list|length }})</div>
-            {% for it in p.deduct_list %}
-            <div class="row-item"><span class="d">{{ it.date }} · {{ it.weekday }}</span><span class="a neg">- {{ '{:,}'.format(it.amount) }} ج</span></div>
-            {% endfor %}
-          </div>
-          {% endif %}
 
           {% if p.settle_list %}
           <div class="row-list">
@@ -230,22 +209,16 @@
                 <div class="tl-row-top">
                   <div class="tl-total">
                     <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
-                    <div class="tl-tlab">إجمالي اليوم</div>
+                    <div class="tl-tlab">إجمالي معمل {{ d.farm }}</div>
                   </div>
-                  {% if d.attended %}
-                    <span class="badge badge-green sm">حاضر</span>
-                  {% else %}
-                    <span class="badge sm" style="background:rgba(255,255,255,.06);color:var(--text-3);">غائب</span>
-                  {% endif %}
+                  <span class="badge badge-green sm">{{ d.farm }}</span>
                 </div>
                 <div class="tl-meta u-flex u-wrap u-gap-8 u-mt-8">
-                  <span class="mini-chip">{{ d.attendees }} عامل</span>
+                  <span class="mini-chip">{{ d.attendees }} عامل في المعمل</span>
                   <span class="mini-chip u-mono">{{ d.date }}</span>
-                  {% if d.attended %}
-                    <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
-                      نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
-                    </span>
-                  {% endif %}
+                  <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
+                    نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
+                  </span>
                 </div>
               </div>
             </div>

@@ -75,14 +75,32 @@
       <h2 class="v2-action-title">سجّل حضورك</h2>
       <p class="v2-action-sub">بضغطة واحدة، خلّي الفريق يعرف إنك جاهز.</p>
     </div>
-    <form method="post" action="{{ url_for('check_in') }}">
-      <button class="v2-cta">
-        <span class="v2-cta-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-        </span>
-        <span>حضور</span>
-      </button>
-    </form>
+    <div class="v2-cta-row">
+      <form method="post" action="{{ url_for('check_in') }}" class="v2-cta-form">
+        <input type="hidden" name="farm" value="tasmeen">
+        <button class="v2-cta v2-cta-tasmeen" type="submit">
+          <span class="v2-cta-ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          </span>
+          <span>حضور تسمين</span>
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('check_in') }}" class="v2-cta-form">
+        <input type="hidden" name="farm" value="bayad">
+        <button class="v2-cta v2-cta-bayad" type="submit">
+          <span class="v2-cta-ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          </span>
+          <span>حضور بياض</span>
+        </button>
+      </form>
+    </div>
+    <style>
+      .v2-cta-row{display:flex;flex-direction:column;gap:10px;width:100%}
+      .v2-cta-form{width:100%}
+      .v2-cta-row .v2-cta{width:100%}
+      .v2-cta-bayad{background:linear-gradient(135deg,#4aa3ff 0%,#2563eb 100%);color:#fff}
+    </style>
   </div>
   {% else %}
   <div class="v2-action v2-action-done v2-fade" style="--i:1">
