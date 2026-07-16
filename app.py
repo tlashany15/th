@@ -1013,9 +1013,9 @@ def worker_stats(worker_id):
         for r in rows:
             d = r["day"]; d_s = d.isoformat() if hasattr(d, "isoformat") else str(d)
             wd = AR_DAYS[d.weekday()] if hasattr(d, "weekday") else ""
-            tot = int(r["total_count"] or 0)
             my_farm = r["my_farm"]
             # لو مش حاضر خالص في اليوم ده — بنتخطاه ومنعرضش تاريخه
+            # ومنجمّعش أعداده على total_period (سواء التسمين أو البياض)
             if not my_farm:
                 continue
             if my_farm == "tasmeen":
@@ -1026,7 +1026,8 @@ def worker_stats(worker_id):
                 farm_total = int(r["bayad_after"] or 0)
                 farm_att   = int(r["att_bayad"] or 0)
                 farm_lbl   = "بياض"
-            # العامل يشوف إجمالي معمله فقط — من غير أعداد المعمل التاني
+            # الإجمالي عند العامل = بس أرقام القسم اللي حضر فيه
+            # عشان حاضر التسمين ميشوفش أعداد البياض والعكس صحيح
             total_period += farm_total
             share = (farm_total / farm_att) if farm_att > 0 else 0.0
             total_share += share; days_attended += 1
