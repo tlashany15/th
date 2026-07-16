@@ -848,19 +848,26 @@ def history():
     if is_admin:
         cur.execute("""
             SELECT c.day, c.total_count, COALESCE(c.no_deduct_total,0) AS no_deduct_total,
+                   COALESCE(c.tasmeen_after,0) AS tasmeen_after,
+                   COALESCE(c.bayad_after,0) AS bayad_after,
                    COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
                             FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
                    COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
-                            FILTER (WHERE u.id IS NOT NULL), '{}') AS ids
+                            FILTER (WHERE u.id IS NOT NULL), '{}') AS ids,
+                   COALESCE(ARRAY_AGG(a.farm ORDER BY u.full_name)
+                            FILTER (WHERE a.farm IS NOT NULL), '{}') AS farms
             FROM day_closures c
             LEFT JOIN attendance a ON a.day = c.day
             LEFT JOIN users u ON u.id = a.user_id
-            GROUP BY c.day, c.total_count, c.no_deduct_total
+            GROUP BY c.day, c.total_count, c.no_deduct_total, c.tasmeen_after, c.bayad_after
         """)
         by_day = {r["day"]: {"total": r["total_count"],
                               "no_deduct_total": r["no_deduct_total"],
+                              "tasmeen_after": int(r["tasmeen_after"] or 0),
+                              "bayad_after": int(r["bayad_after"] or 0),
                               "names": list(r["names"] or []),
                               "ids": list(r["ids"] or []),
+                              "farms": list(r["farms"] or []),
                               "farm": ""}
                   for r in cur.fetchall()}
     else:
@@ -919,9 +926,12 @@ def history():
                     "weekday": AR_DAYS[wd],
                     "holiday": is_friday,
                     "total": rec["total"] if rec else 0,
+                    "tasmeen_after": (rec.get("tasmeen_after", 0) if rec else 0),
+                    "bayad_after": (rec.get("bayad_after", 0) if rec else 0),
                     "no_deduct_total": rec["no_deduct_total"] if rec else 0,
                     "names": rec["names"] if rec else [],
                     "attendee_ids": rec["ids"] if rec else [],
+                    "attendee_farms": (rec.get("farms", []) if rec else []),
                     "farm": rec["farm"] if rec else "",
                     "has_data": rec is not None,
                 })
@@ -2911,28 +2921,53 @@ def update_cover():
 def admin_edit_day_total():
     u = current_user()
     day = request.form.get("day", "").strip()
-    try:
-        total = int(request.form.get("total_count", "0"))
-        if total < 0: raise ValueError
-    except ValueError:
-        flash("عدد غير صالح", "error")
-        return redirect(url_for("history"))
-    try:
-        no_deduct_total = int(request.form.get("no_deduct_total", "0") or "0")
-        if no_deduct_total < 0: no_deduct_total = 0
-    except ValueError:
-        no_deduct_total = 0
+    # ندعم مدخلين منفصلين (تسمين + بياض) — والقديم total_count يبقى للتوافق
+    def _int_or(v, default=None):
+        try:
+            iv = int(v)
+            if iv < 0: return default
+            return iv
+        except (TypeError, ValueError):
+            return default
+    tasmeen_after = _int_or(request.form.get("tasmeen_after"), None)
+    bayad_after = _int_or(request.form.get("bayad_after"), None)
+    total_form = _int_or(request.form.get("total_count"), None)
+    no_deduct_total = _int_or(request.form.get("no_deduct_total"), 0) or 0
+
     db = get_db()
     cur = db.cursor()
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0")
-    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count, no_deduct_total)
-                   VALUES(%s,%s,%s,%s)
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS tasmeen_after INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS bayad_after INTEGER NOT NULL DEFAULT 0")
+
+    # لو اتبعت واحد فيهم بس — نحافظ على القيمة الحالية للتاني
+    if tasmeen_after is None or bayad_after is None:
+        cur.execute("SELECT COALESCE(tasmeen_after,0) AS t, COALESCE(bayad_after,0) AS b, total_count FROM day_closures WHERE day=%s", (day,))
+        row = cur.fetchone()
+        cur_t = int(row["t"]) if row else 0
+        cur_b = int(row["b"]) if row else 0
+        # لو الصف قديم من غير فصل — نعتبر الكل تسمين للتوافق
+        if row and cur_t == 0 and cur_b == 0 and int(row["total_count"] or 0) > 0:
+            cur_t = int(row["total_count"])
+        if tasmeen_after is None: tasmeen_after = cur_t
+        if bayad_after is None: bayad_after = cur_b
+
+    # لو المسؤول بعت total_count بس (نموذج قديم) — من غير tasmeen/bayad — نعتبره تسمين
+    if total_form is not None and request.form.get("tasmeen_after") is None and request.form.get("bayad_after") is None:
+        tasmeen_after = total_form
+        bayad_after = 0
+
+    total = int(tasmeen_after) + int(bayad_after)
+    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, no_deduct_total)
+                   VALUES(%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count,
+                                                    tasmeen_after = EXCLUDED.tasmeen_after,
+                                                    bayad_after = EXCLUDED.bayad_after,
                                                     no_deduct_total = EXCLUDED.no_deduct_total""",
-                (day, u["id"], total, no_deduct_total))
+                (day, u["id"], total, tasmeen_after, bayad_after, no_deduct_total))
     db.commit()
     cur.close()
-    flash("تم تحديث إجمالي يوم " + day + " ✓", "success")
+    flash("تم تحديث إجمالي يوم " + day + " (تسمين " + str(tasmeen_after) + " + بياض " + str(bayad_after) + ") ✓", "success")
     return redirect(url_for("history"))
 
 
