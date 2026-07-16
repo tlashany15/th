@@ -879,7 +879,9 @@ def history():
                    COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
                             FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
                    COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
-                            FILTER (WHERE u.id IS NOT NULL), '{}') AS ids
+                            FILTER (WHERE u.id IS NOT NULL), '{}') AS ids,
+                   COALESCE(ARRAY_AGG(a.farm ORDER BY u.full_name)
+                            FILTER (WHERE a.farm IS NOT NULL), '{}') AS farms
             FROM day_closures c
             JOIN attendance a_self ON a_self.day = c.day AND a_self.user_id = %s
             LEFT JOIN attendance a ON a.day = c.day AND a.farm = a_self.farm
@@ -891,6 +893,7 @@ def history():
                               "no_deduct_total": 0,
                               "names": list(r["names"] or []),
                               "ids": list(r["ids"] or []),
+                              "farms": list(r["farms"] or []),
                               "farm": _farm_label(r["my_farm"])}
                   for r in cur.fetchall()}
 
@@ -2967,6 +2970,14 @@ def admin_edit_day_total():
                 (day, u["id"], total, tasmeen_after, bayad_after, no_deduct_total))
     db.commit()
     cur.close()
+    if request.headers.get("X-Requested-With") == "fetch":
+        return jsonify({
+            "ok": True,
+            "day": day,
+            "tasmeen_after": int(tasmeen_after),
+            "bayad_after": int(bayad_after),
+            "total": int(total),
+        })
     flash("تم تحديث إجمالي يوم " + day + " (تسمين " + str(tasmeen_after) + " + بياض " + str(bayad_after) + ") ✓", "success")
     return redirect(url_for("history"))
 
