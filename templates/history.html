@@ -105,8 +105,7 @@
                 </button>
               </form>
             {% else %}
-              {# للعامل: عرض القسمين لو موجودين #}
-              {% if d.farm %}<div class="hist-farm-chip">قسمك: <b>{{ d.farm }}</b></div>{% endif %}
+              {# تم إخفاء "قسمك" بناءً على طلب المستخدم #}
             {% endif %}
 
             {% if d.names %}

@@ -16,6 +16,20 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app-polish.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ap-shared.css') }}">
+  <script src="{{ url_for('static', filename='polish-global.js') }}" defer></script>
+  <script>
+    // فعل روح لوحة الأدمن على بقية الصفحات
+    (function(){
+      var p = (location.pathname || '');
+      if (p.indexOf('/admin') !== 0) {
+        document.documentElement.classList.add('ap-polish');
+        document.addEventListener('DOMContentLoaded', function(){
+          document.body && document.body.classList.add('ap-polish');
+        });
+      }
+    })();
+  </script>
   <style>
     /* فرض عرض الأرقام بالإنجليزي (Latin) في كل الصفحات */
     @font-face {
