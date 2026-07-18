@@ -392,7 +392,7 @@ def _boot():
     try:
         ep = request.endpoint or ""
         # نسمح دايمًا بالملفات الثابتة والدخول والخروج وزر التشغيل/الإيقاف نفسه
-        _always_allowed = {"static", "login", "logout", "admin_toggle_maintenance"}
+        _always_allowed = {"static", "admin_toggle_maintenance"}
         if ep not in _always_allowed and _maintenance_on():
             ru = real_user()
             if not _is_super_admin(ru):
