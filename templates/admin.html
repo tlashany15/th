@@ -44,6 +44,53 @@
   </div>
 </section>
 
+{% if is_real_super_admin %}
+<!-- ============ MAINTENANCE TOGGLE (المسؤول الرئيسي فقط) ============ -->
+<form method="post" action="{{ url_for('admin_toggle_maintenance') }}"
+      class="ap-card ap-maint {% if maintenance_on %}is-on{% endif %}"
+      onsubmit="return confirm({% if maintenance_on %}'تشغيل البرنامج من جديد لكل المستخدمين؟'{% else %}'إيقاف البرنامج لكل المستخدمين؟ هتفضل أنت الوحيد اللي يقدر يدخل.'{% endif %});">
+  <div class="ap-maint-ic" aria-hidden="true">
+    {% if maintenance_on %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.25v13.5l13.5-6.75L5.25 5.25z"/></svg>
+    {% else %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"/></svg>
+    {% endif %}
+  </div>
+  <div class="ap-maint-body">
+    <div class="ap-maint-t">
+      {% if maintenance_on %}البرنامج متوقف حاليًا{% else %}إيقاف البرنامج عن كل المستخدمين{% endif %}
+    </div>
+    <div class="ap-maint-s">
+      {% if maintenance_on %}
+        كل المستخدمين مقفول عليهم الدخول — اضغط لتشغيل البرنامج تاني.
+      {% else %}
+        هيتم تسجيل خروج كل المستخدمين، وأنت الوحيد اللي يقدر يدخل لحد ما تشغّله تاني.
+      {% endif %}
+    </div>
+  </div>
+  <button type="submit" class="ap-maint-btn">
+    {% if maintenance_on %}تشغيل البرنامج{% else %}إيقاف البرنامج{% endif %}
+  </button>
+</form>
+
+<style>
+.ap-maint{display:flex;align-items:center;gap:12px;padding:14px;margin:12px 0;border:1px solid var(--border,#e5e7eb);border-radius:16px;background:linear-gradient(135deg,#fff, #fff7ed);}
+.ap-maint.is-on{background:linear-gradient(135deg,#fff, #fef2f2);border-color:#fecaca;}
+.ap-maint-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#fde68a;color:#92400e;flex:none}
+.ap-maint.is-on .ap-maint-ic{background:#fecaca;color:#991b1b}
+.ap-maint-ic svg{width:22px;height:22px}
+.ap-maint-body{flex:1;min-width:0}
+.ap-maint-t{font-weight:800;font-size:14.5px;color:#111827}
+.ap-maint-s{font-size:12.5px;color:#4b5563;margin-top:2px;line-height:1.5}
+.ap-maint-btn{border:0;border-radius:12px;padding:10px 14px;font-weight:800;font-size:13.5px;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 8px 18px -8px rgba(234,88,12,.6);cursor:pointer;white-space:nowrap}
+.ap-maint.is-on .ap-maint-btn{background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 8px 18px -8px rgba(22,163,74,.6)}
+.ap-maint-btn:hover{transform:translateY(-1px)}
+@media (max-width:520px){.ap-maint{flex-wrap:wrap}.ap-maint-btn{width:100%}}
+</style>
+{% endif %}
+
+
+
 {% if is_today %}
 <!-- ============ ADMIN SELF CHECK-IN ============ -->
 <div class="ap-selfcheck {% if admin_checked_in %}is-done{% endif %}">
