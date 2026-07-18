@@ -290,6 +290,15 @@ def init_db():
             UNIQUE(user_id, day)
         );
         CREATE INDEX IF NOT EXISTS idx_wadj_user ON worker_adjustments(user_id, day DESC);
+
+        -- ==== إعدادات النظام (وضع الإيقاف الكامل من المسؤول الرئيسي) ====
+        CREATE TABLE IF NOT EXISTS system_settings (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            CHECK (id = 1)
+        );
+        INSERT INTO system_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
     """)
     # نتأكد إن فيه مسؤول برقم "1"
     cur.execute("SELECT id, username FROM users WHERE role='admin' ORDER BY id ASC LIMIT 1")
@@ -379,6 +388,38 @@ def _boot():
             cur.close()
         except Exception:
             pass
+    # وضع الإيقاف الكامل: كل المستخدمين ممنوعين ما عدا المسؤول الرئيسي (username='1')
+    try:
+        ep = request.endpoint or ""
+        # نسمح دايمًا بالملفات الثابتة والدخول والخروج وزر التشغيل/الإيقاف نفسه
+        _always_allowed = {"static", "login", "logout", "admin_toggle_maintenance"}
+        if ep not in _always_allowed and _maintenance_on():
+            ru = real_user()
+            if not _is_super_admin(ru):
+                # لو فيه جلسة لأي حد غير المسؤول الرئيسي — نقفلها
+                if session.get("user_id"):
+                    session.clear()
+                if request.method == "GET":
+                    return render_template("maintenance.html"), 503
+                return ("البرنامج متوقف مؤقتًا من المسؤول الرئيسي", 503)
+    except Exception:
+        pass
+
+
+def _maintenance_on():
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT maintenance_mode FROM system_settings WHERE id=1")
+        row = cur.fetchone()
+        cur.close()
+        if not row:
+            return False
+        val = row["maintenance_mode"] if isinstance(row, dict) or hasattr(row, "get") else row[0]
+        return bool(val)
+    except Exception:
+        return False
+
 
 
 def _iso_utc(dt):
@@ -1355,7 +1396,34 @@ def admin_panel():
         days_bar=days_bar, day_closed=closed,
         all_workers=all_workers, tomorrow=tomorrow,
         admin_checked_in=admin_checked_in, is_today=is_today,
+        maintenance_on=_maintenance_on(),
     )
+
+
+@app.route("/admin/toggle-maintenance", methods=["POST"])
+@super_admin_required
+def admin_toggle_maintenance():
+    """المسؤول الرئيسي فقط: يوقف البرنامج لكل الناس أو يشغّله تاني."""
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""
+        UPDATE system_settings
+           SET maintenance_mode = NOT maintenance_mode,
+               updated_at = NOW()
+         WHERE id = 1
+        RETURNING maintenance_mode
+    """)
+    row = cur.fetchone()
+    db.commit()
+    cur.close()
+    on = bool(row["maintenance_mode"]) if row else False
+    if on:
+        flash("تم إيقاف البرنامج لكل المستخدمين ⏸️ — أنت الوحيد اللي تقدر تدخل الآن.", "success")
+    else:
+        flash("تم تشغيل البرنامج من جديد ▶️ — كل المستخدمين يقدروا يدخلوا.", "success")
+    return redirect(url_for("admin_panel"))
+
+
 
 
 @app.route("/admin/close-day", methods=["POST"])
