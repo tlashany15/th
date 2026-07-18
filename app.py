@@ -396,12 +396,8 @@ def _boot():
         if ep not in _always_allowed and _maintenance_on():
             ru = real_user()
             if not _is_super_admin(ru):
-                # لو فيه جلسة لأي حد غير المسؤول الرئيسي — نقفلها
-                if session.get("user_id"):
-                    session.clear()
-                if request.method == "GET":
-                    return render_template("maintenance.html"), 503
-                return ("البرنامج متوقف مؤقتًا من المسؤول الرئيسي", 503)
+                # لا نسجّل خروج أي حد — بس نعرض صفحة "تم إيقاف التطبيق من المطور"
+                return render_template("maintenance.html"), 503
     except Exception:
         pass
 
