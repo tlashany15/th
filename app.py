@@ -937,8 +937,8 @@ def history():
     # قائمة كل العمال (للمسؤول عشان يقدر يعدّل الحضور من السجل)
     all_workers = []
     if is_admin:
-        # نعرض كل الأعضاء (عمال ومسؤولين) بدون تمييز — لتعديل الحضور من غير كشف مين مسؤول
-        cur.execute("SELECT id, full_name FROM users WHERE COALESCE(username,'') <> '1' ORDER BY full_name")
+        # نعرض كل الأعضاء (عمال ومسؤولين + المسؤول الرئيسي) بدون تمييز — لتعديل الحضور من غير كشف مين مسؤول
+        cur.execute("SELECT id, full_name FROM users ORDER BY full_name")
         all_workers = [{"id": r["id"], "full_name": r["full_name"]} for r in cur.fetchall()]
     cur.close()
 
