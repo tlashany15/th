@@ -1374,9 +1374,11 @@ def admin_panel():
         s = cur.fetchone()["s"]
         days_bar.append({"day": d, "total": s, "active": d == day_s})
 
-    cur.execute("SELECT total_count FROM day_closures WHERE day=%s", (day_s,))
+    cur.execute("SELECT total_count, tasmeen_after, bayad_after FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
     closed = _row is not None
+    tasmeen_after = int(_row["tasmeen_after"] or 0) if closed else 0
+    bayad_after   = int(_row["bayad_after"]   or 0) if closed else 0
     if closed:
         day_total = _row["total_count"]
 
@@ -1395,6 +1397,7 @@ def admin_panel():
         all_workers=all_workers, tomorrow=tomorrow,
         admin_checked_in=admin_checked_in, is_today=is_today,
         maintenance_on=_maintenance_on(),
+        tasmeen_after=tasmeen_after, bayad_after=bayad_after,
     )
 
 
