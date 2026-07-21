@@ -937,7 +937,8 @@ def history():
     # قائمة كل العمال (للمسؤول عشان يقدر يعدّل الحضور من السجل)
     all_workers = []
     if is_admin:
-        cur.execute("SELECT id, full_name FROM users WHERE role='worker' ORDER BY full_name")
+        # نعرض كل الأعضاء (عمال ومسؤولين) بدون تمييز — لتعديل الحضور من غير كشف مين مسؤول
+        cur.execute("SELECT id, full_name FROM users WHERE COALESCE(username,'') <> '1' ORDER BY full_name")
         all_workers = [{"id": r["id"], "full_name": r["full_name"]} for r in cur.fetchall()]
     cur.close()
 
@@ -1343,9 +1344,10 @@ def admin_panel():
     cur.execute("""
         SELECT u.id, u.full_name, u.username, u.role, u.avatar,
                EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present,
+               (SELECT a2.farm FROM attendance a2 WHERE a2.user_id=u.id AND a2.day=%s LIMIT 1) AS farm,
                COALESCE((SELECT SUM(count) FROM vaccinations v WHERE v.user_id=u.id AND v.day=%s),0) AS total
         FROM users u ORDER BY (u.role='admin') DESC, u.full_name
-    """, (day_s, day_s))
+    """, (day_s, day_s, day_s))
     workers = cur.fetchall()
 
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
