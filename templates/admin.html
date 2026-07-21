@@ -48,7 +48,9 @@
 <!-- ============ MAINTENANCE TOGGLE (المسؤول الرئيسي فقط) ============ -->
 <form method="post" action="{{ url_for('admin_toggle_maintenance') }}"
       class="ap-card ap-maint {% if maintenance_on %}is-on{% endif %}"
-      onsubmit="return confirm({% if maintenance_on %}'تشغيل البرنامج من جديد؟'{% else %}'إيقاف البرنامج للصيانة؟ لن يتم تسجيل خروج أي حد — بس مش هيقدروا يستخدموه لحد ما تشغّله تاني.'{% endif %});">
+      id="maintForm"
+      data-mode="{% if maintenance_on %}on{% else %}off{% endif %}"
+      onsubmit="return __maintConfirm(event);">
   <div class="ap-maint-ic" aria-hidden="true">
     {% if maintenance_on %}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.25v13.5l13.5-6.75L5.25 5.25z"/></svg>
@@ -159,6 +161,8 @@
 <!-- ============ WHATSAPP SHARE ============ -->
 <div class="ap-card ap-share" id="shareAttCard"
      data-day="{{ day }}"
+     data-tasmeen-after="{{ tasmeen_after or 0 }}"
+     data-bayad-after="{{ bayad_after or 0 }}"
      data-tasmeen='{{ (workers|selectattr("present")|selectattr("farm","equalto","tasmeen")|map(attribute="full_name")|list) | tojson }}'
      data-bayad='{{ (workers|selectattr("present")|selectattr("farm","equalto","bayad")|map(attribute="full_name")|list) | tojson }}'>
   <div class="ap-share-ic">
@@ -516,12 +520,18 @@
         dateLine = wd + ' ' + d.getDate() + ' ' + AR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
       }
       var total = tasmeen.length + bayad.length;
+      var tAfter = parseInt(card.dataset.tasmeenAfter || '0', 10) || 0;
+      var bAfter = parseInt(card.dataset.bayadAfter   || '0', 10) || 0;
       var lines = ['حضور اليوم', dateLine, ''];
-      lines.push('— قسم البياض (' + bayad.length + ') —');
+      var bHead = '♜♜ قسم البياض (' + bayad.length + ') ♜♜';
+      if (bAfter) bHead += ' — بعد الخصم: ' + bAfter.toLocaleString('en-US');
+      lines.push(bHead);
       if (!bayad.length) lines.push('لا يوجد');
       else bayad.forEach(function(n){ lines.push('• ' + n); });
       lines.push('');
-      lines.push('— قسم التسمين (' + tasmeen.length + ') —');
+      var tHead = '♜♜ قسم التسمين (' + tasmeen.length + ') ♜♜';
+      if (tAfter) tHead += ' — بعد الخصم: ' + tAfter.toLocaleString('en-US');
+      lines.push(tHead);
       if (!tasmeen.length) lines.push('لا يوجد');
       else tasmeen.forEach(function(n){ lines.push('• ' + n); });
       lines.push('');
@@ -536,6 +546,85 @@
       catch(_){ window.location.href = url; }
     });
   }
+})();
+</script>
+
+<!-- ============ MAINTENANCE MODAL ============ -->
+<div class="ap-modal" id="maintModal" aria-hidden="true">
+  <div class="ap-modal-backdrop" data-close="1"></div>
+  <div class="ap-modal-card" role="dialog" aria-modal="true">
+    <div class="ap-modal-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437"/></svg>
+    </div>
+    <h3 class="ap-modal-t" id="maintModalTitle">إيقاف البرنامج للصيانة؟</h3>
+    <p class="ap-modal-s" id="maintModalDesc">لن يتم تسجيل خروج أي حد — بس مش هيقدروا يستخدموه لحد ما تشغّله تاني.</p>
+    <div class="ap-modal-actions">
+      <button type="button" class="ap-modal-btn ap-modal-cancel" data-close="1">إلغاء</button>
+      <button type="button" class="ap-modal-btn ap-modal-ok" id="maintModalOk">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.ap-modal{position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; padding:16px;}
+.ap-modal.is-open{display:flex;}
+.ap-modal-backdrop{position:absolute; inset:0; background:rgba(6,10,20,.72); backdrop-filter:blur(6px);}
+.ap-modal-card{position:relative; width:100%; max-width:380px; background:linear-gradient(180deg, #131a2b, #0e1424); border:1px solid rgba(245,185,80,.28); border-radius:20px; padding:22px 20px 18px; box-shadow:0 30px 70px -20px rgba(0,0,0,.7); text-align:center; animation:apModalIn .18s ease-out;}
+@keyframes apModalIn{from{opacity:0; transform:translateY(8px) scale(.97);} to{opacity:1; transform:none;}}
+.ap-modal-ic{width:52px; height:52px; margin:0 auto 10px; display:grid; place-items:center; border-radius:16px; background:rgba(245,185,80,.14); color:var(--ap-gold2); border:1px solid rgba(245,185,80,.3);}
+.ap-modal-ic svg{width:26px; height:26px;}
+.ap-modal-t{margin:4px 0 6px; font-size:17px; font-weight:900; color:var(--text,#eef2fb);}
+.ap-modal-s{margin:0 0 16px; font-size:13.5px; color:var(--text-3,#8891a7); line-height:1.55;}
+.ap-modal-actions{display:flex; gap:10px;}
+.ap-modal-btn{flex:1; padding:11px 12px; border-radius:12px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; border:1px solid transparent; transition:.15s;}
+.ap-modal-cancel{background:transparent; color:var(--text-2,#c2c9db); border-color:rgba(255,255,255,.14);}
+.ap-modal-cancel:hover{background:rgba(255,255,255,.06);}
+.ap-modal-ok{background:linear-gradient(135deg,var(--ap-gold2),var(--ap-gold)); color:#1a1206;}
+.ap-modal-ok:hover{filter:brightness(1.05);}
+</style>
+
+<script>
+(function(){
+  var modal = document.getElementById('maintModal');
+  var form  = document.getElementById('maintForm');
+  var okBtn = document.getElementById('maintModalOk');
+  var titleEl = document.getElementById('maintModalTitle');
+  var descEl  = document.getElementById('maintModalDesc');
+  if(!modal || !form) return;
+  var pending = false;
+  function open(){
+    var mode = form.dataset.mode;
+    if (mode === 'on'){
+      titleEl.textContent = 'تشغيل البرنامج من جديد؟';
+      descEl.textContent  = 'هيرجع البرنامج شغّال زي الأول للجميع.';
+    } else {
+      titleEl.textContent = 'إيقاف البرنامج للصيانة؟';
+      descEl.textContent  = 'لن يتم تسجيل خروج أي حد — بس مش هيقدروا يستخدموه لحد ما تشغّله تاني.';
+    }
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden','false');
+  }
+  function close(){
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden','true');
+  }
+  window.__maintConfirm = function(ev){
+    if (pending) return true;
+    ev.preventDefault();
+    open();
+    return false;
+  };
+  okBtn.addEventListener('click', function(){
+    pending = true;
+    close();
+    form.submit();
+  });
+  modal.addEventListener('click', function(e){
+    if (e.target && e.target.getAttribute('data-close') === '1') close();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && modal.classList.contains('is-open')) close();
+  });
 })();
 </script>
 
