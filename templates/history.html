@@ -87,41 +87,62 @@
               </span>
             </header>
 
+            {% set tasmeen_names = [] %}
+            {% set bayad_names = [] %}
+            {% if d.names %}
+              {% for i in range(d.names|length) %}
+                {% set fm = d.attendee_farms[i] if d.attendee_farms and i < d.attendee_farms|length else '' %}
+                {% if fm == 'bayad' %}{% set _ = bayad_names.append(d.names[i]) %}
+                {% else %}{% set _ = tasmeen_names.append(d.names[i]) %}{% endif %}
+              {% endfor %}
+            {% endif %}
+
             {% if is_admin %}
-              {# ==== تعديل الأعداد — تسمين و بياض منفصلين ==== #}
-              <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid js-hist-edit" data-day="{{ d.date }}">
+              {# ==== تعديل الأعداد — تسمين و بياض في عمودين مع أسماء الحضور تحت كل حقل ==== #}
+              <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid2 js-hist-edit" data-day="{{ d.date }}">
                 <input type="hidden" name="day" value="{{ d.date }}">
-                <label class="hist-edit-field hist-edit-t">
-                  <span class="k">تسمين</span>
-                  <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required>
-                </label>
-                <label class="hist-edit-field hist-edit-b">
-                  <span class="k">بياض</span>
-                  <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required>
-                </label>
+                <div class="hist-col hist-col-t">
+                  <div class="hist-col-head"><span class="k">تسمين</span><span class="cnt">{{ tasmeen_names|length }}</span></div>
+                  <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp">
+                  {% if tasmeen_names %}
+                    <div class="hist-col-names">
+                      {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="hist-col hist-col-b">
+                  <div class="hist-col-head"><span class="k">بياض</span><span class="cnt">{{ bayad_names|length }}</span></div>
+                  <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp">
+                  {% if bayad_names %}
+                    <div class="hist-col-names">
+                      {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
                 <button type="submit" class="hist-edit-save" title="حفظ التعديل">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                   <span class="hist-edit-lbl">حفظ</span>
                 </button>
               </form>
             {% else %}
-              {# تم إخفاء "قسمك" بناءً على طلب المستخدم #}
-            {% endif %}
-
-            {% if d.names %}
-            <div class="hist-att">
-              <div class="hist-att-head">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                الحاضرون ({{ d.names|length }})
+              {% if d.names %}
+              <div class="hist-att">
+                <div class="hist-att-two">
+                  <div class="hist-att-col">
+                    <div class="hist-att-col-h">بياض ({{ bayad_names|length }})</div>
+                    <div class="hist-att-list">
+                      {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                    </div>
+                  </div>
+                  <div class="hist-att-col">
+                    <div class="hist-att-col-h">تسمين ({{ tasmeen_names|length }})</div>
+                    <div class="hist-att-list">
+                      {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="hist-att-list">
-                {% for i in range(d.names|length) %}
-                  {% set nm = d.names[i] %}
-                  {% set fm = d.attendee_farms[i] if d.attendee_farms and i < d.attendee_farms|length else '' %}
-                  <span class="name-chip name-chip-{{ fm if fm in ['tasmeen','bayad'] else 'tasmeen' }}">{{ nm }}{% if fm in ['tasmeen','bayad'] %}<i class="nc-f">{{ 'بياض' if fm == 'bayad' else 'تسمين' }}</i>{% endif %}</span>
-                {% endfor %}
-              </div>
-            </div>
+              {% endif %}
             {% endif %}
 
             {% if is_admin and all_workers %}
@@ -234,6 +255,26 @@
 .hist-att-chip.is-x{border-color:rgba(239,68,68,.35);color:#fca5a5}
 .hist-att-chip.is-x:hover{background:rgba(239,68,68,.15)}
 .hist-att-chip:hover{transform:translateY(-1px)}
+
+/* ==== history: two-column edit (tasmeen | bayad) with attendee names under each ==== */
+.hist-edit-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.hist-edit-grid2 .hist-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px}
+.hist-edit-grid2 .hist-col-t{border-color:rgba(244,197,66,.28)}
+.hist-edit-grid2 .hist-col-b{border-color:rgba(125,211,252,.28)}
+.hist-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hist-col-head .k{font-size:12px;font-weight:900}
+.hist-col-t .hist-col-head .k{color:#f4c542}
+.hist-col-b .hist-col-head .k{color:#7dd3fc}
+.hist-col-head .cnt{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.06);color:#e5e7eb}
+.hist-col-inp{width:100%;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 10px;font-family:inherit;font-weight:800;color:#fff;font-size:15px;text-align:center}
+.hist-col-t .hist-col-inp:focus{outline:none;border-color:#f4c542;background:rgba(244,197,66,.08)}
+.hist-col-b .hist-col-inp:focus{outline:none;border-color:#7dd3fc;background:rgba(125,211,252,.08)}
+.hist-col-names{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.08)}
+.hist-edit-grid2 .hist-edit-save{grid-column:1/-1;justify-content:center}
+.hist-att-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist-att-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
+.hist-att-col-h{font-size:12px;font-weight:900;color:var(--text-2,#d1d5db);margin-bottom:6px}
+@media(max-width:420px){.hist-edit-grid2,.hist-att-two{grid-template-columns:1fr}}
 @media(max-width:420px){.hist-edit-grid{grid-template-columns:1fr 1fr}.hist-edit-save{grid-column:1/-1}.hist-day-head{grid-template-columns:auto minmax(0,1fr)}.hist-day-badge{grid-column:1/-1;justify-self:end}}
 </style>
 
@@ -294,7 +335,7 @@
             var card = document.getElementById('day-'+day);
             if(card){
               var totalEl = card.querySelector('.hist-day-total .v');
-              if(totalEl) totalEl.textContent = (d.total||0).toLocaleString('ar-EG');
+              if(totalEl) totalEl.textContent = (d.total||0).toLocaleString('en-US');
               flashRow(card);
             }
             toast('تم حفظ يوم '+day+' ✓','success');

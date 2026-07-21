@@ -48,7 +48,7 @@
 <!-- ============ MAINTENANCE TOGGLE (المسؤول الرئيسي فقط) ============ -->
 <form method="post" action="{{ url_for('admin_toggle_maintenance') }}"
       class="ap-card ap-maint {% if maintenance_on %}is-on{% endif %}"
-      onsubmit="return confirm({% if maintenance_on %}'تشغيل البرنامج من جديد لكل المستخدمين؟'{% else %}'إيقاف البرنامج لكل المستخدمين؟ هتفضل أنت الوحيد اللي يقدر يدخل.'{% endif %});">
+      onsubmit="return confirm({% if maintenance_on %}'تشغيل البرنامج من جديد؟'{% else %}'إيقاف البرنامج للصيانة؟ لن يتم تسجيل خروج أي حد — بس مش هيقدروا يستخدموه لحد ما تشغّله تاني.'{% endif %});">
   <div class="ap-maint-ic" aria-hidden="true">
     {% if maintenance_on %}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.25v13.5l13.5-6.75L5.25 5.25z"/></svg>
@@ -58,14 +58,7 @@
   </div>
   <div class="ap-maint-body">
     <div class="ap-maint-t">
-      {% if maintenance_on %}البرنامج متوقف حاليًا{% else %}إيقاف البرنامج عن كل المستخدمين{% endif %}
-    </div>
-    <div class="ap-maint-s">
-      {% if maintenance_on %}
-        كل المستخدمين مقفول عليهم الدخول — اضغط لتشغيل البرنامج تاني.
-      {% else %}
-        هيتم تسجيل خروج كل المستخدمين، وأنت الوحيد اللي يقدر يدخل لحد ما تشغّله تاني.
-      {% endif %}
+      {% if maintenance_on %}البرنامج متوقف للصيانة{% else %}إيقاف البرنامج للصيانة{% endif %}
     </div>
   </div>
   <button type="submit" class="ap-maint-btn">
@@ -166,13 +159,13 @@
 <!-- ============ WHATSAPP SHARE ============ -->
 <div class="ap-card ap-share" id="shareAttCard"
      data-day="{{ day }}"
-     data-names='{{ (workers|selectattr("present")|map(attribute="full_name")|list) | tojson }}'>
+     data-tasmeen='{{ (workers|selectattr("present")|selectattr("farm","equalto","tasmeen")|map(attribute="full_name")|list) | tojson }}'
+     data-bayad='{{ (workers|selectattr("present")|selectattr("farm","equalto","bayad")|map(attribute="full_name")|list) | tojson }}'>
   <div class="ap-share-ic">
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 2C6.495 2 2 6.495 2 12.05c0 1.77.462 3.505 1.34 5.033L2 22l5.05-1.32a10.02 10.02 0 004.995 1.315h.005c5.555 0 10.05-4.495 10.05-10.05C22.1 6.495 17.605 2 12.05 2z"/></svg>
   </div>
   <div class="ap-share-body">
     <div class="ap-share-t">مشاركة أسماء الحاضرين</div>
-    <div class="ap-share-s">افتح واتساب واختر الدردشة اللي عايز تبعت فيها — بدون أرقام</div>
   </div>
   <button type="button" class="ap-share-btn" id="shareAttBtn">
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 2C6.495 2 2 6.495 2 12.05c0 1.77.462 3.505 1.34 5.033L2 22l5.05-1.32a10.02 10.02 0 004.995 1.315h.005c5.555 0 10.05-4.495 10.05-10.05C22.1 6.495 17.605 2 12.05 2z"/></svg>
@@ -511,8 +504,9 @@
     var AR_DAYS   = ["الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت","الأحد"];
     var AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
     function buildText(){
-      var names = [];
-      try { names = JSON.parse(card.dataset.names || '[]') || []; } catch(e){ names = []; }
+      var tasmeen = [], bayad = [];
+      try { tasmeen = JSON.parse(card.dataset.tasmeen || '[]') || []; } catch(e){}
+      try { bayad   = JSON.parse(card.dataset.bayad   || '[]') || []; } catch(e){}
       var day = card.dataset.day || '';
       var d = new Date(day + 'T00:00:00');
       var dateLine;
@@ -521,12 +515,17 @@
         var wd = AR_DAYS[(d.getDay()+6)%7];
         dateLine = wd + ' ' + d.getDate() + ' ' + AR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
       }
-      var lines = ['📋 حضور اليوم', '📅 ' + dateLine, ''];
-      if (!names.length){ lines.push('لا يوجد حاضرون بعد.'); }
-      else {
-        names.forEach(function(n){ lines.push('• ' + n); });
-        lines.push(''); lines.push('العدد: ' + names.length);
-      }
+      var total = tasmeen.length + bayad.length;
+      var lines = ['حضور اليوم', dateLine, ''];
+      lines.push('— قسم البياض (' + bayad.length + ') —');
+      if (!bayad.length) lines.push('لا يوجد');
+      else bayad.forEach(function(n){ lines.push('• ' + n); });
+      lines.push('');
+      lines.push('— قسم التسمين (' + tasmeen.length + ') —');
+      if (!tasmeen.length) lines.push('لا يوجد');
+      else tasmeen.forEach(function(n){ lines.push('• ' + n); });
+      lines.push('');
+      lines.push('الإجمالي: ' + total);
       return lines.join('\n');
     }
     btn.addEventListener('click', function(){

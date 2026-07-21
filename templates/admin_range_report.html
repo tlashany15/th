@@ -7,33 +7,33 @@
   position:relative;overflow:hidden;border-radius:22px;
   padding:20px 18px 22px;margin-bottom:14px;
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(255,190,87,.22), transparent 55%),
-    radial-gradient(120% 140% at 0% 100%, rgba(239,68,68,.18), transparent 55%),
-    linear-gradient(180deg, rgba(20,14,8,.85), rgba(12,8,4,.92));
-  border:1px solid rgba(255,190,87,.22);
-  box-shadow:0 20px 60px -30px rgba(255,150,50,.55), inset 0 1px 0 rgba(255,255,255,.05);
+    radial-gradient(120% 140% at 100% 0%, rgba(245,185,80,.22), transparent 55%),
+    radial-gradient(120% 140% at 0% 100%, rgba(59,130,246,.14), transparent 55%),
+    linear-gradient(180deg, rgba(15,21,36,.9), rgba(11,15,23,.95));
+  border:1px solid rgba(245,185,80,.22);
+  box-shadow:0 20px 60px -30px rgba(212,175,55,.55), inset 0 1px 0 rgba(255,255,255,.05);
 }
 .rr2-hero::before{
   content:"";position:absolute;inset:-2px;border-radius:24px;pointer-events:none;
-  background:conic-gradient(from 140deg,rgba(255,190,87,.35),transparent 30%,rgba(239,68,68,.28) 60%,transparent 85%);
+  background:conic-gradient(from 140deg,rgba(245,185,80,.35),transparent 30%,rgba(59,130,246,.22) 60%,transparent 85%);
   filter:blur(28px);opacity:.55;z-index:0;animation:rr2-orbit 12s linear infinite;
 }
 @keyframes rr2-orbit{to{transform:rotate(360deg)}}
 .rr2-hero > *{position:relative;z-index:1}
 .rr2-badge{
   display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
-  padding:6px 12px;border-radius:999px;color:#ffd58a;
-  background:linear-gradient(180deg,rgba(255,190,87,.16),rgba(255,190,87,.06));
-  border:1px solid rgba(255,190,87,.35);
+  padding:6px 12px;border-radius:999px;color:#ffd27a;
+  background:linear-gradient(180deg,rgba(245,185,80,.16),rgba(245,185,80,.06));
+  border:1px solid rgba(245,185,80,.35);
   letter-spacing:.3px;
 }
-.rr2-title{font-size:22px;font-weight:900;margin:8px 0 2px;color:#fff8ee;letter-spacing:-.2px}
-.rr2-sub{font-size:12.5px;color:#f5d9a8;opacity:.85;margin:0}
+.rr2-title{font-size:22px;font-weight:900;margin:8px 0 2px;color:#eef2fb;letter-spacing:-.2px}
+.rr2-sub{font-size:12.5px;color:#c2c9db;opacity:.85;margin:0}
 
 /* form card */
 .rr2-card{
-  background:linear-gradient(180deg,rgba(28,20,14,.9),rgba(18,12,8,.92));
-  border:1px solid rgba(255,190,87,.14);
+  background:linear-gradient(180deg,rgba(23,31,51,.9),rgba(15,21,36,.95));
+  border:1px solid rgba(245,185,80,.14);
   border-radius:20px;padding:16px;margin-bottom:14px;
   box-shadow:0 12px 40px -24px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.03);
 }
@@ -42,74 +42,74 @@
 .rr2-seg{
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
   background:rgba(0,0,0,.35);padding:5px;border-radius:14px;
-  border:1px solid rgba(255,190,87,.12);margin-bottom:12px;
+  border:1px solid rgba(245,185,80,.12);margin-bottom:12px;
 }
 .rr2-seg button{
   all:unset;text-align:center;cursor:pointer;font-size:12.5px;font-weight:800;
-  padding:10px 8px;border-radius:10px;color:#e7c58f;transition:.25s;
+  padding:10px 8px;border-radius:10px;color:#c2c9db;transition:.25s;
   display:flex;align-items:center;justify-content:center;gap:6px;
 }
 .rr2-seg button svg{width:14px;height:14px}
 .rr2-seg button.active{
-  background:linear-gradient(180deg,#ffbe57,#e88a2e);color:#1a0800;
-  box-shadow:0 6px 16px -6px rgba(255,150,40,.6), inset 0 1px 0 rgba(255,255,255,.4);
+  background:linear-gradient(180deg,#f5b950,#d4af37);color:#0b1418;
+  box-shadow:0 6px 16px -6px rgba(212,175,55,.6), inset 0 1px 0 rgba(255,255,255,.4);
 }
-.rr2-seg button:not(.active):hover{background:rgba(255,190,87,.06);color:#fff}
+.rr2-seg button:not(.active):hover{background:rgba(245,185,80,.06);color:#fff}
 
 /* person picker with search */
 .rr2-person-wrap{position:relative;margin-bottom:12px}
 .rr2-person-wrap.hidden{display:none}
 .rr2-search{
   width:100%;padding:12px 40px 12px 14px;border-radius:14px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.2);
+  background:rgba(0,0,0,.4);border:1px solid rgba(245,185,80,.2);
   color:#fff;font-size:14px;font-weight:600;outline:none;transition:.2s;
   box-sizing:border-box;
 }
-.rr2-search:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
+.rr2-search:focus{border-color:#f5b950;box-shadow:0 0 0 3px rgba(245,185,80,.18)}
 .rr2-search-ico{
   position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%);
-  width:16px;height:16px;color:#ffbe57;pointer-events:none;
+  width:16px;height:16px;color:#f5b950;pointer-events:none;
 }
 .rr2-persons{
   margin-top:8px;max-height:220px;overflow:auto;
-  border:1px solid rgba(255,190,87,.14);border-radius:14px;
+  border:1px solid rgba(245,185,80,.14);border-radius:14px;
   background:rgba(0,0,0,.35);
-  scrollbar-width:thin;scrollbar-color:#ffbe57 transparent;
+  scrollbar-width:thin;scrollbar-color:#f5b950 transparent;
 }
 .rr2-persons::-webkit-scrollbar{width:6px}
-.rr2-persons::-webkit-scrollbar-thumb{background:#ffbe57;border-radius:3px}
+.rr2-persons::-webkit-scrollbar-thumb{background:#f5b950;border-radius:3px}
 .rr2-person{
   display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
-  border-bottom:1px solid rgba(255,190,87,.06);transition:.15s;
+  border-bottom:1px solid rgba(245,185,80,.06);transition:.15s;
 }
 .rr2-person:last-child{border-bottom:0}
-.rr2-person:hover{background:rgba(255,190,87,.06)}
-.rr2-person.sel{background:linear-gradient(90deg,rgba(255,190,87,.16),transparent)}
+.rr2-person:hover{background:rgba(245,185,80,.06)}
+.rr2-person.sel{background:linear-gradient(90deg,rgba(245,185,80,.16),transparent)}
 .rr2-avatar{
   width:38px;height:38px;flex:0 0 38px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
-  font-weight:900;font-size:14px;color:#1a0800;
-  background:linear-gradient(135deg,#ffbe57,#ef9d3a);
-  box-shadow:0 4px 10px -4px rgba(255,150,40,.7);
-  border:2px solid rgba(255,190,87,.35);
+  font-weight:900;font-size:14px;color:#0b1418;
+  background:linear-gradient(135deg,#f5b950,#b98d1f);
+  box-shadow:0 4px 10px -4px rgba(212,175,55,.7);
+  border:2px solid rgba(245,185,80,.35);
   position:relative;
 }
 .rr2-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .rr2-pname{flex:1;font-size:13.5px;font-weight:700;color:#fff;min-width:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rr2-pcheck{width:18px;height:18px;color:#ffbe57;opacity:0;transition:.2s;flex-shrink:0}
+.rr2-pcheck{width:18px;height:18px;color:#f5b950;opacity:0;transition:.2s;flex-shrink:0}
 .rr2-person.sel .rr2-pcheck{opacity:1}
 
 /* quick date presets */
 .rr2-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .rr2-preset{
   all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
-  padding:7px 12px;border-radius:999px;color:#f5d9a8;
-  background:rgba(255,190,87,.08);border:1px solid rgba(255,190,87,.18);
+  padding:7px 12px;border-radius:999px;color:#c2c9db;
+  background:rgba(245,185,80,.08);border:1px solid rgba(245,185,80,.18);
   transition:.2s;
 }
-.rr2-preset:hover{background:rgba(255,190,87,.16);color:#fff}
-.rr2-preset.active{background:linear-gradient(180deg,#ffbe57,#e88a2e);color:#1a0800;border-color:transparent}
+.rr2-preset:hover{background:rgba(245,185,80,.16);color:#fff}
+.rr2-preset.active{background:linear-gradient(180deg,#f5b950,#d4af37);color:#0b1418;border-color:transparent}
 
 /* date fields — عرض واضح ومتناسق */
 .rr2-dates{
@@ -122,14 +122,14 @@
 .rr2-date{position:relative;min-width:0}
 .rr2-date label{
   position:absolute;top:-8px;inset-inline-start:12px;
-  font-size:10.5px;font-weight:800;color:#ffbe57;padding:0 6px;
-  background:#150e08;border-radius:6px;z-index:2;letter-spacing:.2px;
+  font-size:10.5px;font-weight:800;color:#f5b950;padding:0 6px;
+  background:#131a2c;border-radius:6px;z-index:2;letter-spacing:.2px;
 }
 .rr2-date-input{
   width:100%;max-width:100%;
   padding:13px 14px 13px 40px;
   border-radius:12px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(255,190,87,.22);
+  background:rgba(0,0,0,.4);border:1px solid rgba(245,185,80,.22);
   color:#fff;font-size:16px;font-weight:800;letter-spacing:0;
   outline:none;transition:.2s;
   box-sizing:border-box;font-family:inherit;
@@ -140,18 +140,18 @@
   unicode-bidi:plaintext;
 }
 .rr2-date-input::placeholder{color:rgba(255,255,255,.42);font-weight:700}
-.rr2-date-input:focus{border-color:#ffbe57;box-shadow:0 0 0 3px rgba(255,190,87,.18)}
+.rr2-date-input:focus{border-color:#f5b950;box-shadow:0 0 0 3px rgba(245,185,80,.18)}
 .rr2-date-input.is-invalid{border-color:#ff5d5d;box-shadow:0 0 0 3px rgba(255,93,93,.16)}
 .rr2-date-ico{
   position:absolute;top:50%;left:6px;transform:translateY(-50%);
-  width:32px;height:32px;color:#ffbe57;z-index:2;
+  width:32px;height:32px;color:#f5b950;z-index:2;
   display:flex;align-items:center;justify-content:center;
   border-radius:8px;cursor:pointer;
   background:transparent;border:0;padding:0;
   transition:.15s;
 }
 .rr2-date-ico svg{width:18px;height:18px}
-.rr2-date-btn:hover{background:rgba(255,190,87,.14);color:#fff}
+.rr2-date-btn:hover{background:rgba(245,185,80,.14);color:#fff}
 .rr2-date-btn:active{transform:translateY(-50%) scale(.94)}
 .rr2-date-native{
   position:absolute;inset:0;width:100%;height:100%;
@@ -162,77 +162,77 @@
 /* submit */
 .rr2-submit{
   all:unset;box-sizing:border-box;width:100%;text-align:center;cursor:pointer;
-  padding:14px;border-radius:14px;font-size:14.5px;font-weight:900;color:#1a0800;
-  background:linear-gradient(135deg,#ffd580,#ffbe57 45%,#ef9d3a);
-  box-shadow:0 12px 30px -12px rgba(255,150,40,.7), inset 0 1px 0 rgba(255,255,255,.4);
+  padding:14px;border-radius:14px;font-size:14.5px;font-weight:900;color:#0b1418;
+  background:linear-gradient(135deg,#ffd27a,#f5b950 45%,#b98d1f);
+  box-shadow:0 12px 30px -12px rgba(212,175,55,.7), inset 0 1px 0 rgba(255,255,255,.4);
   display:flex;align-items:center;justify-content:center;gap:8px;
   transition:.2s;
 }
-.rr2-submit:hover{transform:translateY(-1px);box-shadow:0 16px 36px -12px rgba(255,150,40,.85), inset 0 1px 0 rgba(255,255,255,.5)}
+.rr2-submit:hover{transform:translateY(-1px);box-shadow:0 16px 36px -12px rgba(212,175,55,.85), inset 0 1px 0 rgba(255,255,255,.5)}
 .rr2-submit:active{transform:translateY(0)}
 .rr2-submit svg{width:18px;height:18px}
 
 /* result */
 .rr2-result{
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(255,190,87,.18), transparent 55%),
-    linear-gradient(180deg,rgba(28,20,14,.95),rgba(18,12,8,.95));
-  border:1px solid rgba(255,190,87,.3);border-radius:22px;padding:18px;margin-bottom:14px;
-  box-shadow:0 20px 60px -30px rgba(255,150,40,.55);
+    radial-gradient(120% 140% at 100% 0%, rgba(245,185,80,.18), transparent 55%),
+    linear-gradient(180deg,rgba(23,31,51,.95),rgba(15,21,36,.95));
+  border:1px solid rgba(245,185,80,.3);border-radius:22px;padding:18px;margin-bottom:14px;
+  box-shadow:0 20px 60px -30px rgba(212,175,55,.55);
   animation:rr2-pop .5s cubic-bezier(.2,.9,.3,1.4);
 }
 @keyframes rr2-pop{from{opacity:0;transform:translateY(12px) scale(.98)}}
 .rr2-r-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .rr2-r-ico{
   width:44px;height:44px;flex:0 0 44px;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;color:#1a0800;
-  background:linear-gradient(135deg,#ffbe57,#ef9d3a);
-  box-shadow:0 8px 20px -8px rgba(255,150,40,.7);
+  display:flex;align-items:center;justify-content:center;color:#0b1418;
+  background:linear-gradient(135deg,#f5b950,#b98d1f);
+  box-shadow:0 8px 20px -8px rgba(212,175,55,.7);
 }
 .rr2-r-ico svg{width:22px;height:22px}
 .rr2-r-t{font-weight:900;font-size:15.5px;color:#fff}
-.rr2-r-s{font-size:11.5px;color:#c8a677;margin-top:2px}
+.rr2-r-s{font-size:11.5px;color:#8891a7;margin-top:2px}
 .rr2-r-label{
   display:inline-block;margin-top:4px;font-size:11px;font-weight:800;
-  padding:3px 10px;border-radius:999px;color:#1a0800;
-  background:linear-gradient(90deg,#ffd580,#ffbe57);
+  padding:3px 10px;border-radius:999px;color:#0b1418;
+  background:linear-gradient(90deg,#ffd27a,#f5b950);
 }
 .rr2-total{
   text-align:center;padding:20px 12px;border-radius:16px;
-  background:linear-gradient(180deg,rgba(255,190,87,.14),rgba(255,190,87,.04));
-  border:1px dashed rgba(255,190,87,.35);
+  background:linear-gradient(180deg,rgba(245,185,80,.14),rgba(245,185,80,.04));
+  border:1px dashed rgba(245,185,80,.35);
 }
 .rr2-total-v{
   font-size:38px;font-weight:900;
-  background:linear-gradient(180deg,#fff2d0,#ffbe57);
+  background:linear-gradient(180deg,#fff2d0,#f5b950);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   line-height:1.1;letter-spacing:-1px;
 }
-.rr2-total-u{font-size:14px;color:#ffbe57;font-weight:800;margin-inline-start:4px}
-.rr2-total-l{font-size:12px;color:#c8a677;margin-top:6px;font-weight:700}
+.rr2-total-u{font-size:14px;color:#f5b950;font-weight:800;margin-inline-start:4px}
+.rr2-total-l{font-size:12px;color:#8891a7;margin-top:6px;font-weight:700}
 .rr2-breakdown{
   margin-top:12px;padding:12px 14px;border-radius:12px;
-  background:rgba(0,0,0,.35);border:1px solid rgba(255,190,87,.12);
-  font-size:13px;color:#f5d9a8;font-weight:600;text-align:center;
+  background:rgba(0,0,0,.35);border:1px solid rgba(245,185,80,.12);
+  font-size:13px;color:#c2c9db;font-weight:600;text-align:center;
 }
-.rr2-breakdown b{color:#ffd580}
+.rr2-breakdown b{color:#ffd27a}
 .rr2-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .rr2-chip{
   font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;
-  background:rgba(255,190,87,.08);border:1px solid rgba(255,190,87,.16);color:#f5d9a8;
+  background:rgba(245,185,80,.08);border:1px solid rgba(245,185,80,.16);color:#c2c9db;
 }
 .rr2-chip b{color:#fff}
 .rr2-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
 .rr2-act{
   all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 auto;min-width:0;text-align:center;
   padding:10px 8px;border-radius:12px;font-size:12px;font-weight:800;
-  border:1px solid rgba(255,190,87,.22);color:#ffbe57;
+  border:1px solid rgba(245,185,80,.22);color:#f5b950;
   background:rgba(0,0,0,.35);transition:.2s;
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .rr2-act svg{width:14px;height:14px;flex-shrink:0}
-.rr2-act:hover{background:rgba(255,190,87,.1);color:#fff}
+.rr2-act:hover{background:rgba(245,185,80,.1);color:#fff}
 .rr2-act.primary{
   background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border-color:transparent;
 }
@@ -244,25 +244,25 @@
   margin-bottom:12px;gap:8px;
 }
 .rr2-hist-t{font-weight:900;font-size:15px;color:#fff}
-.rr2-hist-s{font-size:11.5px;color:#c8a677;margin-top:2px}
+.rr2-hist-s{font-size:11.5px;color:#8891a7;margin-top:2px}
 .rr2-hist-count{
   font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;
-  background:rgba(255,190,87,.14);color:#ffbe57;border:1px solid rgba(255,190,87,.22);
+  background:rgba(245,185,80,.14);color:#f5b950;border:1px solid rgba(245,185,80,.22);
 }
 .rr2-hist{display:flex;flex-direction:column;gap:8px}
 .rr2-item{
   display:flex;gap:10px;padding:12px;border-radius:14px;
-  background:linear-gradient(180deg,rgba(255,190,87,.05),rgba(0,0,0,.25));
-  border:1px solid rgba(255,190,87,.1);transition:.2s;
+  background:linear-gradient(180deg,rgba(245,185,80,.05),rgba(0,0,0,.25));
+  border:1px solid rgba(245,185,80,.1);transition:.2s;
 }
-.rr2-item:hover{border-color:rgba(255,190,87,.28);transform:translateX(2px)}
+.rr2-item:hover{border-color:rgba(245,185,80,.28);transform:translateX(2px)}
 .rr2-item-l{flex:1;min-width:0}
 .rr2-item-range{font-size:13px;font-weight:800;color:#fff;margin-bottom:3px}
-.rr2-item-range small{color:#c8a677;font-weight:600;margin-inline-start:6px}
-.rr2-item-meta{font-size:11.5px;color:#c8a677;margin-top:2px}
+.rr2-item-range small{color:#8891a7;font-weight:600;margin-inline-start:6px}
+.rr2-item-meta{font-size:11.5px;color:#8891a7;margin-top:2px}
 .rr2-item-r{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .rr2-item-total{
-  font-size:16px;font-weight:900;color:#ffd580;white-space:nowrap;
+  font-size:16px;font-weight:900;color:#ffd27a;white-space:nowrap;
 }
 .rr2-item-del{
   all:unset;cursor:pointer;width:30px;height:30px;border-radius:8px;
@@ -273,8 +273,8 @@
 .rr2-item-del:hover{background:rgba(255,80,80,.18);color:#fff}
 .rr2-item-del svg{width:14px;height:14px}
 .rr2-empty{
-  text-align:center;padding:30px 12px;color:#c8a677;font-size:13px;
-  border:1px dashed rgba(255,190,87,.18);border-radius:14px;
+  text-align:center;padding:30px 12px;color:#8891a7;font-size:13px;
+  border:1px dashed rgba(245,185,80,.18);border-radius:14px;
 }
 </style>
 
