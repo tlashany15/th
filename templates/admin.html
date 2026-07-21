@@ -523,14 +523,14 @@
       var tAfter = parseInt(card.dataset.tasmeenAfter || '0', 10) || 0;
       var bAfter = parseInt(card.dataset.bayadAfter   || '0', 10) || 0;
       var lines = ['حضور اليوم', dateLine, ''];
-      var bHead = '♜♜ قسم البياض (' + bayad.length + ') ♜♜';
-      if (bAfter) bHead += ' — بعد الخصم: ' + bAfter.toLocaleString('en-US');
+      var bHead = '♜ قسم البياض (' + bayad.length + ') ♜';
+      if (bAfter) bHead += ' — اعداد: ' + bAfter.toLocaleString('en-US');
       lines.push(bHead);
       if (!bayad.length) lines.push('لا يوجد');
       else bayad.forEach(function(n){ lines.push('• ' + n); });
       lines.push('');
-      var tHead = '♜♜ قسم التسمين (' + tasmeen.length + ') ♜♜';
-      if (tAfter) tHead += ' — بعد الخصم: ' + tAfter.toLocaleString('en-US');
+      var tHead = '♜ قسم التسمين (' + tasmeen.length + ') ♜';
+      if (tAfter) tHead += ' — اعداد: ' + tAfter.toLocaleString('en-US');
       lines.push(tHead);
       if (!tasmeen.length) lines.push('لا يوجد');
       else tasmeen.forEach(function(n){ lines.push('• ' + n); });
