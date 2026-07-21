@@ -3022,3 +3022,6 @@ a{ color:inherit; text-decoration:none; }
 .acc-item[open]{ border-color:rgba(245,185,80,.28); box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.04); }
 .acc-item > summary:hover{ background:rgba(255,255,255,.02); }
 .stat-cell, .row-list, .money-box{ border-radius:16px; }
+
+/* ==== إخفاء بنر الشرح الفوقي بناءً على طلب المستخدم ==== */
+.hero-sub,.ap-subtitle,.rr2-sub,.ap-share-s,.ap-maint-s,.sec-h-s{display:none !important}
