@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block head_extra %}
+  <!-- تحويل احتياطي بدون جافاسكربت — مهم جدًا داخل WebView -->
+  <meta http-equiv="refresh" content="2;url={{ next_url }}">
+{% endblock %}
 {% block body %}
 <div class="splash-v3">
   <div class="splash-v3-bg" aria-hidden="true">
@@ -8,50 +12,53 @@
 
   <div class="splash-v3-center">
     <div class="splash-v3-logo">
-      <!-- شعار: كتكوت -->
+      <!-- شعار: درع التحصين -->
       <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          <radialGradient id="chBody" cx="45%" cy="42%" r="65%">
-            <stop offset="0" stop-color="#fff2b0"/>
-            <stop offset=".55" stop-color="#ffcf3d"/>
-            <stop offset="1" stop-color="#f39a0e"/>
-          </radialGradient>
-          <linearGradient id="chBeak" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#e05a10"/>
+          <linearGradient id="spShield" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f7dc86"/>
+            <stop offset=".52" stop-color="#e3b445"/>
+            <stop offset="1" stop-color="#c3871a"/>
           </linearGradient>
         </defs>
-        <!-- feet -->
-        <g stroke="#e05a10" stroke-width="2.4" stroke-linecap="round">
-          <path d="M25 55 L22 61 M28 55 L28 61 M31 55 L34 61"/>
-          <path d="M36 55 L33 61 M39 55 L39 61 M42 55 L45 61"/>
-        </g>
-        <!-- body -->
-        <ellipse cx="32" cy="39" rx="18" ry="16.5" fill="url(#chBody)"/>
-        <!-- head -->
-        <circle cx="32" cy="23" r="13" fill="url(#chBody)"/>
-        <!-- tuft -->
-        <path d="M29 9 Q31 5 33 9 M32 7 Q34 4 36 8 M35 9 Q37 6 38 10" stroke="#e88b0a" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-        <!-- wing -->
-        <path d="M20 37 Q26 30 27 43 Q22 45 20 41 Z" fill="#ef9a0d" opacity=".55"/>
-        <!-- eye -->
-        <circle cx="36" cy="20.5" r="2.6" fill="#1a0f00"/>
-        <circle cx="36.9" cy="19.7" r="1" fill="#fff"/>
-        <!-- beak -->
-        <path d="M40 24 L48 26 L40 28 Z" fill="url(#chBeak)"/>
-        <!-- cheek blush -->
-        <circle cx="27" cy="26" r="1.6" fill="#ffb0b0" opacity=".55"/>
+        <path d="M32 5 L54.5 13.2 V31c0 13.6-9.2 23.1-22.5 28.4C18.7 54.1 9.5 44.6 9.5 31V13.2Z" fill="url(#spShield)"/>
+        <path d="M32 11.6 L48.4 17.5 V31c0 10.2-6.7 17.6-16.4 21.8C22.3 48.6 15.6 41.2 15.6 31V17.5Z" fill="#0f1a24" opacity=".14"/>
+        <path d="M21.8 32.6 L29.2 40 L43 25.4" stroke="#12202b" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
     </div>
     <div class="splash-v3-name">فريق التحصين</div>
     <div class="splash-v3-loader"><span></span></div>
+    <!-- رابط ظاهر لو التحويل التلقائي اتمنع في الـ WebView -->
+    <a class="splash-v3-manual" id="splashManual" href="{{ next_url }}">اضغط للدخول</a>
   </div>
 </div>
 
 <script>
   (function(){
+    var target = {{ next_url|tojson }};
+    var done = false;
+    function go(){
+      if (done) return;
+      done = true;
+      try { window.location.replace(target); }
+      catch (e) { window.location.href = target; }
+    }
+    // تحويل سريع، ولو اتأخر لأي سبب الرابط اليدوي بيظهر
+    setTimeout(go, 700);
     setTimeout(function(){
-      window.location.replace({{ next_url|tojson }});
-    }, 900);
+      var m = document.getElementById('splashManual');
+      if (m) m.classList.add('is-show');
+    }, 2600);
   })();
 </script>
+<style>
+  .splash-v3-manual{
+    margin-top:6px; opacity:0; pointer-events:none;
+    font-size:13px; font-weight:800; color:#f2d675; text-decoration:none;
+    padding:9px 18px; border-radius:99px;
+    border:1px solid rgba(242,214,117,.35); background:rgba(242,214,117,.10);
+    transition:opacity .25s ease;
+  }
+  .splash-v3-manual.is-show{ opacity:1; pointer-events:auto; }
+</style>
 {% endblock %}

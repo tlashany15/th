@@ -10,7 +10,14 @@
   <title>{% block title %}فريق تحصين الكتاكيت{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Alexandria:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- تحميل الخطوط بدون ما يوقف رسم الصفحة (مهم جدًا داخل WebView / شبكة ضعيفة) -->
+  <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Alexandria:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap"></noscript>
+  <style>
+    /* خلفية مبدئية قبل تحميل أي CSS — يمنع الشاشة البيضاء */
+    html{ background:#0e1621; color:#eaf0f7; }
+  </style>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
@@ -48,6 +55,20 @@
   <script src="{{ url_for('static', filename='reply-swipe.js') }}" defer></script>
   <script src="{{ url_for('static', filename='msg-actions.js') }}" defer></script>
 
+  <script>
+    /* حارس عام: أي خطأ في سكربت مايوقفش باقي الصفحة (كان بيسبب شاشة بيضاء في WebView) */
+    (function(){
+      window.addEventListener('error', function(e){
+        try { console.warn('[app] script error:', e && (e.message || e)); } catch(_){}
+      }, true);
+      window.addEventListener('unhandledrejection', function(e){
+        try { console.warn('[app] promise error:', e && e.reason); } catch(_){}
+      });
+      /* علامة إن الجافاسكربت شغال */
+      document.documentElement.classList.add('js-on');
+    })();
+  </script>
+{% block head_extra %}{% endblock %}
 </head>
 <body class="no-copy" oncopy="return false" oncut="return false" oncontextmenu="return false" ondragstart="return false" onselectstart="return false">
 {% block body %}{% endblock %}

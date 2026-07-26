@@ -4,18 +4,13 @@
 {% macro brand_icon(size=22) -%}
 <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:{{ size }}px;height:{{ size }}px;display:block" aria-hidden="true">
   <defs>
-    <radialGradient id="bIcBody{{ size }}" cx="45%" cy="42%" r="65%">
-      <stop offset="0" stop-color="#fff2b0"/><stop offset=".55" stop-color="#ffcf3d"/><stop offset="1" stop-color="#f39a0e"/>
-    </radialGradient>
-    <linearGradient id="bIcBeak{{ size }}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#e05a10"/>
+    <linearGradient id="bShield{{ size }}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7dc86"/><stop offset=".52" stop-color="#e3b445"/><stop offset="1" stop-color="#c3871a"/>
     </linearGradient>
   </defs>
-  <ellipse cx="32" cy="39" rx="18" ry="16.5" fill="url(#bIcBody{{ size }})"/>
-  <circle cx="32" cy="23" r="13" fill="url(#bIcBody{{ size }})"/>
-  <path d="M20 37 Q26 30 27 43 Q22 45 20 41 Z" fill="#ef9a0d" opacity=".55"/>
-  <circle cx="36" cy="20.5" r="2.4" fill="#1a0f00"/><circle cx="36.8" cy="19.8" r=".9" fill="#fff"/>
-  <path d="M40 24 L48 26 L40 28 Z" fill="url(#bIcBeak{{ size }})"/>
+  <path d="M32 5 L54.5 13.2 V31c0 13.6-9.2 23.1-22.5 28.4C18.7 54.1 9.5 44.6 9.5 31V13.2Z" fill="url(#bShield{{ size }})"/>
+  <path d="M32 11.6 L48.4 17.5 V31c0 10.2-6.7 17.6-16.4 21.8C22.3 48.6 15.6 41.2 15.6 31V17.5Z" fill="#0f1a24" opacity=".14"/>
+  <path d="M21.8 32.6 L29.2 40 L43 25.4" stroke="#12202b" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>
 {%- endmacro %}
 
