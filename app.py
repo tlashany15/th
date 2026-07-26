@@ -774,7 +774,30 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    resp = redirect(url_for("login"))
+    # امسح كوكيز الجلسة صراحة عشان لا يرجع تلقائي بعد الخروج
+    try:
+        resp.delete_cookie(app.session_cookie_name if hasattr(app, "session_cookie_name") else "session",
+                           path="/")
+    except Exception:
+        try: resp.delete_cookie("session", path="/")
+        except Exception: pass
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Clear-Site-Data"] = '"cache", "cookies", "storage"'
+    return resp
+
+
+@app.after_request
+def _no_store_on_auth(resp):
+    # صفحات المستخدمين المسجّلين مش المفروض تتكاش عشان مايرجعش من زر الرجوع بعد الخروج
+    try:
+        if session.get("user_id") and (request.endpoint or "") not in ("static",):
+            resp.headers.setdefault("Cache-Control", "no-store, no-cache, must-revalidate, private, max-age=0")
+            resp.headers.setdefault("Pragma", "no-cache")
+    except Exception:
+        pass
+    return resp
 
 
 @app.route("/register", methods=["GET", "POST"])
