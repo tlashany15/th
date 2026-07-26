@@ -1,0 +1,156 @@
+/* modern-ui.css — طبقة تحسينات بصرية (Toast / Modal / Progress bar / Chick brand)
+ * تُحمَّل بعد بقية ملفات CSS فتفوز بالأولوية.
+ */
+
+/* ---------- Top progress bar (instant-nav) ---------- */
+.inav-bar{
+  position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 99999;
+  pointer-events: none; opacity: 0; transition: opacity .18s ease;
+  background: transparent;
+}
+.inav-bar.is-on{ opacity: 1; }
+.inav-bar-fill{
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, #ffbe57 0%, #ef4444 60%, #ffbe57 100%);
+  box-shadow: 0 0 12px rgba(255,190,87,.55), 0 0 4px rgba(239,68,68,.6);
+  transition: width .18s ease-out;
+  border-radius: 0 3px 3px 0;
+}
+
+/* ---------- View Transitions defaults (smooth cross-fade) ---------- */
+@media (prefers-reduced-motion: no-preference){
+  ::view-transition-old(root),
+  ::view-transition-new(root){
+    animation-duration: .22s;
+    animation-timing-function: cubic-bezier(.4,.0,.2,1);
+  }
+}
+
+/* ---------- Modern toast ---------- */
+.app-toast-wrap{
+  position: fixed; z-index: 100000;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 10px; align-items: center;
+  pointer-events: none;
+  width: min(92vw, 460px);
+}
+.app-toast{
+  pointer-events: auto;
+  display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 12px 14px; border-radius: 18px;
+  background: rgba(22, 28, 40, .82);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255,255,255,.09);
+  box-shadow:
+    0 20px 40px -20px rgba(0,0,0,.55),
+    0 6px 18px -12px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  color: #f5f7fb; font-weight: 700; font-size: 14px; line-height: 1.5;
+  transform: translateY(-14px) scale(.96);
+  opacity: 0; transition: transform .28s cubic-bezier(.2,.9,.25,1.05), opacity .22s ease;
+  position: relative; overflow: hidden;
+}
+.app-toast.is-show{ transform: translateY(0) scale(1); opacity: 1; }
+.app-toast.is-hide{ transform: translateY(-10px) scale(.98); opacity: 0; }
+.app-toast .at-ic{
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,.06);
+}
+.app-toast .at-ic svg{ width: 22px; height: 22px; }
+.app-toast .at-close{
+  background: transparent; border: 0; padding: 6px; margin: -6px; cursor: pointer;
+  color: rgba(255,255,255,.55); border-radius: 8px;
+}
+.app-toast .at-close:hover{ color: #fff; background: rgba(255,255,255,.08); }
+.app-toast .at-close svg{ width: 16px; height: 16px; display: block; }
+.app-toast::after{
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: currentColor; opacity: .85; transform-origin: right center;
+  animation: atProg 2.6s linear forwards;
+}
+@keyframes atProg{ from{ transform: scaleX(1);} to{ transform: scaleX(0);} }
+.app-toast.is-success{ color: #34d399; }
+.app-toast.is-success .at-ic{ background: rgba(52,211,153,.12); color: #34d399; }
+.app-toast.is-error  { color: #f87171; }
+.app-toast.is-error   .at-ic{ background: rgba(248,113,113,.15); color: #f87171; }
+.app-toast.is-warning{ color: #fbbf24; }
+.app-toast.is-warning .at-ic{ background: rgba(251,191,36,.15); color: #fbbf24; }
+.app-toast.is-info   { color: #60a5fa; }
+.app-toast.is-info    .at-ic{ background: rgba(96,165,250,.14); color: #60a5fa; }
+.app-toast > span:not(.at-ic):not(.at-close){ color: #f5f7fb; }
+
+/* ---------- Modern modal ---------- */
+.app-modal-root{
+  position: fixed; inset: 0; z-index: 100001;
+  display: none;
+}
+.app-modal-root.is-open{ display: block; }
+.app-modal-back{
+  position: absolute; inset: 0;
+  background: rgba(4, 8, 16, .55);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  animation: amBack .22s ease both;
+}
+@keyframes amBack{ from{ opacity: 0;} to{ opacity: 1;} }
+.app-modal-card{
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(.94);
+  width: min(92vw, 420px);
+  padding: 22px 20px 18px;
+  background: linear-gradient(180deg, rgba(28,34,48,.98), rgba(22,28,40,.98));
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  box-shadow:
+    0 30px 70px -30px rgba(0,0,0,.75),
+    0 10px 30px -12px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  text-align: center; color: #f5f7fb;
+  animation: amCard .28s cubic-bezier(.2,.9,.25,1.05) both;
+}
+@keyframes amCard{ from{ transform: translate(-50%,-46%) scale(.9); opacity:0;} to{ transform: translate(-50%,-50%) scale(1); opacity:1;} }
+.app-modal-ic{
+  width: 62px; height: 62px; margin: 0 auto 12px;
+  display: grid; place-items: center; border-radius: 20px;
+  background: linear-gradient(135deg, rgba(96,165,250,.16), rgba(96,165,250,.06));
+  color: #60a5fa;
+  box-shadow: inset 0 0 0 1px rgba(96,165,250,.25);
+}
+.app-modal-ic.is-danger{
+  background: linear-gradient(135deg, rgba(248,113,113,.18), rgba(248,113,113,.05));
+  color: #f87171;
+  box-shadow: inset 0 0 0 1px rgba(248,113,113,.28);
+}
+.app-modal-ic.is-success{
+  background: linear-gradient(135deg, rgba(52,211,153,.16), rgba(52,211,153,.05));
+  color: #34d399;
+  box-shadow: inset 0 0 0 1px rgba(52,211,153,.28);
+}
+.app-modal-ic svg{ width: 30px; height: 30px; }
+.app-modal-title{ font-size: 19px; font-weight: 900; margin-bottom: 6px; letter-spacing: -.2px; }
+.app-modal-sub{ font-size: 14px; line-height: 1.7; color: rgba(245,247,251,.72); margin-bottom: 18px; }
+.app-modal-actions{ display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+.app-modal-actions .btn{ padding: 12px 18px; font-weight: 800; font-size: 14px; border-radius: 14px; }
+
+/* Light-mode fallback */
+@media (prefers-color-scheme: light){
+  .app-toast{ background: rgba(255,255,255,.92); color: #0f172a; border-color: rgba(15,23,42,.08); }
+  .app-toast > span:not(.at-ic):not(.at-close){ color: #0f172a; }
+  .app-modal-card{ background: linear-gradient(180deg,#ffffff,#f7f8fb); color:#0f172a; border-color: rgba(15,23,42,.08);}
+  .app-modal-sub{ color: rgba(15,23,42,.68); }
+}
+
+/* ---------- Faster brand splash loader ---------- */
+.splash-v3-logo svg{ animation: chickPop .55s cubic-bezier(.2,.9,.25,1.4) both; }
+@keyframes chickPop{
+  0%{ transform: scale(.6) rotate(-6deg); opacity: 0; }
+  60%{ transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100%{ transform: scale(1) rotate(0); }
+}
+
+/* Hide the emoji flash markers we replaced with SVG in login/register */
+.flash > svg.flash-ic{ width: 16px; height: 16px; vertical-align: -3px; margin-inline-end: 4px; }
