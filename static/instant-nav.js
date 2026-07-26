@@ -110,7 +110,10 @@
     new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  // ---------- Click accelerator + View Transitions ----------
+  // ---------- Click accelerator ----------
+  // ملاحظة: اتشال استخدام View Transitions API هنا لأنه كان بيعلّق داخل
+  // WebView (لقطة الانتقال بتفضل معلّقة => شاشة بيضا). دلوقتي التنقل عادي
+  // مع شريط تقدّم + prefetch مسبق، وده أسرع وأأمن.
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented) return;
     if (e.button !== 0) return;
@@ -119,11 +122,8 @@
     var href = isEligibleLink(a);
     if (!href) return;
     startBar();
-    if (document.startViewTransition) {
-      e.preventDefault();
-      document.startViewTransition(function () {
-        location.href = href;
-      });
-    }
   }, true);
+
+  // لو رجعنا للصفحة من الـ back/forward cache — نظّف أي شريط شغال
+  window.addEventListener('pageshow', endBar);
 })();
