@@ -178,7 +178,7 @@
                         <input type="hidden" name="user_id" value="{{ w.id }}">
                         <input type="hidden" name="farm" value="{{ my_farm or 'tasmeen' }}">
                         <input type="hidden" name="next" value="history">
-                        <button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور">✕</button>
+                        <button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور" aria-label="إلغاء الحضور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
                       </form>
                       {% endif %}
                     </div>
@@ -352,13 +352,34 @@
       form.addEventListener('submit', function(ev){
         ev.preventDefault();
         var day = form.dataset.day;
+        var uid = form.dataset.uid;
+        var farm = (form.querySelector('input[name="farm"]')||{}).value || '';
         var btn = form.querySelector('button');
         if(btn) btn.disabled = true;
         fetch(form.action, { method:'POST', body:new FormData(form),
                              headers:{'X-Requested-With':'fetch'}, credentials:'same-origin' })
           .then(function(r){ if(!r.ok) throw new Error('bad'); return r.json(); })
           .then(function(d){
-            refreshDay(day);
+            // تحديث فوري داخل نفس الصف بدون أي reload
+            var row = form.closest('.hist-att-row');
+            if(row){
+              row.querySelectorAll('.hist-att-chip').forEach(function(ch){ ch.classList.remove('is-active'); });
+              if(d.state === 'present'){
+                var active = row.querySelector('.hist-att-chip.is-' + (d.farm === 'bayad' ? 'b' : 't'));
+                if(active) active.classList.add('is-active');
+                // أضف زر X لو مش موجود
+                if(!row.querySelector('.hist-att-chip.is-x')){
+                  var f = document.createElement('form');
+                  f.method='post'; f.action=form.action; f.className='hist-att-mini js-hist-att';
+                  f.dataset.day=day; f.dataset.uid=uid;
+                  f.innerHTML='<input type="hidden" name="day" value="'+day+'"><input type="hidden" name="user_id" value="'+uid+'"><input type="hidden" name="farm" value="'+d.farm+'"><input type="hidden" name="next" value="history"><button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور" aria-label="إلغاء الحضور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+                  row.appendChild(f); wire(f);
+                }
+              } else {
+                var x = row.querySelector('.hist-att-chip.is-x'); if(x && x.form) x.form.remove();
+              }
+            }
+            toast('تم التحديث','success');
           })
           .catch(function(){ toast('تعذّر التحديث','error'); })
           .finally(function(){ if(btn) btn.disabled = false; });
