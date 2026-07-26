@@ -1748,6 +1748,8 @@ def admin_reopen_day():
         print("purge closure on reopen error:", _e)
     db.commit()
     cur.close()
+    if request.headers.get("X-Requested-With") == "fetch":
+        return jsonify({"ok": True, "day": day, "closed": False})
     flash("تم إعادة فتح اليوم", "info")
     if nxt == "close-page":
         return redirect(url_for("admin_close_page", day=day))
