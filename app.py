@@ -90,9 +90,12 @@ def init_db():
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS tasmeen_after INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS bayad_after INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE;
         ALTER TABLE attendance ADD COLUMN IF NOT EXISTS farm TEXT NOT NULL DEFAULT 'tasmeen';
+        ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE;
         CREATE INDEX IF NOT EXISTS idx_attendance_day_farm ON attendance(day, farm);
 
         -- ملاحظات المسؤول (سلف / تنويهات)
@@ -1101,15 +1104,20 @@ def worker_stats(worker_id):
                      ELSE COALESCE(c.tasmeen_after,0)
                    END AS tasmeen_after,
                    COALESCE(c.bayad_after,0) AS bayad_after,
+                   COALESCE(c.extra_tasmeen,0) AS extra_tasmeen,
+                   COALESCE(c.extra_bayad,0) AS extra_bayad,
                    (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day) AS attendees,
                    (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='tasmeen') AS att_tasmeen,
                    (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='bayad') AS att_bayad,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='tasmeen' AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_tasmeen,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='bayad' AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_bayad,
                    EXISTS(SELECT 1 FROM attendance a2 WHERE a2.day = c.day AND a2.user_id = %s) AS he_attended,
-                   (SELECT a3.farm FROM attendance a3 WHERE a3.day = c.day AND a3.user_id = %s LIMIT 1) AS my_farm
+                   (SELECT a3.farm FROM attendance a3 WHERE a3.day = c.day AND a3.user_id = %s LIMIT 1) AS my_farm,
+                   COALESCE((SELECT a4.extra FROM attendance a4 WHERE a4.day = c.day AND a4.user_id = %s LIMIT 1), FALSE) AS my_extra
             FROM day_closures c
             WHERE c.day BETWEEN %s AND %s
             ORDER BY c.day ASC
-        """, (worker_id, worker_id, s_iso, e_iso))
+        """, (worker_id, worker_id, worker_id, s_iso, e_iso))
         rows = cur.fetchall()
 
         cur.execute("""SELECT day, amount, reason FROM worker_adjustments
@@ -1150,13 +1158,19 @@ def worker_stats(worker_id):
                 farm_total = int(r["tasmeen_after"] or 0)
                 farm_att   = int(r["att_tasmeen"] or 0)
                 farm_lbl   = "تسمين"
+                extra_pool = int(r["extra_tasmeen"] or 0)
+                extra_att  = int(r["att_extra_tasmeen"] or 0)
             else:
                 farm_total = int(r["bayad_after"] or 0)
                 farm_att   = int(r["att_bayad"] or 0)
                 farm_lbl   = "بياض"
+                extra_pool = int(r["extra_bayad"] or 0)
+                extra_att  = int(r["att_extra_bayad"] or 0)
             # إجمالي المدة للعامل = إجمالي القسم اللي حضر فيه فقط (بدون جمع القسم التاني)
             total_period += farm_total
-            share = (farm_total / farm_att) if farm_att > 0 else 0.0
+            base_share = (farm_total / farm_att) if farm_att > 0 else 0.0
+            extra_share = (extra_pool / extra_att) if (bool(r["my_extra"]) and extra_att > 0) else 0.0
+            share = base_share + extra_share
             total_share += share; days_attended += 1
             is_settled = d_s in _settled_days_set
             item = {"date": d_s, "weekday": wd,
@@ -1435,10 +1449,12 @@ def admin_close_day():
     try:
         tasmeen_after = int(request.form.get("tasmeen_after", "0") or "0")
         bayad_after = int(request.form.get("bayad_after", "0") or "0")
-        if tasmeen_after < 0 or bayad_after < 0:
+        extra_tasmeen = int(request.form.get("extra_tasmeen", "0") or "0")
+        extra_bayad = int(request.form.get("extra_bayad", "0") or "0")
+        if tasmeen_after < 0 or bayad_after < 0 or extra_tasmeen < 0 or extra_bayad < 0:
             raise ValueError
     except ValueError:
-        flash("ادخل أعداد تسمين وبياض صحيحة", "error")
+        flash("ادخل أعداد صحيحة", "error")
         return redirect(url_for("admin_close_page", day=day))
     total = tasmeen_after + bayad_after
     try:
@@ -1452,18 +1468,22 @@ def admin_close_day():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS tasmeen_after INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS bayad_after INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
     cur.execute(
-        """INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, no_deduct_total, reopened)
-           VALUES(%s,%s,%s,%s,%s,%s,FALSE)
+        """INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total, reopened)
+           VALUES(%s,%s,%s,%s,%s,%s,%s,%s,FALSE)
            ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count,
                                              tasmeen_after = EXCLUDED.tasmeen_after,
                                              bayad_after = EXCLUDED.bayad_after,
+                                             extra_tasmeen = EXCLUDED.extra_tasmeen,
+                                             extra_bayad = EXCLUDED.extra_bayad,
                                             no_deduct_total = EXCLUDED.no_deduct_total,
                                             reopened = FALSE,
                                             closed_by = EXCLUDED.closed_by""",
-        (day, u["id"], total, tasmeen_after, bayad_after, no_deduct_total),
+        (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total),
     )
     # ==== نحدّث رسالة الإغلاق: نمسح القديمة (لو موجودة) ونضيف الجديدة بالإجمالي المحدّث ====
     try:
@@ -1481,9 +1501,11 @@ def admin_close_day():
             f"\n\n[ICON:check] تم إغلاق اليوم"
             f"\n- تسمين: {tasmeen_after:,} كتكوت"
             f"\n- بياض: {bayad_after:,} كتكوت"
-            f"\n- الإجمالي: {total:,} كتكوت"
-            f"\n- الحاضرون: {present_c}"
-            f"\n{marker}"
+            + (f"\n- إضافي تسمين: {extra_tasmeen:,} كتكوت" if extra_tasmeen else "")
+            + (f"\n- إضافي بياض: {extra_bayad:,} كتكوت" if extra_bayad else "")
+            + f"\n- الإجمالي: {total:,} كتكوت"
+            + f"\n- الحاضرون: {present_c}"
+            + f"\n{marker}"
         )
         if att:
             new_body = (att["body"] or "").rstrip() + summary_line
@@ -1549,6 +1571,8 @@ def admin_close_day():
             "total": total,
             "tasmeen_after": tasmeen_after,
             "bayad_after": bayad_after,
+            "extra_tasmeen": extra_tasmeen,
+            "extra_bayad": extra_bayad,
             "no_deduct_total": no_deduct_total,
         })
     flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
@@ -1781,6 +1805,38 @@ def admin_mark_attendance():
     return redirect(url_for("admin_panel", day=day))
 
 
+@app.route("/admin/mark-extra", methods=["POST"])
+@admin_required
+def admin_mark_extra():
+    """يبدّل علامة 'إضافي' لعامل حاضر في يوم — عشان يتوزع عليه الإضافي."""
+    day = _parse_day(request.form.get("day")).isoformat()
+    user_id = int(request.form.get("user_id"))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE")
+    cur.execute("SELECT id, COALESCE(extra,FALSE) AS extra FROM attendance WHERE user_id=%s AND day=%s", (user_id, day))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        if request.headers.get("X-Requested-With") == "fetch":
+            return jsonify({"ok": False, "error": "not_attending"}), 400
+        flash("لازم تحضر العامل الأول قبل تحديده كإضافي", "error")
+        return redirect(url_for("admin_close_page", day=day))
+    new_state = not bool(row["extra"])
+    cur.execute("UPDATE attendance SET extra=%s WHERE id=%s", (new_state, row["id"]))
+    cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s AND farm='tasmeen' AND COALESCE(extra,FALSE)=TRUE", (day,))
+    ex_t = int(cur.fetchone()["c"] or 0)
+    cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s AND farm='bayad' AND COALESCE(extra,FALSE)=TRUE", (day,))
+    ex_b = int(cur.fetchone()["c"] or 0)
+    db.commit()
+    cur.close()
+    if request.headers.get("X-Requested-With") == "fetch":
+        return jsonify({"ok": True, "extra": new_state, "extra_tasmeen_count": ex_t, "extra_bayad_count": ex_b})
+    return redirect(url_for("admin_close_page", day=day))
+
+
+
+
 @app.route("/admin/delete-entry/<int:entry_id>", methods=["POST"])
 @admin_required
 def admin_delete_entry(entry_id):
@@ -1891,21 +1947,28 @@ def admin_close_page():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS tasmeen_after INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS bayad_after INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS farm TEXT NOT NULL DEFAULT 'tasmeen'")
+    cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE")
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
     day_total = cur.fetchone()["s"]
-    cur.execute("SELECT total_count, tasmeen_after, bayad_after, no_deduct_total, reopened FROM day_closures WHERE day=%s", (day_s,))
+    cur.execute("SELECT total_count, tasmeen_after, bayad_after, COALESCE(extra_tasmeen,0) AS extra_tasmeen, COALESCE(extra_bayad,0) AS extra_bayad, no_deduct_total, reopened FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
     has_saved = _row is not None
     closed = has_saved and not (_row.get("reopened") if isinstance(_row, dict) else _row["reopened"])
     no_deduct_total = 0
     tasmeen_after = 0
     bayad_after = 0
+    extra_tasmeen = 0
+    extra_bayad = 0
     # نعرض القيم المحفوظة حتى لو اليوم مفتوح تاني — عشان المسؤول ميعيدش كتابتها
     if has_saved:
         day_total = _row["total_count"]
         tasmeen_after = int(_row["tasmeen_after"] or 0)
         bayad_after = int(_row["bayad_after"] or 0)
+        extra_tasmeen = int(_row["extra_tasmeen"] or 0)
+        extra_bayad = int(_row["extra_bayad"] or 0)
         if tasmeen_after == 0 and bayad_after == 0:
             tasmeen_after = int(day_total or 0)
         no_deduct_total = _row["no_deduct_total"] or 0
@@ -1930,18 +1993,21 @@ def admin_close_page():
     cur.execute("""
         SELECT u.id, u.full_name, u.role, u.avatar,
                (SELECT a.farm FROM attendance a WHERE a.user_id=u.id AND a.day=%s LIMIT 1) AS att_farm,
+               COALESCE((SELECT a.extra FROM attendance a WHERE a.user_id=u.id AND a.day=%s LIMIT 1), FALSE) AS att_extra,
                COALESCE((SELECT amount FROM worker_adjustments wa
                           WHERE wa.user_id=u.id AND wa.day=%s), 0) AS adjust,
                EXISTS(SELECT 1 FROM worker_day_settle ws WHERE ws.user_id=u.id AND ws.day=%s) AS day_settled
         FROM users u
         ORDER BY (u.role='admin') DESC, u.full_name
-    """, (day_s, day_s, day_s))
+    """, (day_s, day_s, day_s, day_s))
     all_people = cur.fetchall()
     cur.close()
     return render_template("admin_close_day.html",
                            day=day_s, day_total=day_total,
                             tasmeen_after=tasmeen_after,
                             bayad_after=bayad_after,
+                            extra_tasmeen=extra_tasmeen,
+                            extra_bayad=extra_bayad,
                            no_deduct_total=no_deduct_total,
                            present_count=present_count, day_closed=closed,
                             present_tasmeen=present_tasmeen,
