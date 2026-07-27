@@ -3,13 +3,13 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <h1 class="auth-title">مفيش اتصال بالإنترنت</h1>
-    <p class="auth-sub">هنرجّعك لآخر صفحة كنت فيها أول ما النت يرجع.</p>
+    <p class="auth-sub">أول ما النت يرجع هنكمّل على طول.</p>
     <button class="btn btn-primary" type="button" onclick="location.reload()">إعادة المحاولة</button>
   </div>
 </div>
 <script>
   window.addEventListener('online', function(){
-    var last = localStorage.getItem('lastPage') || '/welcome';
+    var last = '/dashboard';
     location.replace(last);
   });
 </script>
