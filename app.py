@@ -27,9 +27,19 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 _SCHEMA_READY = False
+_SCHEMA_LAST_TRY = 0
 def _ensure_schema():
-    global _SCHEMA_READY
-    if _SCHEMA_READY: return
+    """يتأكد إن الجداول موجودة. الجداول أصلاً اتعملت من زمان، فمنعيدش
+    فتح اتصال جديد بالداتابيز لعمل CREATE TABLE على كل cold start —
+    بس نحاول مرة كل دقيقة كحد أقصى لو حصل خطأ، مش على كل request."""
+    global _SCHEMA_READY, _SCHEMA_LAST_TRY
+    if _SCHEMA_READY:
+        return
+    import time as _time
+    now = _time.time()
+    if now - _SCHEMA_LAST_TRY < 60:
+        return
+    _SCHEMA_LAST_TRY = now
     try:
         init_db()
         _SCHEMA_READY = True
@@ -378,8 +388,19 @@ def real_user():
 
 
 
+
+# طلبات الملفات الثابتة والأشياء اللي مالهاش داعي تلمس قاعدة البيانات خالص.
+# ده بيقفل معظم الاتصالات الزيادة اللي كانت بتستهلك الكوتة (كانت اللوجات
+# بتوريها بتحصل حتى على .css / .js / favicon.ico).
+_NO_DB_ENDPOINTS = {"static", "_favicon"}
+
+
 @app.before_request
 def _boot():
+    ep = request.endpoint or ""
+    if ep in _NO_DB_ENDPOINTS:
+        return  # ملف ثابت — منعديش على الداتابيز خالص
+
     _ensure_schema()
     uid = session.get("user_id")
     if uid:
@@ -393,9 +414,8 @@ def _boot():
             pass
     # وضع الإيقاف الكامل: كل المستخدمين ممنوعين ما عدا المسؤول الرئيسي (username='1')
     try:
-        ep = request.endpoint or ""
-        # نسمح دايمًا بالملفات الثابتة والدخول والخروج وزر التشغيل/الإيقاف نفسه
-        _always_allowed = {"static", "admin_toggle_maintenance"}
+        # نسمح دايمًا بالدخول والخروج وزر التشغيل/الإيقاف نفسه (الملفات الثابتة اتصفّت فوق خالص)
+        _always_allowed = {"admin_toggle_maintenance"}
         if ep not in _always_allowed and _maintenance_on():
             ru = real_user()
             if not _is_super_admin(ru):
