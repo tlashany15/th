@@ -43,10 +43,8 @@
       try { window.location.replace(target); }
       catch (e) { window.location.href = target; }
     }
-    // لو المستخدم شاف السبلاش قبل كده في نفس الجلسة — تحويل فوري
-    var seen = false;
-    try { seen = sessionStorage.getItem('seenSplash') === '1'; sessionStorage.setItem('seenSplash','1'); } catch(e){}
-    setTimeout(go, seen ? 0 : 450);
+    // تحويل سريع، ولو اتأخر لأي سبب الرابط اليدوي بيظهر
+    setTimeout(go, 700);
     setTimeout(function(){
       var m = document.getElementById('splashManual');
       if (m) m.classList.add('is-show');
