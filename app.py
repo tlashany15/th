@@ -737,8 +737,51 @@ def index():
 
 @app.route("/welcome")
 def splash():
-    next_url = url_for("dashboard") if session.get("user_id") else url_for("login")
+    if session.get("user_id"):
+        next_url = request.cookies.get("last_page") or url_for("dashboard")
+        # أمان: مسارات داخلية فقط
+        if not next_url.startswith("/") or next_url.startswith("//"):
+            next_url = url_for("dashboard")
+    else:
+        next_url = url_for("login")
     return render_template("splash.html", next_url=next_url)
+
+
+# ---------- تذكّر آخر صفحة (عشان الرجوع بعد انقطاع النت) ----------
+_NO_REMEMBER = ("/welcome", "/login", "/logout", "/register", "/static/",
+                "/api/", "/favicon", "/sw.js", "/me/ping", "/init-db")
+
+
+@app.after_request
+def _remember_last_page(resp):
+    try:
+        if (request.method == "GET"
+                and resp.status_code == 200
+                and "text/html" in (resp.headers.get("Content-Type") or "")
+                and session.get("user_id")
+                and not any(request.path.startswith(x) for x in _NO_REMEMBER)):
+            path = request.full_path.rstrip("?") or "/"
+            resp.set_cookie("last_page", path, max_age=60 * 60 * 24 * 30,
+                            samesite="Lax", path="/")
+    except Exception:
+        pass
+    return resp
+
+
+@app.route("/sw.js")
+def _service_worker():
+    from flask import send_from_directory
+    import os as _os
+    resp = send_from_directory(_os.path.join(app.root_path, "static"), "sw.js")
+    resp.headers["Content-Type"] = "application/javascript"
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    return resp
+
+
+@app.route("/offline")
+def _offline_page():
+    return render_template("offline.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
