@@ -1,0 +1,70 @@
+{% extends "app_base.html" %}
+{% block content %}
+<style>
+  .dbx{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  .dbx .card{background:var(--card,#16202b);border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;padding:16px}
+  .dbx h2{margin:0 0 10px;font-size:18px}
+  .dbx .pill{display:inline-block;padding:5px 12px;border-radius:999px;font-weight:700;font-size:13px}
+  .ok{background:#123324;color:#5fe0a0}
+  .bad{background:#3a1a1a;color:#ff9a9a}
+  .dbx .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;
+    border-bottom:1px dashed rgba(255,255,255,.07);font-size:14px}
+  .dbx .row:last-child{border:0}
+  .dbx input[type=text]{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.25);color:inherit;font-size:14px;direction:ltr;text-align:left}
+  .dbx button,.dbx .btn{border:0;border-radius:12px;padding:11px 18px;font-weight:700;cursor:pointer;
+    background:#e3b445;color:#12202b;text-decoration:none;display:inline-block;margin-top:10px}
+  .dbx .btn.ghost{background:rgba(255,255,255,.08);color:inherit}
+  .dbx .hint{opacity:.75;font-size:13px;line-height:1.7;margin-top:8px}
+  .dbx table{width:100%;font-size:13px;border-collapse:collapse}
+  .dbx td{padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+</style>
+
+<div class="dbx">
+  <div class="card">
+    <h2>حالة قاعدة البيانات</h2>
+    {% if st.online %}
+      <span class="pill ok">متصلة وشغّالة ✓</span>
+    {% else %}
+      <span class="pill bad">مش متصلة — شغّالين على النسخة المحفوظة</span>
+    {% endif %}
+    <div style="height:10px"></div>
+    <div class="row"><span>آخر نسخة احتياطية</span><b>{{ st.last_sync or 'لسه' }}</b></div>
+    <div class="row"><span>عدد الصفوف في آخر نسخة</span><b>{{ st.last_sync_rows or 0 }}</b></div>
+    {% if not st.online %}
+    <div class="row"><span>التوقف بدأ</span><b>{{ st.offline_since or '-' }}</b></div>
+    <div class="row"><span>سبب التوقف</span><b style="font-size:12px">{{ st.last_error or '-' }}</b></div>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin_database_backup') }}" style="display:inline">
+      <button type="submit">خد نسخة احتياطية دلوقتي</button>
+    </form>
+    <a class="btn ghost" href="{{ url_for('admin_database_download') }}">نزّل ملف النسخة</a>
+  </div>
+
+  <div class="card">
+    <h2>البيانات المحفوظة في السيرفر</h2>
+    <table>
+      {% for t, n in (st.local_rows or {}).items() %}
+      <tr><td>{{ t }}</td><td style="text-align:left"><b>{{ n }}</b></td></tr>
+      {% endfor %}
+    </table>
+    <div class="hint">دي كل البيانات اللي التطبيق بيعرضها وبيشتغل عليها لو القاعدة وقفت.</div>
+  </div>
+
+  <div class="card">
+    <h2>ربط قاعدة بيانات جديدة</h2>
+    <div class="hint">
+      لما القاعدة الحالية تخلص أو تتوقف، اعمل قاعدة PostgreSQL جديدة (Neon / Supabase / Railway…)
+      وانسخ لينك الاتصال بتاعها وحطه هنا. هننقل كل البيانات — القديمة واللي اتسجّل وقت التوقف —
+      للقاعدة الجديدة، ومش هيضيع أي حاجة.
+    </div>
+    <form method="post" action="{{ url_for('admin_database_connect') }}"
+          onsubmit="return confirm('هننقل كل البيانات للقاعدة الجديدة. تمام؟')">
+      <div style="height:10px"></div>
+      <input type="text" name="database_url" placeholder="postgresql://user:pass@host/dbname" required>
+      <button type="submit">اربط وانقل كل البيانات</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

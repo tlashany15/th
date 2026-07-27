@@ -158,6 +158,24 @@
 </a>
 {% endif %}
 
+<!-- ============ SHORTCUT: قاعدة البيانات ============ -->
+<a class="ap-card ap-shortcut" href="{{ url_for('admin_database') }}">
+  <div class="ap-shortcut-ic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path stroke-linecap="round" d="M4 6v6c0 1.657 3.582 3 8 3s8-1.343 8-3V6M4 12v6c0 1.657 3.582 3 8 3s8-1.343 8-3v-6"/></svg>
+  </div>
+  <div class="ap-shortcut-body">
+    <div class="ap-shortcut-t">قاعدة البيانات والنسخ الاحتياطي</div>
+    <div class="ap-shortcut-s">
+      {% if db_status and db_status.online %}متصلة ✓ — آخر نسخة: {{ db_status.last_sync or 'لسه' }}
+      {% else %}⚠️ مش متصلة — اربط قاعدة جديدة{% endif %}
+    </div>
+  </div>
+  <div class="ap-shortcut-cta">
+    <span>افتح</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+  </div>
+</a>
+
 <!-- ============ WHATSAPP SHARE ============ -->
 <div class="ap-card ap-share" id="shareAttCard"
      data-day="{{ day }}"
