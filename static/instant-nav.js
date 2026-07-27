@@ -10,16 +10,25 @@
   window.__INSTANT_NAV_READY = true;
 
 
-  // ---------- Service Worker ----------
+  // ---------- Service Worker: إلغاء نهائي ----------
+  // الـ SW القديم كان بيخزّن نسخة من صفحة الخطأ ويفضل يعرضها حتى لو السيرفر شغال.
+  // دلوقتي بنلغي أي SW متسجل ونمسح كل الكاش عشان التطبيق يفتح طبيعي دايمًا.
   try { localStorage.removeItem('lastPage'); } catch (e) {}
 
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
-    });
-  }
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) { r.unregister(); });
+      }).catch(function () {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (k) { caches.delete(k); });
+      }).catch(function () {});
+    }
+  } catch (e) {}
 
-  // لو النت رجع بعد انقطاع — نفضل في نفس الصفحة، ومنرجعش للسبلاش
+  // لو النت رجع بعد انقطاع — نفضل في نفس الصفحة
   window.addEventListener('online', function () {
     if (document.documentElement.dataset.offlineShell === '1') location.reload();
   });
