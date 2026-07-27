@@ -1,10 +1,11 @@
 /* sw.js — كاش ذكي عشان التنقل يبقى فوري والتطبيق ما يرجعش من الأول لما النت يفصل */
-const VERSION = 'th-v3';
+const VERSION = 'th-v4';
 const SHELL = 'shell-' + VERSION;
 const PAGES = 'pages-' + VERSION;
 
 const STATIC_RE = /\/static\/.+\.(css|js|png|jpg|jpeg|svg|webp|woff2?|ico)$/i;
-const NO_CACHE_RE = /\/(login|logout|register|me\/ping|init-db|admin\/[^/]*(delete|clear|settle|close|reset))/i;
+// صفحات آمنة بس اللي بتتخزن — أي صفحة تانية بتتجاب من الشبكة على طول
+const CACHEABLE_PAGES = ['/dashboard', '/history', '/chats', '/group', '/notifications', '/me/profile'];
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -42,7 +43,7 @@ self.addEventListener('fetch', (event) => {
 
   // صفحات: الشبكة الأول، ولو فشلت نرجّع آخر نسخة متخزنة (مش من الأول)
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
-    if (NO_CACHE_RE.test(url.pathname)) return;
+    if (!CACHEABLE_PAGES.includes(url.pathname) || url.search) return;
     event.respondWith(
       fetch(req).then((res) => {
         if (res && res.ok) {
