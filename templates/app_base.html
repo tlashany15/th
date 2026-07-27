@@ -131,24 +131,7 @@
 
 <!-- CONTENT -->
 <div class="container">
-  {% if db_status and not db_status.online %}
-  <div class="db-offline-banner">
-    <b>⚠️ قاعدة البيانات مش متصلة دلوقتي</b>
-    <span>التطبيق شغّال عادي على النسخة المحفوظة في السيرفر، وكل حاجة بتتسجّل ومش هتضيع.</span>
-    {% if current_user and current_user.role == 'admin' %}
-    <a href="{{ url_for('admin_database') }}">اربط قاعدة بيانات جديدة</a>
-    {% endif %}
-  </div>
-  <style>
-    .db-offline-banner{background:#3a2a12;border:1px solid #a9761f;color:#ffd98a;
-      border-radius:14px;padding:12px 14px;margin:10px 0;display:flex;flex-direction:column;gap:4px;font-size:14px}
-    .db-offline-banner span{opacity:.85;font-size:13px}
-    .db-offline-banner a{margin-top:6px;align-self:flex-start;background:#e3b445;color:#12202b;
-      text-decoration:none;padding:7px 14px;border-radius:10px;font-weight:700}
-  </style>
-  {% endif %}
   {% if impersonator %}
-
   <div class="impersonate-banner">
     <div class="imp-ico">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
