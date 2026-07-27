@@ -10,13 +10,8 @@
   window.__INSTANT_NAV_READY = true;
 
 
-  // ---------- Service Worker + تذكّر آخر صفحة ----------
-  try {
-    var pth = location.pathname || '/';
-    if (!/^\/(welcome|login|logout|register|offline)/.test(pth)) {
-      localStorage.setItem('lastPage', pth + (location.search || ''));
-    }
-  } catch (e) {}
+  // ---------- Service Worker ----------
+  try { localStorage.removeItem('lastPage'); } catch (e) {}
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
