@@ -47,11 +47,9 @@
 <div class="card" id="attCard" data-day="{{ day }}">
   <div class="sec-head">
     <div class="sec-h-l"><div class="sec-h-ico sec-h-ico-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg></div><div><div class="sec-h-t">قائمة اليوم</div><div class="sec-h-s">اختار تسمين أو بياض من نفس صف العامل</div></div></div>
-    <div class="att-total-chip"><span id="kpiPresentInline">{{ present_count }}</span> حاضر</div>
   </div>
   <div class="att-tools">
     <input id="workerSearch" class="att-search" type="search" inputmode="search" autocomplete="off" placeholder="ابحث باسم العامل…">
-    <div class="att-farm-counts"><span class="farm-sec-badge farm-tasmeen">تسمين <b id="countTasmeen">{{ present_tasmeen }}</b></span><span class="farm-sec-badge farm-bayad">بياض <b id="countBayad">{{ present_bayad }}</b></span></div>
   </div>
   <div class="att-scroll"><div class="att-list" id="attList">
     {% for p in all_people %}
