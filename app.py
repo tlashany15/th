@@ -738,44 +738,10 @@ def index():
 @app.route("/welcome")
 def splash():
     if session.get("user_id"):
-        next_url = _safe_last_page(request.cookies.get("last_page"))
+        next_url = url_for("dashboard")
     else:
         next_url = url_for("login")
     return render_template("splash.html", next_url=next_url)
-
-
-# ---------- تذكّر آخر صفحة (عشان الرجوع بعد انقطاع النت) ----------
-# صفحات آمنة بس: من غير باراميترات ولا صفحات إدارة، عشان ما يحصلش خطأ عند الرجوع
-_SAFE_PAGES = {
-    "/dashboard", "/history", "/chats", "/group",
-    "/notifications", "/me/profile",
-}
-
-
-def _safe_last_page(path):
-    """يرجّع مسار آمن للتحويل — أو الداشبورد لو فيه أي شك."""
-    fallback = url_for("dashboard")
-    if not path or not isinstance(path, str):
-        return fallback
-    path = path.split("?")[0].split("#")[0].strip()
-    if not path.startswith("/") or path.startswith("//"):
-        return fallback
-    return path if path in _SAFE_PAGES else fallback
-
-
-@app.after_request
-def _remember_last_page(resp):
-    try:
-        if (request.method == "GET"
-                and resp.status_code == 200
-                and "text/html" in (resp.headers.get("Content-Type") or "")
-                and session.get("user_id")
-                and request.path in _SAFE_PAGES):
-            resp.set_cookie("last_page", request.path, max_age=60 * 60 * 24 * 30,
-                            samesite="Lax", path="/")
-    except Exception:
-        pass
-    return resp
 
 
 @app.route("/sw.js")
@@ -3654,9 +3620,7 @@ def _handle_any_exc(e):
             "<a href='/dashboard' style='display:inline-block;padding:10px 20px;border-radius:99px;"
             "background:#e3b445;color:#12202b;font-weight:800;text-decoration:none'>الرئيسية</a>"
             "</div></body></html>")
-    resp = make_response(html, 500)
-    resp.set_cookie("last_page", "", expires=0, path="/")
-    return resp
+    return make_response(html, 500)
 
 
 
