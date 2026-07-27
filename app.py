@@ -8,9 +8,8 @@ import base64
 import json as _json
 import urllib.request
 import urllib.error
-import dbstore as psycopg2          # طبقة أمان: PostgreSQL + نسخة ملف محلية وقت التوقف
-from dbstore import extras as _pg_extras
-psycopg2.extras = _pg_extras
+import psycopg2
+import psycopg2.extras
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
@@ -25,22 +24,92 @@ app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 # رفعنا الحد عشان الصوت ميتقطعش
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
+_BOOTSTRAP_DB_URL = os.environ.get("DATABASE_URL", "")
+DATABASE_URL = _BOOTSTRAP_DB_URL  # للتوافق مع أي استخدام قديم
+_ACTIVE_DB_URL_CACHE = None  # يتخزّن بعد أول قراءة
+
+
+def _ensure_app_config_table(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS app_config(
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    conn.commit()
+    cur.close()
+
+
+def _read_override_from_bootstrap():
+    """يقرأ رابط القاعدة النشطة من جدول app_config داخل قاعدة البوت-ستراب."""
+    if not _BOOTSTRAP_DB_URL:
+        return None
+    try:
+        c = psycopg2.connect(_BOOTSTRAP_DB_URL)
+        _ensure_app_config_table(c)
+        cur = c.cursor()
+        cur.execute("SELECT value FROM app_config WHERE key='active_db_url'")
+        r = cur.fetchone()
+        cur.close()
+        c.close()
+        if r and r[0]:
+            return r[0]
+    except Exception as e:
+        print("_read_override_from_bootstrap error:", e)
+    return None
+
+
+def _active_db_url():
+    """رابط القاعدة اللي التطبيق مفروض يشتغل عليها الآن."""
+    global _ACTIVE_DB_URL_CACHE
+    if _ACTIVE_DB_URL_CACHE:
+        return _ACTIVE_DB_URL_CACHE
+    override = _read_override_from_bootstrap()
+    _ACTIVE_DB_URL_CACHE = override or _BOOTSTRAP_DB_URL
+    return _ACTIVE_DB_URL_CACHE
+
+
+def _set_active_db_url(new_url):
+    """يخزّن الرابط الجديد في قاعدة البوت-ستراب ويحدّث الكاش."""
+    global _ACTIVE_DB_URL_CACHE, _SCHEMA_READY
+    c = psycopg2.connect(_BOOTSTRAP_DB_URL)
+    _ensure_app_config_table(c)
+    cur = c.cursor()
+    cur.execute("""
+        INSERT INTO app_config(key, value, updated_at)
+        VALUES ('active_db_url', %s, NOW())
+        ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value, updated_at=NOW()
+    """, (new_url,))
+    c.commit()
+    cur.close()
+    c.close()
+    _ACTIVE_DB_URL_CACHE = new_url
+    _SCHEMA_READY = False
+
+
+def _clear_active_db_url():
+    """يرجّع للتشغيل على DATABASE_URL الأصلي."""
+    global _ACTIVE_DB_URL_CACHE, _SCHEMA_READY
+    try:
+        c = psycopg2.connect(_BOOTSTRAP_DB_URL)
+        _ensure_app_config_table(c)
+        cur = c.cursor()
+        cur.execute("DELETE FROM app_config WHERE key='active_db_url'")
+        c.commit()
+        cur.close()
+        c.close()
+    except Exception as e:
+        print("_clear_active_db_url error:", e)
+    _ACTIVE_DB_URL_CACHE = _BOOTSTRAP_DB_URL
+    _SCHEMA_READY = False
+
 
 _SCHEMA_READY = False
-_SCHEMA_LAST_TRY = 0
 def _ensure_schema():
-    """يتأكد إن الجداول موجودة. الجداول أصلاً اتعملت من زمان، فمنعيدش
-    فتح اتصال جديد بالداتابيز لعمل CREATE TABLE على كل cold start —
-    بس نحاول مرة كل دقيقة كحد أقصى لو حصل خطأ، مش على كل request."""
-    global _SCHEMA_READY, _SCHEMA_LAST_TRY
-    if _SCHEMA_READY:
-        return
-    import time as _time
-    now = _time.time()
-    if now - _SCHEMA_LAST_TRY < 60:
-        return
-    _SCHEMA_LAST_TRY = now
+    global _SCHEMA_READY
+    if _SCHEMA_READY: return
     try:
         init_db()
         _SCHEMA_READY = True
@@ -51,7 +120,7 @@ def _ensure_schema():
 # ---------- قاعدة البيانات ----------
 def get_db():
     if "db" not in g:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = psycopg2.connect(_active_db_url(), cursor_factory=psycopg2.extras.RealDictCursor)
         conn.autocommit = False
         g.db = conn
     return g.db
@@ -64,9 +133,9 @@ def close_db(_):
         db.close()
 
 
-def init_db():
-    """يُستدعى مرة واحدة لإنشاء الجداول"""
-    conn = psycopg2.connect(DATABASE_URL)
+def init_db(url=None):
+    """يُستدعى مرة واحدة لإنشاء الجداول. url اختياري لإنشاء الاسكيمة على قاعدة أخرى."""
+    conn = psycopg2.connect(url or _active_db_url())
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -341,18 +410,6 @@ def init_db():
     conn.close()
 
 
-# نسجّل init_db في طبقة الأمان عشان تقدر تبني الجداول في الملف المحلي
-# أو في أي قاعدة بيانات جديدة الأدمن يحطها.
-psycopg2.register_init(init_db)
-try:
-    psycopg2.ensure_local_schema()
-except Exception as _e:
-    print("local schema:", _e)
-
-
-
-
-
 def _next_free_userid(cur):
     """يرجّع أصغر رقم موجب مش مستخدم كـ username — عشان لو حد اتحذف يستخدم رقمه"""
     cur.execute(
@@ -401,19 +458,8 @@ def real_user():
 
 
 
-
-# طلبات الملفات الثابتة والأشياء اللي مالهاش داعي تلمس قاعدة البيانات خالص.
-# ده بيقفل معظم الاتصالات الزيادة اللي كانت بتستهلك الكوتة (كانت اللوجات
-# بتوريها بتحصل حتى على .css / .js / favicon.ico).
-_NO_DB_ENDPOINTS = {"static", "_favicon"}
-
-
 @app.before_request
 def _boot():
-    ep = request.endpoint or ""
-    if ep in _NO_DB_ENDPOINTS:
-        return  # ملف ثابت — منعديش على الداتابيز خالص
-
     _ensure_schema()
     uid = session.get("user_id")
     if uid:
@@ -427,8 +473,9 @@ def _boot():
             pass
     # وضع الإيقاف الكامل: كل المستخدمين ممنوعين ما عدا المسؤول الرئيسي (username='1')
     try:
-        # نسمح دايمًا بالدخول والخروج وزر التشغيل/الإيقاف نفسه (الملفات الثابتة اتصفّت فوق خالص)
-        _always_allowed = {"admin_toggle_maintenance"}
+        ep = request.endpoint or ""
+        # نسمح دايمًا بالملفات الثابتة والدخول والخروج وزر التشغيل/الإيقاف نفسه
+        _always_allowed = {"static", "admin_toggle_maintenance"}
         if ep not in _always_allowed and _maintenance_on():
             ru = real_user()
             if not _is_super_admin(ru):
@@ -3925,63 +3972,153 @@ def admin_storage_auto_archive():
     return redirect(url_for("admin_storage"))
 
 
-# ======================= إدارة قاعدة البيانات =======================
-@app.context_processor
-def _inject_db_status():
-    """بيخلي كل الصفحات تعرف إذا كانت القاعدة واقعة وشغالين على الملف المحلي."""
-    try:
-        st = psycopg2.status()
-    except Exception:
-        st = {"mode": "online", "online": True}
-    return {"db_status": st}
+# ==================================================
+# ============ نقل البيانات لقاعدة جديدة ============
+# ==================================================
+
+def _list_public_tables(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT table_name
+          FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_type   = 'BASE TABLE'
+           AND table_name  <> 'app_config'
+         ORDER BY table_name
+    """)
+    tables = [r[0] for r in cur.fetchall()]
+    cur.close()
+    return tables
 
 
-@app.route("/admin/database")
+def _copy_one_table(src_conn, dst_conn, table):
+    import io
+    buf = io.StringIO()
+    src_cur = src_conn.cursor()
+    src_cur.copy_expert(f'COPY "{table}" TO STDOUT WITH CSV', buf)
+    src_cur.close()
+    buf.seek(0)
+    dst_cur = dst_conn.cursor()
+    dst_cur.execute(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
+    dst_cur.copy_expert(f'COPY "{table}" FROM STDIN WITH CSV', buf)
+    dst_cur.close()
+
+
+def _fix_sequences(dst_conn):
+    cur = dst_conn.cursor()
+    cur.execute("""
+        SELECT c.table_name,
+               c.column_name,
+               pg_get_serial_sequence(quote_ident(c.table_name), c.column_name) AS seq
+          FROM information_schema.columns c
+         WHERE c.table_schema = 'public'
+           AND pg_get_serial_sequence(quote_ident(c.table_name), c.column_name) IS NOT NULL
+    """)
+    rows = cur.fetchall()
+    for t, col, seq in rows:
+        if not seq:
+            continue
+        cur.execute(f'SELECT COALESCE(MAX("{col}"), 0) FROM "{t}"')
+        m = cur.fetchone()[0] or 0
+        cur.execute("SELECT setval(%s, %s, true)", (seq, max(int(m), 1)))
+    cur.close()
+
+
+@app.route("/admin/db-migrate", methods=["GET"])
 @super_admin_required
-def admin_database():
-    return render_template("admin_database.html", st=psycopg2.status())
+def admin_db_migrate():
+    active = _active_db_url()
+    def mask(u):
+        try:
+            # يخفي كلمة المرور
+            import re as _re
+            return _re.sub(r'(://[^:]+:)([^@]+)(@)', r'\1***\3', u or "")
+        except Exception:
+            return "***"
+    return render_template(
+        "admin_db_migrate.html",
+        active_masked=mask(active),
+        bootstrap_masked=mask(_BOOTSTRAP_DB_URL),
+        is_overridden=(active != _BOOTSTRAP_DB_URL),
+    )
 
 
-@app.route("/admin/database/backup", methods=["POST"])
+@app.route("/admin/db-migrate/test", methods=["POST"])
 @super_admin_required
-def admin_database_backup():
-    """ياخد نسخة كاملة من القاعدة الحالية إلى الملف المحلي دلوقتي حالًا."""
-    try:
-        n = psycopg2.sync_now()
-        flash(f"تمت النسخة الاحتياطية ✓ ({n} صف محفوظ في الملف)", "success")
-    except Exception as e:
-        flash(f"مقدرناش ناخد نسخة: {e}", "error")
-    return redirect(url_for("admin_database"))
-
-
-@app.route("/admin/database/connect", methods=["POST"])
-@super_admin_required
-def admin_database_connect():
-    """الأدمن بيحط لينك قاعدة بيانات جديدة → ننقل كل الشغل عليها."""
-    new_url = (request.form.get("database_url") or "").strip()
+def admin_db_migrate_test():
+    new_url = (request.form.get("new_url") or "").strip()
     if not new_url:
-        flash("اكتب لينك قاعدة البيانات الجديدة", "error")
-        return redirect(url_for("admin_database"))
+        flash("رابط القاعدة الجديدة مطلوب", "error")
+        return redirect(url_for("admin_db_migrate"))
     try:
-        report = psycopg2.migrate_to(new_url)
-        moved = sum(report.values())
-        flash(f"تم الربط بالقاعدة الجديدة ونقل كل البيانات ✓ ({moved} صف)", "success")
+        c = psycopg2.connect(new_url)
+        cur = c.cursor()
+        cur.execute("SELECT version()")
+        cur.fetchone()
+        cur.close(); c.close()
+        flash("الاتصال بالقاعدة الجديدة ناجح ✅", "success")
     except Exception as e:
-        flash(f"فشل الربط: {e}", "error")
-    return redirect(url_for("admin_database"))
+        flash(f"فشل الاتصال: {e}", "error")
+    return redirect(url_for("admin_db_migrate"))
 
 
-@app.route("/admin/database/download")
+@app.route("/admin/db-migrate/run", methods=["POST"])
 @super_admin_required
-def admin_database_download():
-    """تحميل ملف البيانات المحلي كنسخة احتياطية على جهازك."""
-    import pgcompat as _pgc
+def admin_db_migrate_run():
+    new_url = (request.form.get("new_url") or "").strip()
+    confirm = (request.form.get("confirm") or "").strip()
+    if not new_url:
+        flash("رابط القاعدة الجديدة مطلوب", "error")
+        return redirect(url_for("admin_db_migrate"))
+    if confirm != "نقل":
+        flash("لتأكيد النقل اكتب كلمة: نقل", "error")
+        return redirect(url_for("admin_db_migrate"))
+    if new_url == _active_db_url():
+        flash("الرابط الجديد هو نفس الرابط الحالي", "error")
+        return redirect(url_for("admin_db_migrate"))
+
+    src_url = _active_db_url()
     try:
-        with open(_pgc.DB_FILE, "rb") as f:
-            data = f.read()
+        # 1) تحقق من الاتصال
+        t = psycopg2.connect(new_url); t.close()
+        # 2) أنشئ الاسكيمة على القاعدة الجديدة
+        init_db(new_url)
+        # 3) انسخ البيانات
+        src = psycopg2.connect(src_url); src.autocommit = True
+        dst = psycopg2.connect(new_url); dst.autocommit = True
+        tables = _list_public_tables(src)
+        # عطّل قيود الـ FK أثناء النسخ
+        dcur = dst.cursor()
+        dcur.execute("SET session_replication_role = 'replica'")
+        dcur.close()
+        copied = []
+        for t in tables:
+            try:
+                _copy_one_table(src, dst, t)
+                copied.append(t)
+            except Exception as ce:
+                print(f"copy fail {t}:", ce)
+        dcur = dst.cursor()
+        dcur.execute("SET session_replication_role = 'origin'")
+        dcur.close()
+        # 4) اضبط الـ sequences
+        _fix_sequences(dst)
+        src.close(); dst.close()
+        # 5) حوّل التطبيق للقاعدة الجديدة
+        _set_active_db_url(new_url)
+        flash(f"تم النقل والتحويل ✅ — عدد الجداول: {len(copied)}", "success")
     except Exception as e:
-        flash(f"مفيش ملف بيانات: {e}", "error")
-        return redirect(url_for("admin_database"))
-    return Response(
-        data, mimetype="application/octet-stream",
-        headers={"Content-Disposition": 'attachment; filename="data-backup.db"'})
+        flash(f"فشل النقل: {e}", "error")
+    return redirect(url_for("admin_db_migrate"))
+
+
+@app.route("/admin/db-migrate/revert", methods=["POST"])
+@super_admin_required
+def admin_db_migrate_revert():
+    try:
+        _clear_active_db_url()
+        flash("تم الرجوع للقاعدة الأصلية (DATABASE_URL) ✅", "success")
+    except Exception as e:
+        flash(f"فشل الرجوع: {e}", "error")
+    return redirect(url_for("admin_db_migrate"))
+
