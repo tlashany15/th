@@ -1,73 +1,96 @@
 {% extends "app_base.html" %}
 {% block title %}نقل قاعدة البيانات{% endblock %}
 {% block content %}
-<section class="ap-card" style="padding:16px;margin:12px 0">
-  <h2 style="margin:0 0 8px;font-size:18px;font-weight:800">نقل البيانات لقاعدة جديدة</h2>
-  <p style="color:#4b5563;font-size:13.5px;line-height:1.7;margin:0 0 12px">
+<style>
+  .dbm{--dbm-line:rgba(255,255,255,.14)}
+  .dbm h2{margin:0 0 8px;font-size:18px;font-weight:900;color:var(--text,#eef2fb)}
+  .dbm .hint{color:var(--text-3,#8891a7);font-size:13.5px;line-height:1.8;margin:0 0 12px}
+  .dbm code{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .dbm .info{
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--dbm-line);
+    border-radius:12px;padding:12px;margin-bottom:12px;font-size:13px;
+    color:var(--text,#eef2fb);
+  }
+  .dbm .info b{color:var(--gold-2,#ffd27a);display:block;margin-bottom:2px}
+  .dbm .info code{
+    display:block;word-break:break-all;color:var(--text-2,#c2c9db);
+    background:rgba(0,0,0,.28);border-radius:8px;padding:6px 8px;font-size:12px;
+  }
+  .dbm .info .row + .row{margin-top:8px}
+  .dbm .warn{margin-top:8px;color:#fbbf24;font-weight:700}
+  .dbm .msg{padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13.5px;
+            font-weight:700;line-height:1.7;word-break:break-word}
+  .dbm .msg.ok{background:rgba(34,197,94,.14);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+  .dbm .msg.bad{background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
+  .dbm input[type=text]{
+    padding:10px 12px;border:1px solid var(--dbm-line);border-radius:10px;font-size:13px;
+    background:rgba(0,0,0,.25);color:var(--text,#eef2fb);
+  }
+  .dbm input[type=text]::placeholder{color:var(--text-3,#8891a7)}
+  .dbm input[type=text]:focus{outline:none;border-color:var(--gold,#f5b950)}
+  .dbm .url{flex:1;min-width:200px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .dbm button{padding:10px 14px;border-radius:10px;border:0;font-weight:900;font-size:14px;cursor:pointer}
+  .dbm .btn-test{background:#0ea5e9;color:#04222f}
+  .dbm .btn-run{background:#ea580c;color:#fff}
+  .dbm .btn-revert{background:transparent;color:var(--text,#eef2fb);border:1px solid var(--dbm-line);font-weight:700}
+  .dbm details{margin-top:14px;font-size:13px;color:var(--text-3,#8891a7)}
+  .dbm details summary{cursor:pointer;font-weight:800;color:var(--text-2,#c2c9db)}
+  .dbm details li{line-height:1.9}
+  .dbm form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style>
+
+<section class="ap-card dbm" style="padding:16px;margin:12px 0">
+  <h2>نقل البيانات لقاعدة جديدة</h2>
+  <p class="hint">
     ضع رابط الاتصال (<code dir="ltr">postgresql://user:pass@host:port/dbname</code>) للقاعدة الجديدة.
     اختبر الاتصال أولاً، ثم شغّل النقل. بعد نجاح النقل يتم تحويل التطبيق فوراً للقاعدة الجديدة.
   </p>
 
-  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px">
-    <div><b>القاعدة النشطة الآن:</b> <code dir="ltr">{{ active_masked }}</code></div>
-    <div style="margin-top:4px"><b>القاعدة الأصلية (env):</b> <code dir="ltr">{{ bootstrap_masked }}</code></div>
+  <div class="info">
+    <div class="row"><b>القاعدة النشطة الآن</b><code dir="ltr">{{ active_masked }}</code></div>
+    <div class="row"><b>القاعدة الأصلية (env)</b><code dir="ltr">{{ bootstrap_masked }}</code></div>
     {% if is_overridden %}
-      <div style="margin-top:6px;color:#b45309">التطبيق يعمل حالياً على قاعدة محوّلة (ليست env).</div>
+      <div class="warn">التطبيق يعمل حالياً على قاعدة محوّلة (ليست env).</div>
     {% endif %}
   </div>
 
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% for cat, m in msgs %}
-      <div style="padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13.5px;
-                  background:{{ '#ecfdf5' if cat=='success' else '#fef2f2' }};
-                  color:{{ '#065f46' if cat=='success' else '#991b1b' }};
-                  border:1px solid {{ '#a7f3d0' if cat=='success' else '#fecaca' }}">{{ m }}</div>
+      <div class="msg {{ 'ok' if cat=='success' else 'bad' }}">{{ m }}</div>
     {% endfor %}
   {% endwith %}
 
-  <form method="post" action="{{ url_for('admin_db_migrate_test') }}" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-    <input type="text" name="new_url" required dir="ltr"
-           placeholder="postgresql://user:pass@host:5432/db"
-           style="flex:1;min-width:220px;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-family:monospace;font-size:13px"
-           value="{{ request.form.get('new_url','') }}">
-    <button type="submit"
-            style="padding:10px 14px;border-radius:10px;border:0;background:#0ea5e9;color:#fff;font-weight:800;cursor:pointer">
-      اختبار الاتصال
-    </button>
+  <form method="post" action="{{ url_for('admin_db_migrate_test') }}" style="margin-bottom:10px">
+    <input class="url" type="text" name="new_url" required dir="ltr"
+           placeholder="postgresql://user:pass@host:5432/db">
+    <button class="btn-test" type="submit">اختبار الاتصال</button>
   </form>
 
   <form method="post" action="{{ url_for('admin_db_migrate_run') }}"
-        onsubmit="return confirm('سيتم نسخ كل البيانات للقاعدة الجديدة وتحويل التطبيق إليها. متابعة؟');"
-        style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <input type="text" name="new_url" required dir="ltr"
-           placeholder="postgresql://user:pass@host:5432/db"
-           style="flex:1;min-width:220px;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-family:monospace;font-size:13px">
-    <input type="text" name="confirm" required placeholder='اكتب: نقل'
-           style="width:120px;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px">
-    <button type="submit"
-            style="padding:10px 14px;border-radius:10px;border:0;background:#ea580c;color:#fff;font-weight:800;cursor:pointer">
-      نقل وتحويل الآن
-    </button>
+        onsubmit="return confirm('سيتم نسخ كل البيانات للقاعدة الجديدة وتحويل التطبيق إليها. متابعة؟');">
+    <input class="url" type="text" name="new_url" required dir="ltr"
+           placeholder="postgresql://user:pass@host:5432/db">
+    <input type="text" name="confirm" required placeholder="اكتب: نقل" style="width:110px">
+    <button class="btn-run" type="submit">نقل وتحويل الآن</button>
   </form>
 
   {% if is_overridden %}
     <form method="post" action="{{ url_for('admin_db_migrate_revert') }}"
           onsubmit="return confirm('الرجوع إلى القاعدة الأصلية (DATABASE_URL) — البيانات الأحدث ستبقى على القاعدة المحوّلة. متابعة؟');"
           style="margin-top:14px">
-      <button type="submit"
-              style="padding:9px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;color:#111827;font-weight:700;cursor:pointer">
-        الرجوع للقاعدة الأصلية
-      </button>
+      <button class="btn-revert" type="submit">الرجوع للقاعدة الأصلية</button>
     </form>
   {% endif %}
 
-  <details style="margin-top:14px;font-size:13px;color:#4b5563">
-    <summary style="cursor:pointer;font-weight:700;color:#111827">تنبيهات مهمة</summary>
-    <ul style="margin:8px 0 0 18px;line-height:1.9">
-      <li>عملية النقل تنسخ الاسكيمة (يتم إنشاؤها في القاعدة الجديدة) ثم كل بيانات الجداول.</li>
+  <details>
+    <summary>تنبيهات مهمة</summary>
+    <ul style="margin:8px 18px 0 0;padding:0 18px 0 0">
+      <li>النقل ينشئ الاسكيمة في القاعدة الجديدة ثم ينسخ كل البيانات بترتيب العلاقات (FK).</li>
       <li>يتم <b>تفريغ</b> جداول الوجهة قبل النسخ (TRUNCATE) — لو فيها بيانات هتتمسح.</li>
-      <li>الرابط الجديد يتخزّن داخل جدول <code>app_config</code> في القاعدة الأصلية، فيفضل بعد إعادة التشغيل.</li>
-      <li>يفضّل تفعيل الصيانة قبل النقل لضمان عدم كتابة بيانات جديدة أثناءه.</li>
+      <li>لو النسخ فشل، التطبيق <b>مش</b> هيتحوّل ويفضل على القاعدة الحالية.</li>
+      <li>الرابط الجديد يتخزّن في جدول <code>app_config</code> بالقاعدة الأصلية فيفضل بعد إعادة التشغيل.</li>
+      <li>يفضّل تفعيل الصيانة قبل النقل لضمان عدم كتابة بيانات أثناءه.</li>
     </ul>
   </details>
 </section>
