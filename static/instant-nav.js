@@ -9,6 +9,55 @@
   if (window.__INSTANT_NAV_READY) return;
   window.__INSTANT_NAV_READY = true;
 
+
+  // ---------- Service Worker + تذكّر آخر صفحة ----------
+  try {
+    var pth = location.pathname || '/';
+    if (!/^\/(welcome|login|logout|register|offline)/.test(pth)) {
+      localStorage.setItem('lastPage', pth + (location.search || ''));
+    }
+  } catch (e) {}
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+    });
+  }
+
+  // لو النت رجع بعد انقطاع — نفضل في نفس الصفحة، ومنرجعش للسبلاش
+  window.addEventListener('online', function () {
+    if (document.documentElement.dataset.offlineShell === '1') location.reload();
+  });
+
+  // ---------- Prerender (Speculation Rules) — أسرع تنقل ممكن ----------
+  try {
+    if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
+      var sr = document.createElement('script');
+      sr.type = 'speculationrules';
+      sr.textContent = JSON.stringify({
+        prerender: [{
+          where: {
+            and: [
+              { href_matches: '/*' },
+              { not: { href_matches: '/logout*' } },
+              { not: { href_matches: '/login*' } },
+              { not: { href_matches: '/register*' } },
+              { not: { href_matches: '/welcome*' } },
+              { not: { href_matches: '/api/*' } },
+              { not: { selector_matches: '[data-no-prefetch="1"]' } }
+            ]
+          },
+          eagerness: 'moderate'
+        }],
+        prefetch: [{
+          where: { and: [{ href_matches: '/*' }, { not: { href_matches: '/logout*' } }] },
+          eagerness: 'moderate'
+        }]
+      });
+      document.head.appendChild(sr);
+    }
+  } catch (e) {}
+
   // ---------- Top progress bar ----------
   var bar = document.createElement('div');
   bar.className = 'inav-bar';
@@ -77,6 +126,8 @@
       l.as = 'document';
       l.href = href;
       document.head.appendChild(l);
+      // تسخين كاش الـ Service Worker كمان (مفيد جدًا على النت الضعيف)
+      fetch(href, { credentials: 'same-origin', headers: { 'X-Prefetch': '1' } }).catch(function () {});
     } catch (e) {}
   }
   function onHover(e) {
@@ -86,6 +137,7 @@
   }
   document.addEventListener('mouseover', onHover, { passive: true });
   document.addEventListener('touchstart', onHover, { passive: true });
+  document.addEventListener('pointerdown', onHover, { passive: true });
   document.addEventListener('focusin', onHover);
 
   // Viewport-visible links (quicklink-style)
