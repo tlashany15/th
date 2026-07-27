@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
 from flask import (Flask, g, redirect, render_template, request, session,
-                   url_for, flash, jsonify, Response, abort, make_response)
+                   url_for, flash, jsonify, Response, abort)
 from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import quote as _urlquote
 
@@ -737,27 +737,8 @@ def index():
 
 @app.route("/welcome")
 def splash():
-    if session.get("user_id"):
-        next_url = url_for("dashboard")
-    else:
-        next_url = url_for("login")
+    next_url = url_for("dashboard") if session.get("user_id") else url_for("login")
     return render_template("splash.html", next_url=next_url)
-
-
-@app.route("/sw.js")
-def _service_worker():
-    from flask import send_from_directory
-    import os as _os
-    resp = send_from_directory(_os.path.join(app.root_path, "static"), "sw.js")
-    resp.headers["Content-Type"] = "application/javascript"
-    resp.headers["Cache-Control"] = "no-cache"
-    resp.headers["Service-Worker-Allowed"] = "/"
-    return resp
-
-
-@app.route("/offline")
-def _offline_page():
-    return render_template("offline.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -3610,17 +3591,7 @@ def _handle_any_exc(e):
     print("=== UNHANDLED ERROR ===\n", _tb.format_exc(), flush=True)
     if _os_env.environ.get("SHOW_ERRORS") == "1":
         return ("<pre style='direction:ltr;text-align:left'>" + _tb.format_exc() + "</pre>", 500)
-    # لو الخطأ حصل في صفحة اترجعنا ليها تلقائيًا — نمسح الكوكي عشان ما يتكررش
-    html = ("<!doctype html><html dir='rtl' lang='ar'><meta charset='utf-8'>"
-            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-            "<body style=\"font-family:system-ui;background:#0f1a24;color:#eee;"
-            "display:grid;place-items:center;min-height:100vh;margin:0;text-align:center\">"
-            "<div><h2>حصل خطأ مؤقت</h2>"
-            "<p style='color:#9fb0c0'>جرّب تاني أو ارجع للرئيسية.</p>"
-            "<a href='/dashboard' style='display:inline-block;padding:10px 20px;border-radius:99px;"
-            "background:#e3b445;color:#12202b;font-weight:800;text-decoration:none'>الرئيسية</a>"
-            "</div></body></html>")
-    return make_response(html, 500)
+    return ("حدث خطأ غير متوقع. حاول تاني.", 500)
 
 
 
