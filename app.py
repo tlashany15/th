@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
 from flask import (Flask, g, redirect, render_template, request, session,
-                   url_for, flash, jsonify, Response, abort)
+                   url_for, flash, jsonify, Response, abort, make_response)
 from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import quote as _urlquote
 
@@ -738,18 +738,29 @@ def index():
 @app.route("/welcome")
 def splash():
     if session.get("user_id"):
-        next_url = request.cookies.get("last_page") or url_for("dashboard")
-        # أمان: مسارات داخلية فقط
-        if not next_url.startswith("/") or next_url.startswith("//"):
-            next_url = url_for("dashboard")
+        next_url = _safe_last_page(request.cookies.get("last_page"))
     else:
         next_url = url_for("login")
     return render_template("splash.html", next_url=next_url)
 
 
 # ---------- تذكّر آخر صفحة (عشان الرجوع بعد انقطاع النت) ----------
-_NO_REMEMBER = ("/welcome", "/login", "/logout", "/register", "/static/",
-                "/api/", "/favicon", "/sw.js", "/me/ping", "/init-db")
+# صفحات آمنة بس: من غير باراميترات ولا صفحات إدارة، عشان ما يحصلش خطأ عند الرجوع
+_SAFE_PAGES = {
+    "/dashboard", "/history", "/chats", "/group",
+    "/notifications", "/me/profile",
+}
+
+
+def _safe_last_page(path):
+    """يرجّع مسار آمن للتحويل — أو الداشبورد لو فيه أي شك."""
+    fallback = url_for("dashboard")
+    if not path or not isinstance(path, str):
+        return fallback
+    path = path.split("?")[0].split("#")[0].strip()
+    if not path.startswith("/") or path.startswith("//"):
+        return fallback
+    return path if path in _SAFE_PAGES else fallback
 
 
 @app.after_request
@@ -759,9 +770,8 @@ def _remember_last_page(resp):
                 and resp.status_code == 200
                 and "text/html" in (resp.headers.get("Content-Type") or "")
                 and session.get("user_id")
-                and not any(request.path.startswith(x) for x in _NO_REMEMBER)):
-            path = request.full_path.rstrip("?") or "/"
-            resp.set_cookie("last_page", path, max_age=60 * 60 * 24 * 30,
+                and request.path in _SAFE_PAGES):
+            resp.set_cookie("last_page", request.path, max_age=60 * 60 * 24 * 30,
                             samesite="Lax", path="/")
     except Exception:
         pass
@@ -3634,7 +3644,19 @@ def _handle_any_exc(e):
     print("=== UNHANDLED ERROR ===\n", _tb.format_exc(), flush=True)
     if _os_env.environ.get("SHOW_ERRORS") == "1":
         return ("<pre style='direction:ltr;text-align:left'>" + _tb.format_exc() + "</pre>", 500)
-    return ("حدث خطأ غير متوقع. حاول تاني.", 500)
+    # لو الخطأ حصل في صفحة اترجعنا ليها تلقائيًا — نمسح الكوكي عشان ما يتكررش
+    html = ("<!doctype html><html dir='rtl' lang='ar'><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<body style=\"font-family:system-ui;background:#0f1a24;color:#eee;"
+            "display:grid;place-items:center;min-height:100vh;margin:0;text-align:center\">"
+            "<div><h2>حصل خطأ مؤقت</h2>"
+            "<p style='color:#9fb0c0'>جرّب تاني أو ارجع للرئيسية.</p>"
+            "<a href='/dashboard' style='display:inline-block;padding:10px 20px;border-radius:99px;"
+            "background:#e3b445;color:#12202b;font-weight:800;text-decoration:none'>الرئيسية</a>"
+            "</div></body></html>")
+    resp = make_response(html, 500)
+    resp.set_cookie("last_page", "", expires=0, path="/")
+    return resp
 
 
 
