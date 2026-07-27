@@ -13,8 +13,9 @@ import psycopg2.extras
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
-from flask import (Flask, g, redirect, render_template, request, session,
-                   url_for, flash, jsonify, Response, abort)
+from flask import (Flask, g, redirect, render_template, render_template_string,
+                   request, session, url_for, flash, jsonify, Response, abort,
+                   make_response)
 from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import quote as _urlquote
 
@@ -120,7 +121,21 @@ def _ensure_schema():
 # ---------- قاعدة البيانات ----------
 def get_db():
     if "db" not in g:
-        conn = psycopg2.connect(_active_db_url(), cursor_factory=psycopg2.extras.RealDictCursor)
+        global _ACTIVE_DB_URL_CACHE, _SCHEMA_READY
+        url = _active_db_url()
+        try:
+            conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor,
+                                    connect_timeout=10)
+        except Exception as e:
+            # لو القاعدة المحوّلة وقعت، نرجع تلقائياً للقاعدة الأصلية بدل ما التطبيق يقع
+            print("DB connect failed, falling back to bootstrap:", e)
+            if not _BOOTSTRAP_DB_URL or url == _BOOTSTRAP_DB_URL:
+                raise
+            _ACTIVE_DB_URL_CACHE = _BOOTSTRAP_DB_URL
+            _SCHEMA_READY = False
+            conn = psycopg2.connect(_BOOTSTRAP_DB_URL,
+                                    cursor_factory=psycopg2.extras.RealDictCursor,
+                                    connect_timeout=10)
         conn.autocommit = False
         g.db = conn
     return g.db
@@ -3660,17 +3675,80 @@ def api_fcm_unregister():
 from werkzeug.exceptions import HTTPException as _HTTPException
 import traceback as _tb, os as _os_env
 
+def _wants_json():
+    try:
+        if request.path.startswith("/api/"):
+            return True
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return True
+        acc = request.headers.get("Accept", "")
+        return "application/json" in acc and "text/html" not in acc
+    except Exception:
+        return False
+
+
+def _error_page(title, msg, code):
+    """صفحة خطأ بتصميم التطبيق.
+    مهم: بنرجّعها بحالة 200 للصفحات العادية عشان الـ WebView (تطبيق الأندرويد)
+    ما يعرضش صفحة الخطأ بتاعته ويرجع لورا. الكود الحقيقي بيتبعت في هيدر."""
+    html = render_template_string(_ERROR_TPL, err_title=title, err_msg=msg, err_code=code)
+    status = 200 if not _wants_json() else code
+    resp = make_response(html, status)
+    resp.headers["X-App-Error"] = str(code)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+_ERROR_TPL = """<!doctype html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ err_title }}</title>
+<style>
+ body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:#0e1424;color:#eef2fb;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;padding:20px}
+ .b{max-width:420px;width:100%;background:#171f33;border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;padding:22px;text-align:center;box-shadow:0 18px 40px -20px #000}
+ .c{font-size:40px;font-weight:900;color:#f5b950;margin:0}
+ h1{font-size:18px;margin:8px 0 6px}
+ p{font-size:14px;line-height:1.8;color:#c2c9db;margin:0 0 16px}
+ a,button{display:inline-block;margin:4px;padding:10px 16px;border-radius:12px;border:0;
+   font-weight:800;font-size:14px;cursor:pointer;text-decoration:none}
+ .p{background:#f5b950;color:#1a1207}
+ .s{background:transparent;color:#eef2fb;border:1px solid rgba(255,255,255,.18)}
+</style></head><body>
+ <div class="b">
+   <p class="c">{{ err_code }}</p>
+   <h1>{{ err_title }}</h1>
+   <p>{{ err_msg }}</p>
+   <button class="p" onclick="location.reload()">إعادة المحاولة</button>
+   <a class="s" href="/">الرئيسية</a>
+ </div>
+</body></html>"""
+
+
 @app.errorhandler(_HTTPException)
 def _handle_http_exc(e):
-    # نرجّع الرد الطبيعي (404/403/…): من غير ما نحوّله 500
-    return e
+    code = getattr(e, "code", 500) or 500
+    if _wants_json():
+        return jsonify({"ok": False, "error": getattr(e, "description", "error"), "code": code}), code
+    titles = {
+        404: ("الصفحة مش موجودة", "الرابط اللي فتحته اتغيّر أو اتشال."),
+        403: ("مش مسموح", "معندكش صلاحية تفتح الصفحة دي."),
+        401: ("محتاج تسجّل دخول", "سجّل دخولك وجرّب تاني."),
+        413: ("الملف كبير", "جرّب ترفع ملف أصغر."),
+        503: ("التطبيق متوقف مؤقتاً", "جاري الصيانة، حاول بعد شوية."),
+    }
+    t, m = titles.get(code, ("حصل خطأ", "حاول تاني بعد لحظات."))
+    return _error_page(t, m, code)
+
 
 @app.errorhandler(Exception)
 def _handle_any_exc(e):
     print("=== UNHANDLED ERROR ===\n", _tb.format_exc(), flush=True)
     if _os_env.environ.get("SHOW_ERRORS") == "1":
         return ("<pre style='direction:ltr;text-align:left'>" + _tb.format_exc() + "</pre>", 500)
-    return ("حدث خطأ غير متوقع. حاول تاني.", 500)
+    if _wants_json():
+        return jsonify({"ok": False, "error": "server_error"}), 500
+    return _error_page("حصل خطأ غير متوقع", "حاول تاني، ولو المشكلة فضلت كلّم المطوّر.", 500)
 
 
 
@@ -3992,6 +4070,7 @@ def _list_public_tables(conn):
 
 
 def _copy_one_table(src_conn, dst_conn, table):
+    """ينسخ جدول واحد من المصدر للوجهة (بدون TRUNCATE هنا)."""
     import io
     buf = io.StringIO()
     src_cur = src_conn.cursor()
@@ -3999,29 +4078,52 @@ def _copy_one_table(src_conn, dst_conn, table):
     src_cur.close()
     buf.seek(0)
     dst_cur = dst_conn.cursor()
-    dst_cur.execute(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
     dst_cur.copy_expert(f'COPY "{table}" FROM STDIN WITH CSV', buf)
     dst_cur.close()
 
 
-def _fix_sequences(dst_conn):
+def _truncate_all(dst_conn, tables):
+    """يفرّغ كل جداول الوجهة مرة واحدة (CASCADE) بدل تفريغ كل جدول لوحده."""
+    if not tables:
+        return
+    lst = ", ".join('"%s"' % t for t in tables)
     cur = dst_conn.cursor()
+    try:
+        cur.execute(f'TRUNCATE TABLE {lst} RESTART IDENTITY CASCADE')
+    finally:
+        cur.close()
+
+
+def _sorted_by_dependency(conn, tables):
+    """ترتيب الجداول حسب الـ Foreign Keys (الأب قبل الابن) — بديل آمن
+    عن SET session_replication_role اللي بيتطلب صلاحية superuser."""
+    deps = {t: set() for t in tables}
+    cur = conn.cursor()
     cur.execute("""
-        SELECT c.table_name,
-               c.column_name,
-               pg_get_serial_sequence(quote_ident(c.table_name), c.column_name) AS seq
-          FROM information_schema.columns c
-         WHERE c.table_schema = 'public'
-           AND pg_get_serial_sequence(quote_ident(c.table_name), c.column_name) IS NOT NULL
+        SELECT c.conrelid::regclass::text AS child,
+               c.confrelid::regclass::text AS parent
+          FROM pg_constraint c
+          JOIN pg_namespace n ON n.oid = c.connamespace
+         WHERE c.contype = 'f' AND n.nspname = 'public'
     """)
-    rows = cur.fetchall()
-    for t, col, seq in rows:
-        if not seq:
-            continue
-        cur.execute(f'SELECT COALESCE(MAX("{col}"), 0) FROM "{t}"')
-        m = cur.fetchone()[0] or 0
-        cur.execute("SELECT setval(%s, %s, true)", (seq, max(int(m), 1)))
+    for child, parent in cur.fetchall():
+        child = child.replace('public.', '').strip('"')
+        parent = parent.replace('public.', '').strip('"')
+        if child in deps and parent in deps and child != parent:
+            deps[child].add(parent)
     cur.close()
+
+    ordered, seen = [], set()
+    remaining = list(tables)
+    while remaining:
+        progressed = False
+        for t in list(remaining):
+            if deps[t] <= seen:
+                ordered.append(t); seen.add(t); remaining.remove(t); progressed = True
+        if not progressed:  # دورة FK — نكمل بالباقي زي ما هو
+            ordered.extend(remaining)
+            break
+    return ordered
 
 
 @app.route("/admin/db-migrate", methods=["GET"])
@@ -4030,7 +4132,6 @@ def admin_db_migrate():
     active = _active_db_url()
     def mask(u):
         try:
-            # يخفي كلمة المرور
             import re as _re
             return _re.sub(r'(://[^:]+:)([^@]+)(@)', r'\1***\3', u or "")
         except Exception:
@@ -4043,15 +4144,25 @@ def admin_db_migrate():
     )
 
 
+def _normalize_pg_url(u):
+    u = (u or "").strip().strip('"').strip("'")
+    if u.startswith("postgres://"):
+        u = "postgresql://" + u[len("postgres://"):]
+    return u
+
+
 @app.route("/admin/db-migrate/test", methods=["POST"])
 @super_admin_required
 def admin_db_migrate_test():
-    new_url = (request.form.get("new_url") or "").strip()
+    new_url = _normalize_pg_url(request.form.get("new_url"))
     if not new_url:
         flash("رابط القاعدة الجديدة مطلوب", "error")
         return redirect(url_for("admin_db_migrate"))
+    if not new_url.startswith("postgresql://"):
+        flash("الرابط لازم يبدأ بـ postgresql://", "error")
+        return redirect(url_for("admin_db_migrate"))
     try:
-        c = psycopg2.connect(new_url)
+        c = psycopg2.connect(new_url, connect_timeout=10)
         cur = c.cursor()
         cur.execute("SELECT version()")
         cur.fetchone()
@@ -4065,10 +4176,13 @@ def admin_db_migrate_test():
 @app.route("/admin/db-migrate/run", methods=["POST"])
 @super_admin_required
 def admin_db_migrate_run():
-    new_url = (request.form.get("new_url") or "").strip()
+    new_url = _normalize_pg_url(request.form.get("new_url"))
     confirm = (request.form.get("confirm") or "").strip()
     if not new_url:
         flash("رابط القاعدة الجديدة مطلوب", "error")
+        return redirect(url_for("admin_db_migrate"))
+    if not new_url.startswith("postgresql://"):
+        flash("الرابط لازم يبدأ بـ postgresql://", "error")
         return redirect(url_for("admin_db_migrate"))
     if confirm != "نقل":
         flash("لتأكيد النقل اكتب كلمة: نقل", "error")
@@ -4078,37 +4192,88 @@ def admin_db_migrate_run():
         return redirect(url_for("admin_db_migrate"))
 
     src_url = _active_db_url()
+    src = dst = None
     try:
         # 1) تحقق من الاتصال
-        t = psycopg2.connect(new_url); t.close()
+        t = psycopg2.connect(new_url, connect_timeout=10); t.close()
         # 2) أنشئ الاسكيمة على القاعدة الجديدة
         init_db(new_url)
-        # 3) انسخ البيانات
-        src = psycopg2.connect(src_url); src.autocommit = True
-        dst = psycopg2.connect(new_url); dst.autocommit = True
+        # 3) افتح الاتصالين
+        src = psycopg2.connect(src_url, connect_timeout=15); src.autocommit = True
+        dst = psycopg2.connect(new_url, connect_timeout=15); dst.autocommit = False
+
         tables = _list_public_tables(src)
-        # عطّل قيود الـ FK أثناء النسخ
-        dcur = dst.cursor()
-        dcur.execute("SET session_replication_role = 'replica'")
-        dcur.close()
-        copied = []
-        for t in tables:
+        dst_tables = set(_list_public_tables(dst))
+        tables = [t for t in tables if t in dst_tables]
+        if not tables:
+            raise RuntimeError("مفيش جداول متطابقة بين القاعدتين")
+
+        ordered = _sorted_by_dependency(src, tables)
+
+        # نحاول نوقف الـ triggers لو الصلاحية موجودة، ولو مرفوضة بنكمل عادي
+        try:
+            c0 = dst.cursor(); c0.execute("SET session_replication_role = 'replica'"); c0.close()
+            relaxed = True
+        except Exception as _e:
+            dst.rollback()
+            relaxed = False
+            print("session_replication_role not allowed, using dependency order:", _e)
+
+        # 4) فرّغ كل الجداول مرة واحدة ثم انسخ بالترتيب
+        _truncate_all(dst, ordered)
+
+        copied, failed = [], {}
+        pending = list(ordered)
+        for _pass in range(3):            # عدة مرات لحل أي ترتيب FK متبقي
+            still = []
+            for tb in pending:
+                sp = dst.cursor(); sp.execute("SAVEPOINT sp_tb"); sp.close()
+                try:
+                    _copy_one_table(src, dst, tb)
+                    c1 = dst.cursor(); c1.execute("RELEASE SAVEPOINT sp_tb"); c1.close()
+                    copied.append(tb)
+                    failed.pop(tb, None)
+                except Exception as ce:
+                    c1 = dst.cursor(); c1.execute("ROLLBACK TO SAVEPOINT sp_tb"); c1.close()
+                    failed[tb] = str(ce).strip().splitlines()[0]
+                    still.append(tb)
+            pending = still
+            if not pending:
+                break
+
+        if relaxed:
             try:
-                _copy_one_table(src, dst, t)
-                copied.append(t)
-            except Exception as ce:
-                print(f"copy fail {t}:", ce)
-        dcur = dst.cursor()
-        dcur.execute("SET session_replication_role = 'origin'")
-        dcur.close()
-        # 4) اضبط الـ sequences
+                c2 = dst.cursor(); c2.execute("SET session_replication_role = 'origin'"); c2.close()
+            except Exception:
+                pass
+
+        if pending:
+            dst.rollback()
+            det = "، ".join(f"{k}: {v}" for k, v in list(failed.items())[:3])
+            raise RuntimeError(f"فشل نسخ {len(pending)} جدول ({det})")
+
+        dst.commit()
+
+        # 5) اضبط الـ sequences
+        dst.autocommit = True
         _fix_sequences(dst)
-        src.close(); dst.close()
-        # 5) حوّل التطبيق للقاعدة الجديدة
+
+        # 6) حوّل التطبيق للقاعدة الجديدة
         _set_active_db_url(new_url)
         flash(f"تم النقل والتحويل ✅ — عدد الجداول: {len(copied)}", "success")
     except Exception as e:
-        flash(f"فشل النقل: {e}", "error")
+        try:
+            if dst: dst.rollback()
+        except Exception:
+            pass
+        msg = str(e).strip().splitlines()[0] if str(e).strip() else e.__class__.__name__
+        flash(f"فشل النقل: {msg} — لم يتم تحويل التطبيق، القاعدة الحالية زي ما هي.", "error")
+    finally:
+        for c in (src, dst):
+            try:
+                if c: c.close()
+            except Exception:
+                pass
     return redirect(url_for("admin_db_migrate"))
 
 
