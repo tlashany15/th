@@ -8,8 +8,9 @@ import base64
 import json as _json
 import urllib.request
 import urllib.error
-import psycopg2
-import psycopg2.extras
+import dbstore as psycopg2          # طبقة أمان: PostgreSQL + نسخة ملف محلية وقت التوقف
+from dbstore import extras as _pg_extras
+psycopg2.extras = _pg_extras
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
@@ -338,6 +339,18 @@ def init_db():
     conn.commit()
     cur.close()
     conn.close()
+
+
+# نسجّل init_db في طبقة الأمان عشان تقدر تبني الجداول في الملف المحلي
+# أو في أي قاعدة بيانات جديدة الأدمن يحطها.
+psycopg2.register_init(init_db)
+try:
+    psycopg2.ensure_local_schema()
+except Exception as _e:
+    print("local schema:", _e)
+
+
+
 
 
 def _next_free_userid(cur):
@@ -3910,3 +3923,65 @@ def admin_storage_auto_archive():
     else:
         flash("مفيش سطور قديمة تتأرشف", "info")
     return redirect(url_for("admin_storage"))
+
+
+# ======================= إدارة قاعدة البيانات =======================
+@app.context_processor
+def _inject_db_status():
+    """بيخلي كل الصفحات تعرف إذا كانت القاعدة واقعة وشغالين على الملف المحلي."""
+    try:
+        st = psycopg2.status()
+    except Exception:
+        st = {"mode": "online", "online": True}
+    return {"db_status": st}
+
+
+@app.route("/admin/database")
+@super_admin_required
+def admin_database():
+    return render_template("admin_database.html", st=psycopg2.status())
+
+
+@app.route("/admin/database/backup", methods=["POST"])
+@super_admin_required
+def admin_database_backup():
+    """ياخد نسخة كاملة من القاعدة الحالية إلى الملف المحلي دلوقتي حالًا."""
+    try:
+        n = psycopg2.sync_now()
+        flash(f"تمت النسخة الاحتياطية ✓ ({n} صف محفوظ في الملف)", "success")
+    except Exception as e:
+        flash(f"مقدرناش ناخد نسخة: {e}", "error")
+    return redirect(url_for("admin_database"))
+
+
+@app.route("/admin/database/connect", methods=["POST"])
+@super_admin_required
+def admin_database_connect():
+    """الأدمن بيحط لينك قاعدة بيانات جديدة → ننقل كل الشغل عليها."""
+    new_url = (request.form.get("database_url") or "").strip()
+    if not new_url:
+        flash("اكتب لينك قاعدة البيانات الجديدة", "error")
+        return redirect(url_for("admin_database"))
+    try:
+        report = psycopg2.migrate_to(new_url)
+        moved = sum(report.values())
+        flash(f"تم الربط بالقاعدة الجديدة ونقل كل البيانات ✓ ({moved} صف)", "success")
+    except Exception as e:
+        flash(f"فشل الربط: {e}", "error")
+    return redirect(url_for("admin_database"))
+
+
+@app.route("/admin/database/download")
+@super_admin_required
+def admin_database_download():
+    """تحميل ملف البيانات المحلي كنسخة احتياطية على جهازك."""
+    import pgcompat as _pgc
+    try:
+        with open(_pgc.DB_FILE, "rb") as f:
+            data = f.read()
+    except Exception as e:
+        flash(f"مفيش ملف بيانات: {e}", "error")
+        return redirect(url_for("admin_database"))
+    return Response(
+        data, mimetype="application/octet-stream",
+        headers={"Content-Disposition": 'attachment; filename="data-backup.db"'})
