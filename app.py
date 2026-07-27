@@ -732,13 +732,12 @@ def group_edit_msg(msg_id):
 # ---------- مسارات أساسية ----------
 @app.route("/")
 def index():
-    return redirect(url_for("splash"))
+    return redirect(url_for("dashboard") if session.get("user_id") else url_for("login"))
 
 
 @app.route("/welcome")
 def splash():
-    next_url = url_for("dashboard") if session.get("user_id") else url_for("login")
-    return render_template("splash.html", next_url=next_url)
+    return redirect(url_for("dashboard") if session.get("user_id") else url_for("login"))
 
 
 @app.route("/login", methods=["GET", "POST"])
