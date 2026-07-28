@@ -1,8 +1,11 @@
-/* instant-nav.js — تنقل فوري بين الصفحات
- * - Preloads same-origin links on hover / touch / viewport (like Turbo/Quicklink)
- * - Adds a slim top progress bar during navigation
- * - Uses the View Transitions API for buttery page swaps where supported
- * Idempotent + safe on iOS Safari + no external deps.
+/* instant-nav.js — تنقل أسرع بين الصفحات
+ * - شريط تقدّم رفيع أعلى الصفحة أثناء التنقل
+ * - Prefetch آمن: على الهوفر/اللمس فقط، ولروابط العرض (GET) المسموحة فقط
+ *
+ * مهم جدًا: قبل كده كان بيعمل prefetch لكل الروابط الظاهرة في الشاشة،
+ * وده كان بيفتح روابط ليها تأثير على السيرفر (زي الدخول بحساب مستخدم آخر)
+ * من غير ما المستخدم يضغط. دلوقتي فيه قايمة منع + منع أي رابط عليه
+ * data-no-prefetch، وبرضه الـ prefetch بقى على نية المستخدم بس.
  */
 (function () {
   'use strict';
@@ -41,31 +44,32 @@
   if (document.body) attachBar();
   else document.addEventListener('DOMContentLoaded', attachBar);
 
-  // Trigger bar on any navigation
   window.addEventListener('beforeunload', startBar);
   window.addEventListener('pageshow', endBar);
   document.addEventListener('DOMContentLoaded', endBar);
 
-  // Any form submit shows the bar
   document.addEventListener('submit', function (e) {
     if (e.defaultPrevented) return;
     startBar();
   }, true);
 
-  // ---------- Prefetch on hover / touch / viewport ----------
+  // ---------- Prefetch آمن ----------
+  // روابط ممنوع لمسها نهائيًا (ليها تأثير على السيرفر أو مش صفحات عرض)
+  var BLOCKED = /\/(impersonate|unimpersonate|logout|login|register|delete|remove|clear|reset|settle|close|toggle|revert|migrate|export|import|api\/|static\/|uploads\/|media\/)/i;
+
   var prefetched = Object.create(null);
-  function isEligibleLink(a) {
-    if (!a || a.tagName !== 'A') return false;
-    if (!a.href) return false;
+  function eligible(a) {
+    if (!a || a.tagName !== 'A' || !a.href) return false;
     if (a.target && a.target !== '_self') return false;
     if (a.hasAttribute('download')) return false;
     if (a.dataset.noPrefetch === '1') return false;
+    if (a.getAttribute('href').charAt(0) === '#') return false;
     var url;
     try { url = new URL(a.href, location.href); } catch (e) { return false; }
     if (url.origin !== location.origin) return false;
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
     if (url.pathname === location.pathname && url.search === location.search) return false;
-    // skip file downloads, chat sends, POST endpoints
-    if (/\/(logout|login|register|api\/|static\/|uploads\/|media\/)/.test(url.pathname)) return false;
+    if (BLOCKED.test(url.pathname)) return false;
     return url.href;
   }
   function prefetch(href) {
@@ -79,51 +83,31 @@
       document.head.appendChild(l);
     } catch (e) {}
   }
+  var hoverT = 0;
   function onHover(e) {
     var a = e.target.closest && e.target.closest('a');
-    var href = isEligibleLink(a);
-    if (href) prefetch(href);
+    var href = eligible(a);
+    if (!href) return;
+    clearTimeout(hoverT);
+    hoverT = setTimeout(function () { prefetch(href); }, 60);
   }
   document.addEventListener('mouseover', onHover, { passive: true });
   document.addEventListener('touchstart', onHover, { passive: true });
-  document.addEventListener('focusin', onHover);
 
-  // Viewport-visible links (quicklink-style)
-  if ('IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        var href = isEligibleLink(en.target);
-        if (href) prefetch(href);
-        io.unobserve(en.target);
-      });
-    }, { rootMargin: '200px' });
-    function scan() {
-      document.querySelectorAll('a[href]').forEach(function (a) {
-        if (a.dataset.__io === '1') return;
-        a.dataset.__io = '1';
-        io.observe(a);
-      });
-    }
-    if (document.body) scan();
-    else document.addEventListener('DOMContentLoaded', scan);
-    new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
-  }
-
-  // ---------- Click accelerator ----------
-  // ملاحظة: اتشال استخدام View Transitions API هنا لأنه كان بيعلّق داخل
-  // WebView (لقطة الانتقال بتفضل معلّقة => شاشة بيضا). دلوقتي التنقل عادي
-  // مع شريط تقدّم + prefetch مسبق، وده أسرع وأأمن.
+  // ---------- شريط التقدّم عند الضغط ----------
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented) return;
     if (e.button !== 0) return;
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
     var a = e.target.closest && e.target.closest('a');
-    var href = isEligibleLink(a);
-    if (!href) return;
+    if (!a || !a.href) return;
+    if (a.target && a.target !== '_self') return;
+    if (a.getAttribute('href').charAt(0) === '#') return;
+    var url;
+    try { url = new URL(a.href, location.href); } catch (err) { return; }
+    if (url.origin !== location.origin) return;
     startBar();
   }, true);
 
-  // لو رجعنا للصفحة من الـ back/forward cache — نظّف أي شريط شغال
   window.addEventListener('pageshow', endBar);
 })();
