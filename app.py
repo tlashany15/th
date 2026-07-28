@@ -850,12 +850,19 @@ def group_edit_msg(msg_id):
 # ---------- مسارات أساسية ----------
 @app.route("/")
 def index():
-    return redirect(url_for("dashboard") if session.get("user_id") else url_for("login"))
+    dest = url_for("dashboard") if session.get("user_id") else url_for("login")
+    # نعرض شاشة البداية مرة واحدة لكل جلسة متصفح
+    if not session.get("splash_seen"):
+        session["splash_seen"] = True
+        return render_template("splash.html", next_url=dest)
+    return redirect(dest)
 
 
 @app.route("/welcome")
 def splash():
-    return redirect(url_for("dashboard") if session.get("user_id") else url_for("login"))
+    dest = url_for("dashboard") if session.get("user_id") else url_for("login")
+    return render_template("splash.html", next_url=dest)
+
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -1030,6 +1037,8 @@ def history():
             SELECT c.day, c.total_count, COALESCE(c.no_deduct_total,0) AS no_deduct_total,
                    COALESCE(c.tasmeen_after,0) AS tasmeen_after,
                    COALESCE(c.bayad_after,0) AS bayad_after,
+                   COALESCE(c.extra_tasmeen,0) AS extra_tasmeen,
+                   COALESCE(c.extra_bayad,0) AS extra_bayad,
                    COALESCE(ARRAY_AGG(u.full_name ORDER BY u.full_name)
                             FILTER (WHERE u.full_name IS NOT NULL), '{}') AS names,
                    COALESCE(ARRAY_AGG(u.id ORDER BY u.full_name)
@@ -1039,17 +1048,20 @@ def history():
             FROM day_closures c
             LEFT JOIN attendance a ON a.day = c.day
             LEFT JOIN users u ON u.id = a.user_id
-            GROUP BY c.day, c.total_count, c.no_deduct_total, c.tasmeen_after, c.bayad_after
+            GROUP BY c.day, c.total_count, c.no_deduct_total, c.tasmeen_after, c.bayad_after, c.extra_tasmeen, c.extra_bayad
         """)
         by_day = {r["day"]: {"total": r["total_count"],
                               "no_deduct_total": r["no_deduct_total"],
                               "tasmeen_after": int(r["tasmeen_after"] or 0),
                               "bayad_after": int(r["bayad_after"] or 0),
+                              "extra_tasmeen": int(r["extra_tasmeen"] or 0),
+                              "extra_bayad": int(r["extra_bayad"] or 0),
                               "names": list(r["names"] or []),
                               "ids": list(r["ids"] or []),
                               "farms": list(r["farms"] or []),
                               "farm": ""}
                   for r in cur.fetchall()}
+
     else:
         cur.execute("""
             SELECT c.day, c.total_count, COALESCE(c.tasmeen_after,0) AS tasmeen_after,
@@ -1112,7 +1124,10 @@ def history():
                     "total": rec["total"] if rec else 0,
                     "tasmeen_after": (rec.get("tasmeen_after", 0) if rec else 0),
                     "bayad_after": (rec.get("bayad_after", 0) if rec else 0),
+                    "extra_tasmeen": (rec.get("extra_tasmeen", 0) if rec else 0),
+                    "extra_bayad": (rec.get("extra_bayad", 0) if rec else 0),
                     "no_deduct_total": rec["no_deduct_total"] if rec else 0,
+
                     "names": rec["names"] if rec else [],
                     "attendee_ids": rec["ids"] if rec else [],
                     "attendee_farms": (rec.get("farms", []) if rec else []),
@@ -3280,6 +3295,8 @@ def admin_edit_day_total():
             return default
     tasmeen_after = _int_or(request.form.get("tasmeen_after"), None)
     bayad_after = _int_or(request.form.get("bayad_after"), None)
+    extra_tasmeen = _int_or(request.form.get("extra_tasmeen"), None)
+    extra_bayad = _int_or(request.form.get("extra_bayad"), None)
     total_form = _int_or(request.form.get("total_count"), None)
     no_deduct_total = _int_or(request.form.get("no_deduct_total"), 0) or 0
 
@@ -3288,18 +3305,26 @@ def admin_edit_day_total():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS tasmeen_after INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS bayad_after INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
 
     # لو اتبعت واحد فيهم بس — نحافظ على القيمة الحالية للتاني
-    if tasmeen_after is None or bayad_after is None:
-        cur.execute("SELECT COALESCE(tasmeen_after,0) AS t, COALESCE(bayad_after,0) AS b, total_count FROM day_closures WHERE day=%s", (day,))
+    if tasmeen_after is None or bayad_after is None or extra_tasmeen is None or extra_bayad is None:
+        cur.execute("""SELECT COALESCE(tasmeen_after,0) AS t, COALESCE(bayad_after,0) AS b,
+                              COALESCE(extra_tasmeen,0) AS xt, COALESCE(extra_bayad,0) AS xb,
+                              total_count FROM day_closures WHERE day=%s""", (day,))
         row = cur.fetchone()
         cur_t = int(row["t"]) if row else 0
         cur_b = int(row["b"]) if row else 0
+        cur_xt = int(row["xt"]) if row else 0
+        cur_xb = int(row["xb"]) if row else 0
         # لو الصف قديم من غير فصل — نعتبر الكل تسمين للتوافق
         if row and cur_t == 0 and cur_b == 0 and int(row["total_count"] or 0) > 0:
             cur_t = int(row["total_count"])
         if tasmeen_after is None: tasmeen_after = cur_t
         if bayad_after is None: bayad_after = cur_b
+        if extra_tasmeen is None: extra_tasmeen = cur_xt
+        if extra_bayad is None: extra_bayad = cur_xb
 
     # لو المسؤول بعت total_count بس (نموذج قديم) — من غير tasmeen/bayad — نعتبره تسمين
     if total_form is not None and request.form.get("tasmeen_after") is None and request.form.get("bayad_after") is None:
@@ -3307,13 +3332,15 @@ def admin_edit_day_total():
         bayad_after = 0
 
     total = int(tasmeen_after) + int(bayad_after)
-    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, no_deduct_total)
-                   VALUES(%s,%s,%s,%s,%s,%s)
+    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total)
+                   VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count,
                                                     tasmeen_after = EXCLUDED.tasmeen_after,
                                                     bayad_after = EXCLUDED.bayad_after,
+                                                    extra_tasmeen = EXCLUDED.extra_tasmeen,
+                                                    extra_bayad = EXCLUDED.extra_bayad,
                                                     no_deduct_total = EXCLUDED.no_deduct_total""",
-                (day, u["id"], total, tasmeen_after, bayad_after, no_deduct_total))
+                (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total))
     db.commit()
     cur.close()
     if request.headers.get("X-Requested-With") == "fetch":
@@ -3322,10 +3349,13 @@ def admin_edit_day_total():
             "day": day,
             "tasmeen_after": int(tasmeen_after),
             "bayad_after": int(bayad_after),
+            "extra_tasmeen": int(extra_tasmeen),
+            "extra_bayad": int(extra_bayad),
             "total": int(total),
         })
-    flash("تم تحديث إجمالي يوم " + day + " (تسمين " + str(tasmeen_after) + " + بياض " + str(bayad_after) + ") ✓", "success")
+    flash("تم تحديث إجمالي يوم " + day + " (تسمين " + str(tasmeen_after) + " + بياض " + str(bayad_after) + (" + إضافي تسمين " + str(extra_tasmeen) if extra_tasmeen else "") + (" + إضافي بياض " + str(extra_bayad) if extra_bayad else "") + ") ✓", "success")
     return redirect(url_for("history"))
+
 
 
 @app.route("/admin/reset-period", methods=["POST"])
@@ -4397,26 +4427,118 @@ def _sorted_by_dependency(conn, tables):
     return ordered
 
 
+# ---------- نسخة احتياطية كاملة + وضع طوارئ ----------
+def _full_dump_dict():
+    """يجمع كل الجداول في dict بدون أي منطق معقد — يشتغل حتى لو حاجات تانية باظت."""
+    import decimal, datetime as _dt
+    def _norm(v):
+        if isinstance(v, (_dt.date, _dt.datetime)):
+            return v.isoformat()
+        if isinstance(v, decimal.Decimal):
+            return float(v)
+        if isinstance(v, (bytes, bytearray, memoryview)):
+            try: return bytes(v).decode("utf-8", "ignore")
+            except Exception: return None
+        return v
+    db = get_db(); cur = db.cursor()
+    cur.execute("""SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename""")
+    tables = [r["tablename"] for r in cur.fetchall()]
+    out = {"generated_at": datetime.now(timezone.utc).isoformat(), "tables": {}}
+    for t in tables:
+        try:
+            cur.execute(f'SELECT * FROM "{t}"')
+            rows = cur.fetchall()
+            out["tables"][t] = [{k: _norm(v) for k, v in dict(r).items()} for r in rows]
+        except Exception as e:
+            out["tables"][t] = {"_error": str(e)[:200]}
+    cur.close()
+    return out
+
+
+@app.route("/admin/backup/full")
+@super_admin_required
+def admin_full_backup():
+    """صفحة النسخة الاحتياطية الكاملة — تعرض معلومات وتنزيل."""
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute("""SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename""")
+        tables = [r["tablename"] for r in cur.fetchall()]
+        counts = {}
+        for t in tables:
+            try:
+                cur.execute(f'SELECT COUNT(*) AS c FROM "{t}"')
+                counts[t] = int(cur.fetchone()["c"] or 0)
+            except Exception:
+                counts[t] = None
+        cur.close()
+        db_ok = True; db_err = None
+    except Exception as e:
+        tables, counts, db_ok, db_err = [], {}, False, str(e)[:200]
+    return render_template(
+        "admin_full_backup.html",
+        tables=tables, counts=counts, db_ok=db_ok, db_err=db_err,
+        emergency_url=url_for("emergency_backup", _external=False),
+    )
+
+
+@app.route("/admin/backup/full/download")
+@super_admin_required
+def admin_full_backup_download():
+    data = _full_dump_dict()
+    payload = _json.dumps(data, ensure_ascii=False, indent=2, default=str).encode("utf-8")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    fname = f"tahseen-backup-{stamp}.json"
+    resp = make_response(payload)
+    resp.headers["Content-Type"] = "application/json; charset=utf-8"
+    resp.headers["Content-Disposition"] = f'attachment; filename="{fname}"'
+    return resp
+
+
+# ---------- وضع الطوارئ ----------
+# مسار مبسّط جدًا — لو التطبيق موقف أو الواجهة باظت، لسه تقدر تنزّل النسخة
+# من هنا باستخدام مفتاح سري (EMERGENCY_KEY في متغيرات البيئة).
+# مثال: /emergency/backup?key=YOUR_SECRET
+@app.route("/emergency/backup")
+def emergency_backup():
+    key = request.args.get("key", "")
+    expected = os.environ.get("EMERGENCY_KEY", "").strip()
+    if not expected or key != expected:
+        return ("emergency backup: missing or invalid key. "
+                "Set EMERGENCY_KEY env var and pass ?key=... to download.", 403,
+                {"Content-Type": "text/plain; charset=utf-8"})
+    try:
+        data = _full_dump_dict()
+        payload = _json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        resp = make_response(payload)
+        resp.headers["Content-Type"] = "application/json; charset=utf-8"
+        resp.headers["Content-Disposition"] = f'attachment; filename="tahseen-emergency-{stamp}.json"'
+        return resp
+    except Exception as e:
+        return (f"emergency error: {e}", 500, {"Content-Type": "text/plain; charset=utf-8"})
+
+
+@app.route("/emergency/health")
+def emergency_health():
+    """فحص سريع للاتصال بقاعدة البيانات — بدون قوالب."""
+    try:
+        db = get_db(); cur = db.cursor()
+        cur.execute("SELECT 1 AS ok")
+        _ = cur.fetchone()
+        cur.close()
+        return ("db: OK", 200, {"Content-Type": "text/plain; charset=utf-8"})
+    except Exception as e:
+        return (f"db: FAIL — {e}", 500, {"Content-Type": "text/plain; charset=utf-8"})
+
+
+# ---------- تحويل الروابط القديمة لصفحة النقل ----------
 @app.route("/admin/db-migrate", methods=["GET"])
 @super_admin_required
 def admin_db_migrate():
-    # نقرأ الرابط النشط من قاعدة البوت-ستراب مباشرة (بدون كاش) عشان الصفحة
-    # تعرض الحالة الصح فورًا بعد النقل
-    active = _active_db_url(force=True)
-    def mask(u):
-        try:
-            import re as _re
-            return _re.sub(r'(://[^:]+:)([^@]+)(@)', r'\1***\3', u or "")
-        except Exception:
-            return "***"
-    return render_template(
-        "admin_db_migrate.html",
-        active_masked=mask(active),
-        active_url=active,
-        bootstrap_masked=mask(_BOOTSTRAP_DB_URL),
-        is_overridden=(active != _BOOTSTRAP_DB_URL),
-        last_report=_read_migration_report(),
-    )
+    # تم إلغاء نقل قاعدة البيانات بناءً على طلب المسؤول — نحوّل للنسخة الاحتياطية الكاملة.
+    flash("خاصية نقل قاعدة البيانات اتشالت. استخدم النسخة الاحتياطية الكاملة بدلًا منها.", "info")
+    return redirect(url_for("admin_full_backup"))
+
 
 
 def _mask_db_url(u):
