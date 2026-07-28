@@ -117,9 +117,12 @@
           <span class="sw-name">{{ w.full_name }}{% if w.role == 'admin' and w.id != current_user.id and is_super_admin %} <em style="opacity:.6;font-size:11px;">(مسؤول)</em>{% endif %}</span>
         </a>
         {% if is_real_super_admin and w.id != current_user.id and not (w.role == 'admin' and w.username == '1') %}
-        <a class="sidebar-worker-imp" href="{{ url_for('admin_impersonate', uid=w.id) }}" title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9M12 21H6a2 2 0 01-2-2V5a2 2 0 012-2h6"/></svg>
-        </a>
+        <form method="post" action="{{ url_for('admin_impersonate', uid=w.id) }}" class="sidebar-imp-form"
+              onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('هتدخل بحساب {{ w.full_name }} مؤقتًا.',{title:'الدخول بحساب مستخدم آخر؟',okText:'دخول'}):Promise.resolve(confirm('الدخول بحساب {{ w.full_name }}؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+          <button type="submit" class="sidebar-worker-imp" title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9M12 21H6a2 2 0 01-2-2V5a2 2 0 012-2h6"/></svg>
+          </button>
+        </form>
         {% endif %}
       </div>
     {% endfor %}
@@ -140,7 +143,9 @@
       <b>أنت الآن بحساب: {{ current_user.full_name }}</b>
       <span>الدخول تم بواسطة {{ impersonator.full_name }}</span>
     </div>
-    <a href="{{ url_for('admin_unimpersonate') }}" class="imp-back">رجوع للمسؤول</a>
+    <form method="post" action="{{ url_for('admin_unimpersonate') }}" style="margin:0">
+      <button type="submit" class="imp-back">رجوع للمسؤول</button>
+    </form>
   </div>
   {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}

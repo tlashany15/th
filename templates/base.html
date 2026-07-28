@@ -18,15 +18,15 @@
     /* خلفية مبدئية قبل تحميل أي CSS — يمنع الشاشة البيضاء */
     html{ background:#0e1621; color:#eaf0f7; }
   </style>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app-polish.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='ap-shared.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='modern-ui.css') }}">
-  <script src="{{ url_for('static', filename='polish-global.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='instant-nav.js') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app-polish.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ap-shared.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='modern-ui.css') }}?v={{ ASSET_VER }}">
+  <script src="{{ url_for('static', filename='polish-global.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='instant-nav.js') }}?v={{ ASSET_VER }}" defer></script>
   <script>
     // فعل روح لوحة الأدمن على بقية الصفحات
     (function(){
@@ -51,9 +51,9 @@
     }
   </style>
   <script>window.CURRENT_USER_ID = {{ (current_user.id if current_user else 'guest')|tojson }};</script>
-  <script src="{{ url_for('static', filename='themes.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='reply-swipe.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='msg-actions.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='themes.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='reply-swipe.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='msg-actions.js') }}?v={{ ASSET_VER }}" defer></script>
 
   <script>
     /* حارس عام: أي خطأ في سكربت مايوقفش باقي الصفحة (كان بيسبب شاشة بيضاء في WebView) */

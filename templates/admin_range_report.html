@@ -392,11 +392,17 @@
 
   {% if result.is_money %}
   <div class="rr2-breakdown">
-    <b>{{ '{:,}'.format(result.chick_count) }}</b> كتكوت × <b>55</b> ج = <b>{{ '{:,}'.format(result.total) }} ج</b>
+    <b>{{ '{:,}'.format(result.chick_count) }}</b> كتكوت × <b>55</b> ج
+    {%- if result.bonus_money %} + <b>{{ '{:,}'.format(result.bonus_money) }}</b> ج إضافي{% endif %}
+    {%- if result.deduct_money %} − <b>{{ '{:,}'.format(result.deduct_money) }}</b> ج خصم{% endif %}
+    = <b>{{ '{:,}'.format(result.total) }} ج</b>
   </div>
   {% endif %}
 
   <div class="rr2-chips">
+    {% if result.is_money and result.extra_chicks %}
+    <span class="rr2-chip">منها إضافي موزَّع: <b>{{ '{:,}'.format(result.extra_chicks) }}</b> كتكوت</span>
+    {% endif %}
     <span class="rr2-chip">بدون خصم: <b>{{ '{:,}'.format(result.no_deduct_total) }}</b></span>
     <span class="rr2-chip">بعد الخصم: <b>{{ '{:,}'.format(result.distributed_total) }}</b></span>
     <span class="rr2-chip">أيام: <b>{{ result.days }}</b></span>
