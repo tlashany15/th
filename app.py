@@ -24,6 +24,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 # رفعنا الحد عشان الصوت ميتقطعش
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
+# كاش طويل للملفات الثابتة (CSS/JS) — بيخلي التنقل بين الصفحات أسرع بكتير
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 60 * 60 * 24 * 365
+# رقم إصدار للملفات الثابتة — غيّره لو عدّلت CSS/JS عشان الكاش يتجدد
+ASSET_VER = os.environ.get("ASSET_VER", "20260727")
+
+
+@app.context_processor
+def _inject_asset_ver():
+    return {"ASSET_VER": ASSET_VER}
 
 _BOOTSTRAP_DB_URL = os.environ.get("DATABASE_URL", "")
 DATABASE_URL = _BOOTSTRAP_DB_URL  # للتوافق مع أي استخدام قديم
@@ -62,13 +71,25 @@ def _read_override_from_bootstrap():
     return None
 
 
-def _active_db_url():
-    """رابط القاعدة اللي التطبيق مفروض يشتغل عليها الآن."""
-    global _ACTIVE_DB_URL_CACHE
-    if _ACTIVE_DB_URL_CACHE:
+_ACTIVE_DB_URL_TS = 0.0
+_ACTIVE_DB_URL_TTL = 20.0   # ثواني — عشان أي worker تاني يلقط التحويل بسرعة
+
+
+def _active_db_url(force=False):
+    """رابط القاعدة اللي التطبيق مفروض يشتغل عليها الآن.
+    بنعيد القراءة كل شوية (TTL) عشان لو النقل اتعمل من worker تاني
+    باقي الـ workers يتحوّلوا كمان من غير إعادة تشغيل."""
+    global _ACTIVE_DB_URL_CACHE, _ACTIVE_DB_URL_TS, _SCHEMA_READY
+    import time as _time
+    now = _time.time()
+    if (not force) and _ACTIVE_DB_URL_CACHE and (now - _ACTIVE_DB_URL_TS) < _ACTIVE_DB_URL_TTL:
         return _ACTIVE_DB_URL_CACHE
     override = _read_override_from_bootstrap()
-    _ACTIVE_DB_URL_CACHE = override or _BOOTSTRAP_DB_URL
+    fresh = override or _BOOTSTRAP_DB_URL
+    if fresh != _ACTIVE_DB_URL_CACHE:
+        _SCHEMA_READY = False
+    _ACTIVE_DB_URL_CACHE = fresh
+    _ACTIVE_DB_URL_TS = now
     return _ACTIVE_DB_URL_CACHE
 
 
@@ -87,6 +108,7 @@ def _set_active_db_url(new_url):
     cur.close()
     c.close()
     _ACTIVE_DB_URL_CACHE = new_url
+    globals()["_ACTIVE_DB_URL_TS"] = __import__("time").time()
     _SCHEMA_READY = False
 
 
@@ -104,6 +126,7 @@ def _clear_active_db_url():
     except Exception as e:
         print("_clear_active_db_url error:", e)
     _ACTIVE_DB_URL_CACHE = _BOOTSTRAP_DB_URL
+    globals()["_ACTIVE_DB_URL_TS"] = __import__("time").time()
     _SCHEMA_READY = False
 
 
@@ -752,7 +775,7 @@ def inject_user():
 
 
 # ---------- انتحال شخصية (المسؤول الرئيسي فقط) ----------
-@app.route("/admin/impersonate/<int:uid>", methods=["POST", "GET"])
+@app.route("/admin/impersonate/<int:uid>", methods=["POST"])
 @login_required
 def admin_impersonate(uid):
     ru = real_user()
@@ -773,7 +796,7 @@ def admin_impersonate(uid):
     return redirect(url_for("dashboard"))
 
 
-@app.route("/admin/unimpersonate", methods=["POST", "GET"])
+@app.route("/admin/unimpersonate", methods=["POST"])
 @login_required
 def admin_unimpersonate():
     session.pop("impersonate_id", None)
@@ -2374,6 +2397,18 @@ def admin_range_report():
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_id INTEGER")
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS target_label TEXT")
     cur.execute("ALTER TABLE range_reports ADD COLUMN IF NOT EXISTS chick_count INTEGER NOT NULL DEFAULT 0")
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_adjustments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        amount INTEGER NOT NULL,
+        reason TEXT,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, day))""")
+    cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
 
     # قائمة موحّدة للعمال + المسؤولين للـ dropdown (بدون تمييز في الواجهة)
     cur.execute("SELECT id, full_name, role, avatar FROM users WHERE role IN ('worker','admin') ORDER BY full_name")
@@ -2417,6 +2452,9 @@ def admin_range_report():
         target_label = "إجمالي بدون خصم"
         total = s_nd
         chick_count = 0
+        extra_chicks = 0
+        bonus_money = 0
+        deduct_money = 0
 
         if target == "no_deduct":
             target_kind = "no_deduct"; target_label = "إجمالي بدون خصم"
@@ -2435,21 +2473,72 @@ def admin_range_report():
                 cur.execute("SELECT full_name, role FROM users WHERE id=%s", (pid,))
                 pr = cur.fetchone()
                 if pr:
+                    # نفس طريقة حساب صفحة "نصيب العامل" بالظبط:
+                    # نصيب اليوم = (إجمالي القسم بعد الخصم ÷ عدد حاضري القسم)
+                    #            + (الإضافي الموزَّع على القسم ÷ عدد اللي اتحددوا إضافي)
+                    #              لو العامل نفسه متحدد "إضافي" في اليوم ده.
                     cur.execute("""
-                        SELECT COALESCE(SUM(c.total_count::float /
-                                 NULLIF((SELECT COUNT(*) FROM attendance a WHERE a.day=c.day),0)
-                               ),0) AS shr,
-                               (SELECT COUNT(*) FROM attendance a2
-                                WHERE a2.user_id=%s AND a2.day BETWEEN %s AND %s) AS att_days
+                        SELECT c.day, c.total_count,
+                               CASE
+                                 WHEN COALESCE(c.tasmeen_after,0)=0 AND COALESCE(c.bayad_after,0)=0
+                                   THEN c.total_count
+                                 ELSE COALESCE(c.tasmeen_after,0)
+                               END AS tasmeen_after,
+                               COALESCE(c.bayad_after,0) AS bayad_after,
+                               COALESCE(c.extra_tasmeen,0) AS extra_tasmeen,
+                               COALESCE(c.extra_bayad,0)   AS extra_bayad,
+                               (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen') AS att_tasmeen,
+                               (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad')   AS att_bayad,
+                               (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen'
+                                  AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_tasmeen,
+                               (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad'
+                                  AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_bayad,
+                               (SELECT a3.farm FROM attendance a3
+                                 WHERE a3.day=c.day AND a3.user_id=%s LIMIT 1) AS my_farm,
+                               COALESCE((SELECT a4.extra FROM attendance a4
+                                 WHERE a4.day=c.day AND a4.user_id=%s LIMIT 1), FALSE) AS my_extra
                         FROM day_closures c
                         WHERE c.day BETWEEN %s AND %s
-                          AND EXISTS(SELECT 1 FROM attendance a3
-                                     WHERE a3.day=c.day AND a3.user_id=%s)
-                    """, (pid, s_iso, e_iso, s_iso, e_iso, pid))
-                    r2 = cur.fetchone()
-                    chick_count = int(r2["shr"] or 0)
-                    total = chick_count * 55
-                    days_count = int(r2["att_days"] or 0)
+                        ORDER BY c.day ASC
+                    """, (pid, pid, s_iso, e_iso))
+                    drows = cur.fetchall()
+                    share_sum = 0.0
+                    att_days = 0
+                    extra_sum = 0.0
+                    for dr in drows:
+                        my_farm = dr["my_farm"]
+                        if not my_farm:
+                            continue
+                        if my_farm == "tasmeen":
+                            farm_total = int(dr["tasmeen_after"] or 0)
+                            farm_att   = int(dr["att_tasmeen"] or 0)
+                            extra_pool = int(dr["extra_tasmeen"] or 0)
+                            extra_att  = int(dr["att_extra_tasmeen"] or 0)
+                        else:
+                            farm_total = int(dr["bayad_after"] or 0)
+                            farm_att   = int(dr["att_bayad"] or 0)
+                            extra_pool = int(dr["extra_bayad"] or 0)
+                            extra_att  = int(dr["att_extra_bayad"] or 0)
+                        base_share  = (farm_total / farm_att) if farm_att > 0 else 0.0
+                        extra_share = (extra_pool / extra_att) if (bool(dr["my_extra"]) and extra_att > 0) else 0.0
+                        share_sum  += base_share + extra_share
+                        extra_sum  += extra_share
+                        att_days   += 1
+
+                    # الإضافي/الخصم المالي المسجّل للعامل في نفس المدة
+                    cur.execute("""SELECT COALESCE(SUM(CASE WHEN amount>0 THEN amount ELSE 0 END),0) AS bonus,
+                                          COALESCE(SUM(CASE WHEN amount<0 THEN -amount ELSE 0 END),0) AS deduct
+                                     FROM worker_adjustments
+                                    WHERE user_id=%s AND day BETWEEN %s AND %s""",
+                                (pid, s_iso, e_iso))
+                    adj = cur.fetchone() or {}
+                    bonus_money  = int(adj.get("bonus") or 0)
+                    deduct_money = int(adj.get("deduct") or 0)
+
+                    chick_count = int(share_sum)
+                    extra_chicks = int(extra_sum)
+                    total = chick_count * 55 + bonus_money - deduct_money
+                    days_count = att_days
                     # نخزّن kind='worker' دايمًا (بدون تمييز) ونستخدم نفس التسمية العامة
                     target_kind = "worker"; target_id = pid
                     target_label = f"نصيب: {pr['full_name']}"
@@ -2469,6 +2558,9 @@ def admin_range_report():
             "days": days_count, "note": note,
             "target_kind": target_kind, "target_label": target_label,
             "chick_count": chick_count,
+            "extra_chicks": extra_chicks,
+            "bonus_money": bonus_money,
+            "deduct_money": deduct_money,
             "is_money": target_kind in ("worker", "admin"),
         }
         flash(f"تم حساب التقرير ({target_label}) وحفظه ✓", "success")
@@ -4069,17 +4161,196 @@ def _list_public_tables(conn):
     return tables
 
 
+def _table_columns(conn, table):
+    """أسماء أعمدة الجدول بالترتيب."""
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+         WHERE table_schema='public' AND table_name=%s
+         ORDER BY ordinal_position
+    """, (table,))
+    cols = [r[0] for r in cur.fetchall()]
+    cur.close()
+    return cols
+
+
+def _table_defs(conn, table):
+    """تعريف الأعمدة (نوع + افتراضي + NULL) — عشان ننشئ الجدول في القاعدة الجديدة
+    لو مش موجود هناك أصلاً."""
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT column_name, data_type, udt_name, character_maximum_length,
+               numeric_precision, numeric_scale, is_nullable, column_default
+          FROM information_schema.columns
+         WHERE table_schema='public' AND table_name=%s
+         ORDER BY ordinal_position
+    """, (table,))
+    rows = cur.fetchall()
+    cur.close()
+    out = []
+    for (name, dtype, udt, clen, nprec, nscale, nullable, cdef) in rows:
+        if dtype == "USER-DEFINED":
+            t = udt
+        elif dtype == "ARRAY":
+            t = (udt[1:] if udt.startswith("_") else udt) + "[]"
+        elif dtype in ("character varying", "character") and clen:
+            t = f"{dtype}({clen})"
+        elif dtype == "numeric" and nprec:
+            t = f"numeric({nprec},{nscale or 0})"
+        else:
+            t = dtype
+        piece = f'"{name}" {t}'
+        if cdef:
+            piece += f" DEFAULT {cdef}"
+        if nullable == "NO":
+            piece += " NOT NULL"
+        out.append(piece)
+    return out
+
+
+def _table_pk(conn, table):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT a.attname
+          FROM pg_index i
+          JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+         WHERE i.indrelid = %s::regclass AND i.indisprimary
+    """, ('"%s"' % table,))
+    cols = [r[0] for r in cur.fetchall()]
+    cur.close()
+    return cols
+
+
+def _ensure_dst_schema(src_conn, dst_conn, tables):
+    """يتأكد إن كل جدول (وكل عمود) موجود في المصدر موجود كمان في الوجهة.
+    ده أهم جزء عشان مايحصلش نقل ناقص (جداول بتتعمل وقت التشغيل زي
+    worker_adjustments / range_reports مش موجودة في init_db)."""
+    created, added = [], []
+    dst_tables = set(_list_public_tables(dst_conn))
+    for tb in tables:
+        if tb not in dst_tables:
+            defs = _table_defs(src_conn, tb)
+            if not defs:
+                continue
+            pk = _table_pk(src_conn, tb)
+            body = ", ".join(defs)
+            if pk:
+                body += ", PRIMARY KEY (" + ", ".join('"%s"' % c for c in pk) + ")"
+            c = dst_conn.cursor()
+            c.execute(f'CREATE TABLE IF NOT EXISTS "{tb}" ({body})')
+            c.close()
+            created.append(tb)
+        else:
+            src_cols = _table_columns(src_conn, tb)
+            dst_cols = set(_table_columns(dst_conn, tb))
+            missing = [c for c in src_cols if c not in dst_cols]
+            if missing:
+                defs = {d.split('"')[1]: d for d in _table_defs(src_conn, tb)}
+                c = dst_conn.cursor()
+                for col in missing:
+                    d = defs.get(col)
+                    if not d:
+                        continue
+                    # نضيف العمود بدون NOT NULL عشان ما يفشلش لو فيه صفوف
+                    c.execute(f'ALTER TABLE "{tb}" ADD COLUMN IF NOT EXISTS ' + d.replace(" NOT NULL", ""))
+                    added.append(f"{tb}.{col}")
+                c.close()
+    dst_conn.commit()
+    return created, added
+
+
 def _copy_one_table(src_conn, dst_conn, table):
-    """ينسخ جدول واحد من المصدر للوجهة (بدون TRUNCATE هنا)."""
+    """ينسخ جدول واحد من المصدر للوجهة بأسماء الأعمدة المشتركة صراحةً
+    (مش بالترتيب) — ده بيمنع اختلاف ترتيب الأعمدة إنه يفشّل النسخ."""
     import io
+    src_cols = _table_columns(src_conn, table)
+    dst_cols = set(_table_columns(dst_conn, table))
+    cols = [c for c in src_cols if c in dst_cols]
+    if not cols:
+        return 0
+    col_sql = ", ".join('"%s"' % c for c in cols)
     buf = io.StringIO()
     src_cur = src_conn.cursor()
-    src_cur.copy_expert(f'COPY "{table}" TO STDOUT WITH CSV', buf)
+    src_cur.copy_expert(f'COPY "{table}" ({col_sql}) TO STDOUT WITH CSV', buf)
     src_cur.close()
-    buf.seek(0)
+    data = buf.getvalue()
+    buf.close()
+    if not data:
+        return 0
     dst_cur = dst_conn.cursor()
-    dst_cur.copy_expert(f'COPY "{table}" FROM STDIN WITH CSV', buf)
+    dst_cur.copy_expert(f'COPY "{table}" ({col_sql}) FROM STDIN WITH CSV', io.StringIO(data))
+    n = dst_cur.rowcount if dst_cur.rowcount and dst_cur.rowcount > 0 else data.count("\n")
     dst_cur.close()
+    return n
+
+
+def _count_rows(conn, table):
+    try:
+        c = conn.cursor()
+        c.execute(f'SELECT COUNT(*) FROM "{table}"')
+        n = c.fetchone()[0]
+        c.close()
+        return int(n)
+    except Exception:
+        return -1
+
+
+def _save_migration_report(report):
+    """يخزّن آخر تقرير نقل في قاعدة البوت-ستراب عشان يظهر في الصفحة
+    حتى لو الطلب اللي بعده راح على worker تاني."""
+    try:
+        import json as _json
+        c = psycopg2.connect(_BOOTSTRAP_DB_URL)
+        _ensure_app_config_table(c)
+        cur = c.cursor()
+        cur.execute("""
+            INSERT INTO app_config(key, value, updated_at) VALUES ('last_migration', %s, NOW())
+            ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value, updated_at=NOW()
+        """, (_json.dumps(report, ensure_ascii=False),))
+        c.commit(); cur.close(); c.close()
+    except Exception as e:
+        print("_save_migration_report error:", e)
+
+
+def _read_migration_report():
+    try:
+        import json as _json
+        c = psycopg2.connect(_BOOTSTRAP_DB_URL)
+        _ensure_app_config_table(c)
+        cur = c.cursor()
+        cur.execute("SELECT value, updated_at FROM app_config WHERE key='last_migration'")
+        r = cur.fetchone()
+        cur.close(); c.close()
+        if r and r[0]:
+            rep = _json.loads(r[0])
+            rep["at"] = r[1].strftime("%Y-%m-%d %H:%M") if r[1] else ""
+            return rep
+    except Exception as e:
+        print("_read_migration_report error:", e)
+    return None
+
+
+def _fix_sequences(conn):
+    """يضبط كل الـ sequences على أكبر id موجود بعد النقل، عشان الإضافات
+    الجديدة ماتضربش خطأ duplicate key."""
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT c.relname AS tbl, a.attname AS col,
+                   pg_get_serial_sequence(quote_ident(c.relname), a.attname) AS seq
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid=c.relnamespace
+              JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped
+             WHERE n.nspname='public' AND c.relkind='r'
+        """)
+        rows = [r for r in cur.fetchall() if r[2]]
+        for tbl, col, seq in rows:
+            cur.execute(
+                f'SELECT setval(%s, COALESCE((SELECT MAX("{col}") FROM "{tbl}"), 0) + 1, false)',
+                (seq,))
+        cur.close()
+    except Exception as e:
+        print("_fix_sequences error:", e)
 
 
 def _truncate_all(dst_conn, tables):
@@ -4129,7 +4400,9 @@ def _sorted_by_dependency(conn, tables):
 @app.route("/admin/db-migrate", methods=["GET"])
 @super_admin_required
 def admin_db_migrate():
-    active = _active_db_url()
+    # نقرأ الرابط النشط من قاعدة البوت-ستراب مباشرة (بدون كاش) عشان الصفحة
+    # تعرض الحالة الصح فورًا بعد النقل
+    active = _active_db_url(force=True)
     def mask(u):
         try:
             import re as _re
@@ -4139,9 +4412,19 @@ def admin_db_migrate():
     return render_template(
         "admin_db_migrate.html",
         active_masked=mask(active),
+        active_url=active,
         bootstrap_masked=mask(_BOOTSTRAP_DB_URL),
         is_overridden=(active != _BOOTSTRAP_DB_URL),
+        last_report=_read_migration_report(),
     )
+
+
+def _mask_db_url(u):
+    try:
+        import re as _re
+        return _re.sub(r'(://[^:]+:)([^@]+)(@)', r'\1***\3', u or "")
+    except Exception:
+        return "***"
 
 
 def _normalize_pg_url(u):
@@ -4155,6 +4438,7 @@ def _normalize_pg_url(u):
 @super_admin_required
 def admin_db_migrate_test():
     new_url = _normalize_pg_url(request.form.get("new_url"))
+    session["dbm_last_url"] = new_url or ""
     if not new_url:
         flash("رابط القاعدة الجديدة مطلوب", "error")
         return redirect(url_for("admin_db_migrate"))
@@ -4177,6 +4461,7 @@ def admin_db_migrate_test():
 @super_admin_required
 def admin_db_migrate_run():
     new_url = _normalize_pg_url(request.form.get("new_url"))
+    session["dbm_last_url"] = new_url or ""
     confirm = (request.form.get("confirm") or "").strip()
     if not new_url:
         flash("رابط القاعدة الجديدة مطلوب", "error")
@@ -4187,7 +4472,7 @@ def admin_db_migrate_run():
     if confirm != "نقل":
         flash("لتأكيد النقل اكتب كلمة: نقل", "error")
         return redirect(url_for("admin_db_migrate"))
-    if new_url == _active_db_url():
+    if new_url == _active_db_url(force=True):
         flash("الرابط الجديد هو نفس الرابط الحالي", "error")
         return redirect(url_for("admin_db_migrate"))
 
@@ -4196,21 +4481,22 @@ def admin_db_migrate_run():
     try:
         # 1) تحقق من الاتصال
         t = psycopg2.connect(new_url, connect_timeout=10); t.close()
-        # 2) أنشئ الاسكيمة على القاعدة الجديدة
+        # 2) أنشئ الاسكيمة الأساسية على القاعدة الجديدة
         init_db(new_url)
         # 3) افتح الاتصالين
-        src = psycopg2.connect(src_url, connect_timeout=15); src.autocommit = True
-        dst = psycopg2.connect(new_url, connect_timeout=15); dst.autocommit = False
+        src = psycopg2.connect(src_url, connect_timeout=20); src.autocommit = True
+        dst = psycopg2.connect(new_url, connect_timeout=20); dst.autocommit = False
 
         tables = _list_public_tables(src)
-        dst_tables = set(_list_public_tables(dst))
-        tables = [t for t in tables if t in dst_tables]
         if not tables:
-            raise RuntimeError("مفيش جداول متطابقة بين القاعدتين")
+            raise RuntimeError("مفيش جداول في القاعدة الحالية")
+
+        # 4) اتأكد إن كل جدول/عمود موجود في المصدر موجود كمان في الوجهة
+        #    (فيه جداول بتتعمل وقت التشغيل مش موجودة في init_db)
+        created, added = _ensure_dst_schema(src, dst, tables)
 
         ordered = _sorted_by_dependency(src, tables)
 
-        # نحاول نوقف الـ triggers لو الصلاحية موجودة، ولو مرفوضة بنكمل عادي
         try:
             c0 = dst.cursor(); c0.execute("SET session_replication_role = 'replica'"); c0.close()
             relaxed = True
@@ -4219,19 +4505,20 @@ def admin_db_migrate_run():
             relaxed = False
             print("session_replication_role not allowed, using dependency order:", _e)
 
-        # 4) فرّغ كل الجداول مرة واحدة ثم انسخ بالترتيب
+        # 5) فرّغ كل جداول الوجهة ثم انسخ بالترتيب
         _truncate_all(dst, ordered)
 
         copied, failed = [], {}
         pending = list(ordered)
-        for _pass in range(3):            # عدة مرات لحل أي ترتيب FK متبقي
+        for _pass in range(3):
             still = []
             for tb in pending:
                 sp = dst.cursor(); sp.execute("SAVEPOINT sp_tb"); sp.close()
                 try:
                     _copy_one_table(src, dst, tb)
                     c1 = dst.cursor(); c1.execute("RELEASE SAVEPOINT sp_tb"); c1.close()
-                    copied.append(tb)
+                    if tb not in copied:
+                        copied.append(tb)
                     failed.pop(tb, None)
                 except Exception as ce:
                     c1 = dst.cursor(); c1.execute("ROLLBACK TO SAVEPOINT sp_tb"); c1.close()
@@ -4254,19 +4541,50 @@ def admin_db_migrate_run():
 
         dst.commit()
 
-        # 5) اضبط الـ sequences
+        # 6) اضبط الـ sequences
         dst.autocommit = True
         _fix_sequences(dst)
 
-        # 6) حوّل التطبيق للقاعدة الجديدة
+        # 7) تحقق فعلي: عدد الصفوف في المصدر مقابل الوجهة
+        rows_report = []
+        total_src = total_dst = 0
+        mismatch = []
+        for tb in ordered:
+            n_src = _count_rows(src, tb)
+            n_dst = _count_rows(dst, tb)
+            total_src += max(n_src, 0); total_dst += max(n_dst, 0)
+            rows_report.append({"table": tb, "src": n_src, "dst": n_dst})
+            if n_src != n_dst:
+                mismatch.append(tb)
+
+        # 8) حوّل التطبيق للقاعدة الجديدة
         _set_active_db_url(new_url)
-        flash(f"تم النقل والتحويل ✅ — عدد الجداول: {len(copied)}", "success")
+        _active_db_url(force=True)
+
+        _save_migration_report({
+            "ok": not mismatch,
+            "tables": len(ordered),
+            "created": created,
+            "added_columns": added,
+            "rows_src": total_src,
+            "rows_dst": total_dst,
+            "mismatch": mismatch,
+            "details": rows_report,
+            "target": _mask_db_url(new_url),
+        })
+
+        if mismatch:
+            flash("تم النقل والتحويل ✅ لكن فيه جداول أعدادها مختلفة: " + "، ".join(mismatch[:5]), "error")
+        else:
+            flash(f"تم النقل والتحويل ✅ — {len(ordered)} جدول و {total_dst:,} صف اتنقلوا بالكامل، "
+                  f"والتطبيق دلوقتي شغال على القاعدة الجديدة.", "success")
     except Exception as e:
         try:
             if dst: dst.rollback()
         except Exception:
             pass
         msg = str(e).strip().splitlines()[0] if str(e).strip() else e.__class__.__name__
+        _save_migration_report({"ok": False, "error": msg, "target": _mask_db_url(new_url)})
         flash(f"فشل النقل: {msg} — لم يتم تحويل التطبيق، القاعدة الحالية زي ما هي.", "error")
     finally:
         for c in (src, dst):
@@ -4282,6 +4600,7 @@ def admin_db_migrate_run():
 def admin_db_migrate_revert():
     try:
         _clear_active_db_url()
+        _active_db_url(force=True)
         flash("تم الرجوع للقاعدة الأصلية (DATABASE_URL) ✅", "success")
     except Exception as e:
         flash(f"فشل الرجوع: {e}", "error")
