@@ -98,12 +98,14 @@
             {% endif %}
 
             {% if is_admin %}
-              {# ==== تعديل الأعداد — تسمين و بياض في عمودين مع أسماء الحضور تحت كل حقل ==== #}
+              {# ==== تعديل الأعداد — تسمين و بياض + الإضافي في عمودين ==== #}
               <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid2 js-hist-edit" data-day="{{ d.date }}">
                 <input type="hidden" name="day" value="{{ d.date }}">
                 <div class="hist-col hist-col-t">
                   <div class="hist-col-head"><span class="k">تسمين</span><span class="cnt">{{ tasmeen_names|length }}</span></div>
-                  <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp">
+                  <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
+                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي تسمين</label>
+                  <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
                   {% if tasmeen_names %}
                     <div class="hist-col-names">
                       {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
@@ -112,7 +114,9 @@
                 </div>
                 <div class="hist-col hist-col-b">
                   <div class="hist-col-head"><span class="k">بياض</span><span class="cnt">{{ bayad_names|length }}</span></div>
-                  <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp">
+                  <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
+                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي بياض</label>
+                  <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
                   {% if bayad_names %}
                     <div class="hist-col-names">
                       {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
@@ -124,6 +128,7 @@
                   <span class="hist-edit-lbl">حفظ</span>
                 </button>
               </form>
+
             {% else %}
               {% if d.names %}
               <div class="hist-att">

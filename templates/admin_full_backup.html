@@ -1,0 +1,80 @@
+{% extends "app_base.html" %}
+{% block content %}
+<style>
+  .fb-wrap{padding:16px;max-width:820px;margin:0 auto}
+  .fb-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px 16px;margin-bottom:14px;box-shadow:0 6px 20px -12px rgba(0,0,0,.15)}
+  .fb-h{font-size:16px;font-weight:900;color:#111827;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+  .fb-p{font-size:13px;color:#4b5563;line-height:1.8;margin:0 0 12px}
+  .fb-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:12px;font-weight:800;font-size:14px;text-decoration:none;border:0;cursor:pointer}
+  .fb-btn-p{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 6px 18px -8px rgba(5,150,105,.6)}
+  .fb-btn-g{background:#f3f4f6;color:#111827;border:1px solid #d1d5db}
+  .fb-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:800}
+  .fb-status.ok{background:#d1fae5;color:#065f46}
+  .fb-status.bad{background:#fee2e2;color:#991b1b}
+  .fb-tables{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px}
+  .fb-t{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;font-size:12.5px;display:flex;justify-content:space-between;gap:6px}
+  .fb-t b{color:#111827}
+  .fb-emg{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa}
+  .fb-code{background:#0b1220;color:#e5e7eb;padding:10px 12px;border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;overflow:auto;direction:ltr;text-align:left}
+</style>
+
+<div class="fb-wrap">
+
+  <div class="fb-card">
+    <h1 class="fb-h">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:22px;height:22px;color:#059669"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      نسخة احتياطية كاملة
+      {% if db_ok %}<span class="fb-status ok">قاعدة البيانات متصلة</span>{% else %}<span class="fb-status bad">قاعدة البيانات مش متصلة</span>{% endif %}
+    </h1>
+    <p class="fb-p">
+      نزّل ملف JSON فيه <b>كل جداول التطبيق</b> — احفظه عندك على الموبايل أو الكمبيوتر.
+      لو حصلت أي مشكلة في قاعدة البيانات، النسخة دي فيها كل بياناتك جاهزة للرجوع لها.
+    </p>
+    {% if db_ok %}
+      <a class="fb-btn fb-btn-p" href="{{ url_for('admin_full_backup_download') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        نزّل النسخة الكاملة الآن
+      </a>
+    {% else %}
+      <div class="fb-p" style="color:#991b1b"><b>خطأ:</b> {{ db_err }}</div>
+    {% endif %}
+  </div>
+
+  {% if db_ok and tables %}
+  <div class="fb-card">
+    <h2 class="fb-h" style="font-size:14.5px">الجداول اللي هتتحفظ في النسخة</h2>
+    <div class="fb-tables">
+      {% for t in tables %}
+      <div class="fb-t"><span>{{ t }}</span><b>{{ counts.get(t) if counts.get(t) is not none else '—' }}</b></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="fb-card fb-emg">
+    <h2 class="fb-h" style="font-size:14.5px;color:#9a3412">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:20px;height:20px;color:#9a3412"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zm-9.75-1.5A9.75 9.75 0 1112 2.25a9.75 9.75 0 01-9.75 9.75z"/></svg>
+      وضع الطوارئ — لو التطبيق واقف
+    </h2>
+    <p class="fb-p">
+      لو حصلت مشكلة في التطبيق ومقدرتش تدخل من الصفحة دي، تقدر تنزّل النسخة من رابط الطوارئ
+      المباشر — بيشتغل حتى لو الواجهة نفسها باظت:
+    </p>
+    <div class="fb-code">GET {{ emergency_url }}?key=YOUR_EMERGENCY_KEY</div>
+    <p class="fb-p" style="margin-top:10px">
+      <b>عشان تفعّله:</b> اضبط متغير بيئة اسمه <code>EMERGENCY_KEY</code> على أي كلمة سر عندك،
+      وبعدين افتح الرابط ده في المتصفح مع الـ key بتاعك. الملف هيتنزّل مباشرة بدون واجهة.
+    </p>
+    <p class="fb-p">
+      وكمان مسار فحص سريع للاتصال: <code>/emergency/health</code>
+    </p>
+  </div>
+
+  <div class="fb-card">
+    <h2 class="fb-h" style="font-size:14.5px">إدارة النسخ الاحتياطية على السيرفر</h2>
+    <p class="fb-p">النسخ الاحتياطية التلقائية والأرشيف بتتحفظ في صفحة التخزين.</p>
+    <a class="fb-btn fb-btn-g" href="{{ url_for('admin_storage') }}">افتح صفحة التخزين</a>
+  </div>
+
+</div>
+{% endblock %}

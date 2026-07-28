@@ -1,18 +1,39 @@
 {% extends "base.html" %}
 {% block head_extra %}
-  <!-- تحويل احتياطي بدون جافاسكربت — مهم جدًا داخل WebView -->
-  <meta http-equiv="refresh" content="2;url={{ next_url }}">
+  <meta http-equiv="refresh" content="3;url={{ next_url }}">
+  <style>
+    html,body{margin:0;padding:0;background:#0b1220;overflow:hidden}
+    .sp-wrap{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(1200px 800px at 30% 20%,#132238 0%,#0b1220 55%,#070a12 100%);overflow:hidden;font-family:inherit}
+    .sp-bg{position:absolute;inset:-20%;filter:blur(60px);opacity:.55;pointer-events:none}
+    .sp-bg span{position:absolute;display:block;border-radius:50%;mix-blend-mode:screen;animation:spFloat 9s ease-in-out infinite alternate}
+    .sp-bg .b1{width:520px;height:520px;left:-8%;top:-12%;background:radial-gradient(circle,#e3b445 0%,transparent 65%)}
+    .sp-bg .b2{width:460px;height:460px;right:-6%;top:20%;background:radial-gradient(circle,#3b82f6 0%,transparent 65%);animation-delay:-3s}
+    .sp-bg .b3{width:600px;height:600px;left:20%;bottom:-25%;background:radial-gradient(circle,#8b5cf6 0%,transparent 65%);animation-delay:-6s}
+    @keyframes spFloat{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(60px,-40px,0) scale(1.15)}}
+    .sp-shine{position:absolute;inset:0;background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,rgba(255,255,255,.05) 30deg,transparent 90deg,transparent 360deg);animation:spSpin 8s linear infinite;opacity:.4;pointer-events:none}
+    @keyframes spSpin{to{transform:rotate(360deg)}}
+    .sp-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;z-index:2}
+    .sp-logo{width:118px;height:118px;display:grid;place-items:center;opacity:0;transform:scale(.6) rotate(-8deg);animation:spLogoIn 900ms cubic-bezier(.2,.9,.25,1.2) 120ms forwards;filter:drop-shadow(0 12px 30px rgba(227,180,69,.35))}
+    .sp-logo svg{width:100%;height:100%}
+    @keyframes spLogoIn{60%{opacity:1;transform:scale(1.08) rotate(3deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+    .sp-logo::after{content:"";position:absolute;width:118px;height:118px;border-radius:50%;background:radial-gradient(circle,rgba(243,214,117,.55) 0%,transparent 60%);filter:blur(10px);opacity:0;animation:spGlow 1.8s ease-out 200ms forwards;z-index:-1}
+    @keyframes spGlow{40%{opacity:.9}100%{opacity:.55}}
+    .sp-name{font-size:26px;font-weight:900;color:#f7dc86;letter-spacing:.5px;opacity:0;transform:translateY(14px);animation:spUp 700ms cubic-bezier(.2,.7,.2,1) 700ms forwards;text-shadow:0 4px 20px rgba(227,180,69,.35)}
+    .sp-tag{font-size:12.5px;color:#9fb0c8;opacity:0;transform:translateY(10px);animation:spUp 700ms cubic-bezier(.2,.7,.2,1) 1050ms forwards;letter-spacing:2px}
+    @keyframes spUp{to{opacity:1;transform:translateY(0)}}
+    .sp-load{margin-top:12px;width:120px;height:3px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;opacity:0;animation:spUp 500ms ease 1300ms forwards}
+    .sp-load i{display:block;width:35%;height:100%;background:linear-gradient(90deg,transparent,#e3b445,transparent);animation:spBar 1.15s linear infinite}
+    @keyframes spBar{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}
+    .sp-manual{margin-top:8px;opacity:0;pointer-events:none;font-size:12.5px;font-weight:800;color:#f2d675;text-decoration:none;padding:9px 18px;border-radius:99px;border:1px solid rgba(242,214,117,.35);background:rgba(242,214,117,.10);transition:opacity .25s ease}
+    .sp-manual.on{opacity:1;pointer-events:auto}
+  </style>
 {% endblock %}
 {% block body %}
-<div class="splash-v3">
-  <div class="splash-v3-bg" aria-hidden="true">
-    <span class="sv3-orb sv3-orb-a"></span>
-    <span class="sv3-orb sv3-orb-b"></span>
-  </div>
-
-  <div class="splash-v3-center">
-    <div class="splash-v3-logo">
-      <!-- شعار: درع التحصين -->
+<div class="sp-wrap" role="status" aria-label="جاري التحميل">
+  <div class="sp-bg" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
+  <div class="sp-shine" aria-hidden="true"></div>
+  <div class="sp-center">
+    <div class="sp-logo">
       <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="spShield" x1="0" y1="0" x2="1" y2="1">
@@ -26,39 +47,19 @@
         <path d="M21.8 32.6 L29.2 40 L43 25.4" stroke="#12202b" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
     </div>
-    <div class="splash-v3-name">فريق التحصين</div>
-    <div class="splash-v3-loader"><span></span></div>
-    <!-- رابط ظاهر لو التحويل التلقائي اتمنع في الـ WebView -->
-    <a class="splash-v3-manual" id="splashManual" href="{{ next_url }}">اضغط للدخول</a>
+    <div class="sp-name">فريق التحصين</div>
+    <div class="sp-tag">TAHSEEN · TEAM</div>
+    <div class="sp-load"><i></i></div>
+    <a class="sp-manual" id="splashManual" href="{{ next_url }}">اضغط للدخول</a>
   </div>
 </div>
-
 <script>
-  (function(){
-    var target = {{ next_url|tojson }};
-    var done = false;
-    function go(){
-      if (done) return;
-      done = true;
-      try { window.location.replace(target); }
-      catch (e) { window.location.href = target; }
-    }
-    // تحويل سريع، ولو اتأخر لأي سبب الرابط اليدوي بيظهر
-    setTimeout(go, 700);
-    setTimeout(function(){
-      var m = document.getElementById('splashManual');
-      if (m) m.classList.add('is-show');
-    }, 2600);
-  })();
+(function(){
+  var target = {{ next_url|tojson }};
+  var done = false;
+  function go(){ if(done) return; done=true; try{ window.location.replace(target); } catch(e){ window.location.href=target; } }
+  setTimeout(go, 1900);
+  setTimeout(function(){ var m=document.getElementById('splashManual'); if(m) m.classList.add('on'); }, 2600);
+})();
 </script>
-<style>
-  .splash-v3-manual{
-    margin-top:6px; opacity:0; pointer-events:none;
-    font-size:13px; font-weight:800; color:#f2d675; text-decoration:none;
-    padding:9px 18px; border-radius:99px;
-    border:1px solid rgba(242,214,117,.35); background:rgba(242,214,117,.10);
-    transition:opacity .25s ease;
-  }
-  .splash-v3-manual.is-show{ opacity:1; pointer-events:auto; }
-</style>
 {% endblock %}
