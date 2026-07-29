@@ -1,0 +1,92 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<style>
+.as-hero{position:relative;overflow:hidden;border-radius:22px;padding:20px 18px 22px;margin-bottom:14px;
+  background:radial-gradient(120% 140% at 100% 0%, rgba(245,185,80,.22), transparent 55%),
+             radial-gradient(120% 140% at 0% 100%, rgba(59,130,246,.14), transparent 55%),
+             linear-gradient(180deg, rgba(15,21,36,.9), rgba(11,15,23,.95));
+  border:1px solid rgba(245,185,80,.22);
+  box-shadow:0 20px 60px -30px rgba(212,175,55,.55), inset 0 1px 0 rgba(255,255,255,.05);}
+.as-badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;padding:6px 12px;
+  border-radius:999px;color:#ffd27a;background:linear-gradient(180deg,rgba(245,185,80,.16),rgba(245,185,80,.06));
+  border:1px solid rgba(245,185,80,.35)}
+.as-title{font-size:22px;font-weight:900;margin:8px 0 2px;color:#eef2fb}
+.as-sub{font-size:12.5px;color:#c2c9db;opacity:.85;margin:0}
+.as-card{background:linear-gradient(180deg,rgba(23,31,51,.9),rgba(15,21,36,.95));
+  border:1px solid rgba(245,185,80,.14);border-radius:20px;padding:16px;margin-bottom:14px;
+  box-shadow:0 12px 40px -24px rgba(0,0,0,.9)}
+.as-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.as-f{flex:1;min-width:140px}
+.as-f label{display:block;font-size:12px;font-weight:800;color:#c2c9db;margin-bottom:6px}
+.as-f input{width:100%;padding:11px 12px;border-radius:12px;border:1px solid rgba(245,185,80,.2);
+  background:rgba(8,12,20,.7);color:#eef2fb;font-size:14px;font-family:inherit}
+.as-btn{border:0;border-radius:14px;padding:12px 18px;font-weight:900;font-size:14px;cursor:pointer;
+  font-family:inherit;color:#1a1206;background:linear-gradient(135deg,#f7dc86,#e3b445);
+  box-shadow:0 12px 26px -14px rgba(227,180,69,.9)}
+.as-btn.ghost{background:transparent;color:#ffd27a;border:1px solid rgba(245,185,80,.35);box-shadow:none}
+.as-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.as-stat{background:linear-gradient(180deg,rgba(23,31,51,.9),rgba(15,21,36,.95));border:1px solid rgba(245,185,80,.14);
+  border-radius:16px;padding:12px;text-align:center}
+.as-stat b{display:block;font-size:18px;color:#ffd27a;font-weight:900}
+.as-stat span{font-size:11.5px;color:#c2c9db;opacity:.8}
+.as-list{display:flex;flex-direction:column;gap:10px}
+.as-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(23,31,51,.9),rgba(15,21,36,.95));border:1px solid rgba(245,185,80,.12)}
+.as-item.zero{opacity:.5}
+.as-av{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;overflow:hidden;
+  background:rgba(245,185,80,.16);color:#ffd27a;font-weight:900}
+.as-av img{width:100%;height:100%;object-fit:cover}
+.as-nm{flex:1;min-width:0}
+.as-nm b{display:block;font-size:14.5px;color:#eef2fb;font-weight:800}
+.as-nm span{font-size:11.5px;color:#c2c9db;opacity:.8}
+.as-amt{text-align:left;flex:none}
+.as-amt b{display:block;font-size:15.5px;color:#ffd27a;font-weight:900}
+.as-amt span{font-size:11px;color:#c2c9db;opacity:.8}
+</style>
+
+<div class="as-hero">
+  <span class="as-badge">حساب سريع</span>
+  <h1 class="as-title">نصيب كل الفريق مرة واحدة</h1>
+  <p class="as-sub">{{ period_label }} — كل واحد وله قد إيه ({{ price }} ج للكتكوت)</p>
+</div>
+
+<form class="as-card" method="get" action="{{ url_for('admin_all_shares') }}">
+  <div class="as-row">
+    <div class="as-f"><label>من تاريخ</label><input type="date" name="start_day" value="{{ start_day }}"></div>
+    <div class="as-f"><label>إلى تاريخ</label><input type="date" name="end_day" value="{{ end_day }}"></div>
+    <button class="as-btn" type="submit">احسب</button>
+  </div>
+</form>
+
+<div class="as-stats">
+  <div class="as-stat"><b>{{ "{:,}".format(totals.chicks) }}</b><span>إجمالي الكتاكيت</span></div>
+  <div class="as-stat"><b>{{ "{:,}".format(totals.money) }}</b><span>إجمالي المستحق (ج)</span></div>
+  <div class="as-stat"><b>{{ totals.people }}</b><span>عدد اللي اشتغلوا</span></div>
+</div>
+
+<form method="post" action="{{ url_for('admin_all_shares_send') }}" style="margin-bottom:14px"
+      onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
+        (window.appConfirm?window.appConfirm('هيتبعت لكل واحد حسابه في رسالة خاصة من حساب الإدارة.',{title:'إرسال الحساب للكل؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال الحساب للكل؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+  <input type="hidden" name="start_day" value="{{ start_day }}">
+  <input type="hidden" name="end_day" value="{{ end_day }}">
+  <button class="as-btn ghost" type="submit" style="width:100%">إرسال الحساب لكل واحد في رسالة خاصة من «الإدارة»</button>
+</form>
+
+<div class="as-list">
+  {% for r in rows %}
+  <a class="as-item {% if r.days == 0 %}zero{% endif %}" href="{{ url_for('worker_stats', worker_id=r.id) }}"
+     style="text-decoration:none">
+    <span class="as-av">{% if r.avatar %}<img src="{{ r.avatar }}" alt="">{% else %}{{ (r.full_name or '?')[:1] }}{% endif %}</span>
+    <span class="as-nm">
+      <b>{{ r.full_name }}</b>
+      <span>{{ r.days }} يوم · {{ "{:,}".format(r.chicks) }} كتكوت{% if r.bonus %} · إضافي {{ "{:,}".format(r.bonus) }} ج{% endif %}{% if r.deduct %} · خصم {{ "{:,}".format(r.deduct) }} ج{% endif %}</span>
+    </span>
+    <span class="as-amt"><b>{{ "{:,}".format(r.money) }} ج</b><span>المستحق</span></span>
+  </a>
+  {% else %}
+  <div class="as-card">مفيش بيانات في المدة دي.</div>
+  {% endfor %}
+</div>
+
+{% endblock %}

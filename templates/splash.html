@@ -43,10 +43,15 @@
     @keyframes spLogoIn{60%{opacity:1;transform:scale(1.12) rotate(4deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
     .sp-logo::after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(243,214,117,.55) 0%,transparent 60%);filter:blur(14px);opacity:0;animation:spGlow 2s ease-out 260ms forwards;z-index:-1}
     @keyframes spGlow{40%{opacity:1}100%{opacity:.6}}
-    /* اسم بحروف تظهر واحد واحد */
-    .sp-name{font-size:30px;font-weight:900;letter-spacing:.5px;text-shadow:0 6px 24px rgba(227,180,69,.4);display:flex;gap:2px}
-    .sp-name span{opacity:0;transform:translateY(16px) scale(.9);display:inline-block;background:linear-gradient(180deg,#fff2c0 0%,#f7dc86 45%,#e3b445 100%);-webkit-background-clip:text;background-clip:text;color:transparent;animation:spChar 600ms cubic-bezier(.2,.8,.2,1) forwards}
-    @keyframes spChar{to{opacity:1;transform:translateY(0) scale(1)}}
+    /* اسم التطبيق — يظهر كلمة واحدة واضحة */
+    .sp-name{font-size:32px;font-weight:900;letter-spacing:.5px;line-height:1.5;text-align:center;white-space:nowrap;
+      background:linear-gradient(180deg,#fff6d6 0%,#f7dc86 45%,#e3b445 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      filter:drop-shadow(0 6px 22px rgba(227,180,69,.35));
+      opacity:0;transform:translateY(14px);animation:spNameIn 700ms cubic-bezier(.2,.8,.2,1) 550ms forwards}
+    .sp-tag{margin-top:-8px;font-size:13px;font-weight:600;color:rgba(255,255,255,.62);letter-spacing:.3px;
+      opacity:0;animation:spFade 600ms ease 950ms forwards}
+    @keyframes spNameIn{to{opacity:1;transform:translateY(0)}}
     /* شريط تحميل ذهبي */
     .sp-load{margin-top:6px;width:150px;height:3px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;opacity:0;animation:spFade 500ms ease 1200ms forwards;position:relative}
     .sp-load i{display:block;width:35%;height:100%;background:linear-gradient(90deg,transparent,#f7dc86,#e3b445,transparent);animation:spBar 1.2s linear infinite;box-shadow:0 0 12px rgba(247,220,134,.6)}
@@ -86,9 +91,8 @@
         </svg>
       </div>
     </div>
-    <div class="sp-name" aria-label="فريق التحصين">
-      <span style="animation-delay:.75s">ف</span><span style="animation-delay:.82s">ر</span><span style="animation-delay:.89s">ي</span><span style="animation-delay:.96s">ق</span><span style="animation-delay:1.03s">&nbsp;</span><span style="animation-delay:1.10s">ا</span><span style="animation-delay:1.17s">ل</span><span style="animation-delay:1.24s">ت</span><span style="animation-delay:1.31s">ح</span><span style="animation-delay:1.38s">ص</span><span style="animation-delay:1.45s">ي</span><span style="animation-delay:1.52s">ن</span>
-    </div>
+    <div class="sp-name">فريق التحصين</div>
+    <div class="sp-tag">جاري التحميل…</div>
     <div class="sp-load"><i></i></div>
     <div class="sp-dots" aria-hidden="true"><i></i><i></i><i></i></div>
   </div>
