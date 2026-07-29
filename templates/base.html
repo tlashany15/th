@@ -19,24 +19,9 @@
     html{ background:#0e1621; color:#eaf0f7; }
   </style>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ ASSET_VER }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style-v2.css') }}?v={{ ASSET_VER }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}?v={{ ASSET_VER }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='themes.css') }}?v={{ ASSET_VER }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app-polish.css') }}?v={{ ASSET_VER }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='ap-shared.css') }}?v={{ ASSET_VER }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='modern-ui.css') }}?v={{ ASSET_VER }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='ui-unify.css') }}?v={{ ASSET_VER }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='native-ui.css') }}?v={{ ASSET_VER }}">
-  <script>
-    /* ريبل خفيف للأزرار — شكل فقط، مش بيغيّر أي سلوك */
-    document.addEventListener('pointerdown', function(e){
-      var b = e.target && e.target.closest ? e.target.closest('.btn') : null;
-      if (!b) return;
-      var r = b.getBoundingClientRect();
-      b.style.setProperty('--rx', ((e.clientX - r.left) / r.width * 100) + '%');
-      b.style.setProperty('--ry', ((e.clientY - r.top) / r.height * 100) + '%');
-    }, true);
-  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui-core.css') }}?v={{ ASSET_VER }}">
   <script src="{{ url_for('static', filename='polish-global.js') }}?v={{ ASSET_VER }}" defer></script>
   <script src="{{ url_for('static', filename='instant-nav.js') }}?v={{ ASSET_VER }}" defer></script>
   <script>
@@ -221,6 +206,19 @@
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(false);
   });
+})();
+</script>
+
+<script>
+/* Ripple origin for buttons (native Android feel) */
+(function(){
+  document.addEventListener('pointerdown', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('.btn') : null;
+    if (!b) return;
+    var r = b.getBoundingClientRect();
+    b.style.setProperty('--rx', ((e.clientX - r.left) / r.width * 100) + '%');
+    b.style.setProperty('--ry', ((e.clientY - r.top) / r.height * 100) + '%');
+  }, true);
 })();
 </script>
 </body>

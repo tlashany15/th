@@ -624,7 +624,7 @@
   const money = {{ 'true' if result.is_money else 'false' }};
   const chicks = "{{ '{:,}'.format(result.chick_count) }}";
   function buildText(){
-    let t = `📊 تقرير فترة\n${range}\n${days} يوم\n\n${label}\n`;
+    let t = ` تقرير فترة\n${range}\n${days} يوم\n\n${label}\n`;
     if (money) t += `${chicks} كتكوت × 55 ج\n`;
     t += `الإجمالي: ${total}${money ? ' ج' : ''}`;
     return t;
