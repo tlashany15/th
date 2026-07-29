@@ -3028,3 +3028,43 @@ button.sidebar-worker-imp{ cursor:pointer; padding:0; font:inherit; }
 
 /* ==== إخفاء بنر الشرح الفوقي بناءً على طلب المستخدم ==== */
 .hero-sub,.ap-subtitle,.rr2-sub,.ap-share-s,.ap-maint-s,.sec-h-s{display:none !important}
+
+/* ============================================================
+   Page Tabs — توحيد التنقل بين الصفحات المترابطة
+   ============================================================ */
+.ptabs{
+  display:flex; gap:6px; overflow-x:auto; padding:5px; margin-bottom:12px;
+  background:rgba(0,0,0,.28); border:1px solid var(--line);
+  border-radius:var(--r-md); scrollbar-width:none; -ms-overflow-style:none;
+}
+.ptabs::-webkit-scrollbar{ display:none; }
+.ptabs a{
+  flex:1 0 auto; text-align:center; white-space:nowrap; text-decoration:none;
+  font-size:12.5px; font-weight:800; color:var(--text-2);
+  padding:9px 14px; border-radius:10px; transition:.2s;
+}
+.ptabs a:hover{ background:rgba(245,185,80,.07); color:var(--text); }
+.ptabs a.is-active{ background:var(--grad-gold); color:#1a1206; box-shadow:var(--shadow-gold); }
+
+/* بحث سريع داخل القوائم */
+.list-search{ position:relative; margin-bottom:10px; }
+.list-search input{
+  width:100%; padding:11px 38px 11px 12px; border-radius:var(--r-md);
+  background:rgba(0,0,0,.35); border:1px solid var(--line-strong);
+  color:var(--text); font-size:14px; font-family:inherit; outline:none;
+}
+.list-search input:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,185,80,.16); }
+.list-search svg{
+  position:absolute; top:50%; inset-inline-end:12px; transform:translateY(-50%);
+  width:16px; height:16px; color:var(--gold); pointer-events:none;
+}
+
+/* صف تعديل الاسم في إدارة المستخدمين (بنفس شكل صف كلمة السر) */
+.name-form{ display:none; gap:8px; padding:8px 10px 12px; }
+.name-form.is-open{ display:flex; }
+.name-form input{
+  flex:1; padding:10px 12px; border-radius:var(--r-md);
+  background:rgba(0,0,0,.35); border:1px solid var(--line-strong);
+  color:var(--text); font-size:14px; font-family:inherit; outline:none;
+}
+.name-form input:focus{ border-color:var(--gold); }
