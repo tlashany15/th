@@ -851,11 +851,8 @@ def group_edit_msg(msg_id):
 @app.route("/")
 def index():
     dest = url_for("dashboard") if session.get("user_id") else url_for("login")
-    # نعرض شاشة البداية مرة واحدة لكل جلسة متصفح
-    if not session.get("splash_seen"):
-        session["splash_seen"] = True
-        return render_template("splash.html", next_url=dest)
-    return redirect(dest)
+    # نعرض شاشة البداية في كل مرة يتفتح فيها التطبيق
+    return render_template("splash.html", next_url=dest)
 
 
 @app.route("/welcome")
