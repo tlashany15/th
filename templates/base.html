@@ -70,6 +70,37 @@
       document.documentElement.classList.add('js-on');
     })();
   </script>
+<style id="uf-scroll-guard">
+  /* حارس التمرير — آخر طبقة CSS، بيضمن إن الصفحة بتتحرك فوق وتحت */
+  html, body{
+    height:auto !important;
+    min-height:100%;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    overscroll-behavior-y:auto !important;
+    touch-action:auto !important;
+    -webkit-overflow-scrolling:touch;
+    position:static !important;
+  }
+  body{ min-height:100dvh; }
+</style>
+<script>
+  // حارس تمرير: لو أي كود لسه شايل التمرير بـ inline style من غير مودال مفتوح، نرجّعه.
+  (function(){
+    function unlockScroll(){
+      try{
+        if (document.querySelector('.is-open, .modal.is-open, .th-modal.is-open, [data-lock="1"]')) return;
+        var h = document.documentElement, b = document.body;
+        if (h && h.style.overflow) h.style.overflow = '';
+        if (b && b.style.overflow) b.style.overflow = '';
+        if (b && b.style.position === 'fixed') b.style.position = '';
+      }catch(_){}
+    }
+    document.addEventListener('DOMContentLoaded', unlockScroll);
+    window.addEventListener('pageshow', unlockScroll);
+    setInterval(unlockScroll, 1500);
+  })();
+</script>
 {% block head_extra %}{% endblock %}
 </head>
 <body class="no-copy">
