@@ -1,5 +1,6 @@
 {% extends "app_base.html" %}
 {% block content %}
+{% with tab = 'after' %}{% include '_tabs_counts.html' %}{% endwith %}
 
 <!-- ===== HERO ===== -->
 <section class="hero-admin">

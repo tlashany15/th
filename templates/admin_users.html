@@ -83,9 +83,16 @@
     </div>
   </div>
 
-  <div class="wlist">
+  {% if users|length > 9 %}
+  <div class="list-search">
+    <input type="search" id="usersSearch" placeholder="ابحث باسم المستخدم…" autocomplete="off">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
+  </div>
+  {% endif %}
+
+  <div class="wlist" id="usersList">
     {% for u in users %}
-    <div class="wcard stagger-in" style="--i:{{ loop.index0 }};">
+    <div class="wcard stagger-in" style="--i:{{ loop.index0 }};" data-name="{{ u.full_name }}">
       <div class="wcard-l">
         <div class="wavatar wavatar-{{ (u.id % 5) }}">{% if u.avatar %}<img src="{{ u.avatar }}" alt="">{% else %}{{ u.full_name[0] }}{% endif %}</div>
         <div class="wcard-info">
@@ -97,7 +104,10 @@
         </div>
       </div>
       <div class="wcard-r">
-        <button class="icon-btn" type="button" data-toggle-pw="u{{ u.id }}" aria-label="تغيير السر">
+        <button class="icon-btn" type="button" data-toggle-pw="n{{ u.id }}" aria-label="تعديل الاسم" title="تعديل الاسم">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+        </button>
+        <button class="icon-btn" type="button" data-toggle-pw="u{{ u.id }}" aria-label="تغيير السر" title="تغيير كلمة السر">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
         </button>
         {% if u.id != current_user.id %}
@@ -115,6 +125,12 @@
       <input type="hidden" name="action" value="reset_pw">
       <input type="hidden" name="user_id" value="{{ u.id }}">
       <input name="password" type="text" placeholder="كلمة سر جديدة">
+      <button class="btn btn-ghost btn-sm" type="submit">حفظ</button>
+    </form>
+    <form method="post" class="name-form" id="n{{ u.id }}">
+      <input type="hidden" name="action" value="rename">
+      <input type="hidden" name="user_id" value="{{ u.id }}">
+      <input name="full_name" type="text" value="{{ u.full_name }}" placeholder="الاسم الجديد" required>
       <button class="btn btn-ghost btn-sm" type="submit">حفظ</button>
     </form>
     {% endfor %}
@@ -139,6 +155,19 @@
 
 <script>
 (function(){
+  // بحث سريع في قائمة المستخدمين
+  var sbox = document.getElementById('usersSearch');
+  if (sbox) {
+    sbox.addEventListener('input', function(){
+      var q = sbox.value.trim().toLowerCase();
+      document.querySelectorAll('#usersList .wcard').forEach(function(row){
+        var n = (row.dataset.name || '').toLowerCase();
+        var show = (!q || n.indexOf(q) !== -1);
+        row.style.display = show ? '' : 'none';
+      });
+    });
+  }
+
   // toggle password row
   document.querySelectorAll('[data-toggle-pw]').forEach(function(btn){
     btn.addEventListener('click', function(){

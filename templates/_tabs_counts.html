@@ -1,0 +1,6 @@
+{% if current_user and current_user.role == 'admin' %}
+<div class="ptabs">
+  <a href="{{ url_for('history') }}" class="{% if tab == 'after' %}is-active{% endif %}">أعداد بعد الخصم</a>
+  <a href="{{ url_for('admin_gross_log') }}" class="{% if tab == 'gross' %}is-active{% endif %}">أعداد بدون خصم</a>
+</div>
+{% endif %}

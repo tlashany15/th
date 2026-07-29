@@ -79,10 +79,8 @@
     <a href="{{ url_for('admin_close_page', day=today) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
 
     <div class="snav-group">السجلات والتقارير</div>
-    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>أعداد بعد الخصم</span></a>
-    <a href="{{ url_for('admin_gross_log') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>أعداد بدون خصم</span></a>
-    <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>تقرير فترة مخصّصة</span></a>
-    <a href="{{ url_for('admin_all_shares') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>حساب نصيب كل العمال مرة واحدة</span></a>
+    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>الأعداد</span></a>
+    <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>التقارير</span></a>
 
     <div class="snav-group">التواصل</div>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
