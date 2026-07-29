@@ -513,7 +513,7 @@ def _boot():
     try:
         ep = request.endpoint or ""
         # نسمح دايمًا بالملفات الثابتة والدخول والخروج وزر التشغيل/الإيقاف نفسه
-        _always_allowed = {"static", "admin_toggle_maintenance"}
+        _always_allowed = {"static", "admin_toggle_maintenance", "login", "logout", "splash", "service_worker"}
         if ep not in _always_allowed and _maintenance_on():
             ru = real_user()
             if not _is_super_admin(ru):
@@ -899,6 +899,14 @@ def login():
 
 @app.route("/logout")
 def logout():
+    # لو التطبيق في وضع الصيانة، المسؤول الرئيسي ممنوع يسجّل خروج
+    # عشان ميقفلش على نفسه بره التطبيق.
+    try:
+        if _maintenance_on() and _is_super_admin(real_user()):
+            flash("مينفعش تسجّل خروج والتطبيق في وضع الصيانة — أوقف الصيانة الأول", "error")
+            return redirect(url_for("admin_panel"))
+    except Exception:
+        pass
     session.clear()
     resp = redirect(url_for("login"))
     # امسح كوكيز الجلسة صراحة عشان لا يرجع تلقائي بعد الخروج
