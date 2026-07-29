@@ -70,11 +70,7 @@
         <div class="sidebar-name">{{ current_user.full_name }}</div>
       </div>
     </div>
-    <button id="sidebarClose" class="sidebar-close" type="button" aria-label="إغلاق القائمة">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-    </button>
   </div>
-
 
   <nav class="sidebar-nav">
     {% if current_user.role == 'admin' %}
@@ -122,9 +118,10 @@
         {% if is_real_super_admin and w.id != current_user.id and not (w.role == 'admin' and w.username == '1') %}
         <form method="post" action="{{ url_for('admin_impersonate', uid=w.id) }}" class="sidebar-imp-form"
               onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('هتدخل بحساب {{ w.full_name }} مؤقتًا.',{title:'الدخول بحساب مستخدم آخر؟',okText:'دخول'}):Promise.resolve(confirm('الدخول بحساب {{ w.full_name }}؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
-          <button type="submit" class="sidebar-worker-imp" title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9M12 21H6a2 2 0 01-2-2V5a2 2 0 012-2h6"/></svg>
+          <button type="submit" class="sidebar-worker-imp" data-icon-only title="الدخول بحساب {{ w.full_name }}" aria-label="الدخول بحساب {{ w.full_name }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S5.8 5.5 12 5.5 21.5 12 21.5 12 18.2 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3.1"/></svg>
           </button>
+
         </form>
         {% endif %}
       </div>

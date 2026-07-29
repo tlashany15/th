@@ -97,9 +97,10 @@
         <div class="wavatar wavatar-{{ (u.id % 5) }}">{% if u.avatar %}<img src="{{ u.avatar }}" alt="">{% else %}{{ u.full_name[0] }}{% endif %}</div>
         <div class="wcard-info">
           <div class="wcard-name">
-            {{ u.full_name }}
+            <span class="wcard-name-t">{{ u.full_name }}</span>
             {% if u.role == 'admin' %}<span class="badge badge-gold sm">مسؤول</span>{% else %}<span class="badge badge-muted sm">عامل</span>{% endif %}
           </div>
+
           <div class="wcard-meta">{% if u.role == "admin" %}مسؤول{% else %}عامل{% endif %}</div>
         </div>
       </div>
