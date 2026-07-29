@@ -1,0 +1,235 @@
+/* ==========================================================================
+   fix-polish.css — تصحيحات وتحسينات نهائية (يُحمَّل آخر ملف)
+   1) منع خروج النص عن الحقول والأزرار والشرائح
+   2) ضبط القائمة الجانبية (الهمبرجر) وزر الإغلاق
+   3) لمسات جودة عامة: تباعد، ظلال، تركيز، جداول، RTL
+   لا يغيّر أي وظيفة — شكل فقط.
+   ========================================================================== */
+
+/* ---------- 0) أساسيات تمنع أي تجاوز أفقي ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* أي عنصر مرن جواه نص طويل لازم min-width:0 عشان ما يفيضش */
+.row-item, .wcard, .tl-row, .rr-item, .absent-row, .notif-item,
+.kpi, .ap-kpi, .stat-cell, .card, .field, .hero-row, .sidebar-me,
+.topbar, .bottom-nav a, .app-modal, .imp-txt {
+  min-width: 0;
+}
+.wcard-l, .wcard-info, .kpi > div, .ap-kpi > div, .imp-txt, .sidebar-me > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* ---------- 1) الحقول: النص جوّه الحقل دايمًا ---------- */
+input, select, textarea, button {
+  font-family: inherit;
+  max-width: 100%;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+select,
+textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+/* حشوة كافية عشان النص ما يلزقش في الحافة، ومساحة لسهم الـ select */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([class*="wa-"]):not(#textInput),
+.field input, .modal-input, .note-input {
+  padding-inline: 14px;
+  line-height: 1.4;
+}
+select, .field select {
+  padding-inline-start: 14px;
+  padding-inline-end: 44px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* العناوين والتلميحات فوق الحقول ما تخرجش برّه */
+.field > label, .field-label, .field-hint, .hint, .field-nd, .notify-field label {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.field-hint, .hint, .field-nd { display: flex; }
+/* حقل الرقم الكبير: يقلّ حجمه لو الرقم طويل */
+.big-input {
+  padding-inline: 10px;
+  font-size: clamp(20px, 6.2vw, 26px);
+}
+textarea { overflow-wrap: anywhere; }
+/* منع تكبير iOS التلقائي بدون ما يكسر الشكل */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea { font-size: 16px; }
+}
+input[type="date"], input[type="time"], input[type="datetime-local"] {
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* تركيز واضح ومريح */
+input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible, button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(240, 180, 69, .28);
+}
+
+/* ---------- 2) الأزرار والشرائح: النص ما يخرجش ---------- */
+.btn, button {
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+.btn {
+  padding-inline: 16px;
+  text-align: center;
+  line-height: 1.25;
+  white-space: normal;
+}
+.btn-row > .btn, .actions > .btn, .row-actions > .btn { min-width: 0; }
+
+/* الشرائح: بدل ما تفيض، تقص بنقاط أو تلتف */
+.chip, .pill, .badge, .mini-chip, .hero-chip, .ps-chip, .rr2-chip, .rr2-preset,
+.name-chip, .tl-tag, .notify-chip, .v2-chip, .v2-pill {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: auto;
+  min-height: 28px;
+}
+.chip-row, .chips, .hero-row, .badges, .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- 3) الأسماء والعناوين الطويلة ---------- */
+.wcard-name, .sw-name, .sidebar-name, .notif-title, .row-title, .card-title,
+.hero-h1, .kpi-l, .ap-kpi-l, .stat-cell .l {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.sw-name, .sidebar-name, .wcard-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brand span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 4) الشريط العلوي والسفلي ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 10px;
+}
+.topbar .brand { flex: 1 1 auto; min-width: 0; }
+.sidebar-toggle, .topbar-bell { flex: 0 0 auto; }
+.bottom-nav a {
+  min-width: 0;
+  font-size: 11.5px;
+  line-height: 1.25;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-inline: 4px;
+}
+
+/* ---------- 5) القائمة الجانبية (الهمبرجر) ---------- */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sidebar-me { min-width: 0; flex: 1 1 auto; }
+/* زر إغلاق القائمة — كان مفقودًا وأيقونته مش ظاهرة */
+.sidebar-close {
+  display: inline-grid !important;
+  place-items: center;
+  width: 40px; height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .05);
+  color: #e6e8ee;
+  cursor: pointer;
+  transition: transform .12s ease, background .18s;
+}
+.sidebar-close svg {
+  width: 20px; height: 20px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+}
+.sidebar-close:active { transform: scale(.92); background: rgba(255, 255, 255, .12); }
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.sidebar-nav a > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* الأيقونات: مقاس ثابت وما تنكمشش */
+.snav-ico {
+  width: 34px; height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .08);
+}
+.snav-ico svg, .bottom-nav svg {
+  display: block;
+  width: 18px; height: 18px;
+  stroke: currentColor;
+  fill: none;
+}
+.bottom-nav svg { width: 22px; height: 22px; }
+.snav-group {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  opacity: .55;
+  padding: 14px 12px 6px;
+}
+.sidebar-worker-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sidebar-worker { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
+.sidebar-imp-form { flex: 0 0 auto; margin: 0; }
+.app-sidebar { overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sidebar-overlay { animation: fpFade .2s ease; }
+@keyframes fpFade { from { opacity: 0 } to { opacity: 1 } }
+
+/* ---------- 6) الجداول ---------- */
+.table-wrap, .tbl-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; max-width: 100%; table-layout: auto; }
+th, td { overflow-wrap: anywhere; word-break: break-word; vertical-align: middle; }
+
+/* ---------- 7) لمسات جودة ---------- */
+.card, .row-item, .wcard, .kpi, .ap-kpi { overflow: hidden; }
+img, svg, video { max-width: 100%; }
+a { -webkit-tap-highlight-color: transparent; }
+.container { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+::selection { background: rgba(240, 180, 69, .28); }
+
+@media (max-width: 380px) {
+  .btn { font-size: 13.5px; padding-inline: 12px; }
+  .kpi-v, .ap-kpi-v { font-size: 19px; }
+  .sidebar-nav a { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
