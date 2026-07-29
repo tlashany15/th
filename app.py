@@ -2258,6 +2258,15 @@ def admin_users():
                 cur.execute("DELETE FROM users WHERE id=%s", (uid,))
                 db.commit()
                 flash("تم حذف المستخدم", "info")
+        elif action == "rename":
+            uid = int(request.form.get("user_id"))
+            new_name = (request.form.get("full_name") or "").strip()
+            if not new_name:
+                flash("الاسم الجديد مطلوب", "error")
+            else:
+                cur.execute("UPDATE users SET full_name=%s WHERE id=%s", (new_name, uid))
+                db.commit()
+                flash("تم تغيير الاسم إلى " + new_name, "success")
         elif action == "reset_pw":
             uid = int(request.form.get("user_id"))
             new_pw = request.form.get("password", "")
