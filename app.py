@@ -513,7 +513,7 @@ def _boot():
     try:
         ep = request.endpoint or ""
         # نسمح دايمًا بالملفات الثابتة والدخول والخروج وزر التشغيل/الإيقاف نفسه
-        _always_allowed = {"static", "admin_toggle_maintenance", "login", "logout", "splash", "service_worker", "maintenance_pause"}
+        _always_allowed = {"static", "admin_toggle_maintenance", "login", "logout", "splash", "service_worker"}
         if ep not in _always_allowed and _maintenance_on():
             ru = real_user()
             if not _is_super_admin(ru):
@@ -524,12 +524,6 @@ def _boot():
 
 
 def _maintenance_on():
-    # إيقاف مؤقت للصيانة (نافذة سماح) — بيشتغل أوتوماتيك أول ما التطبيق يقوم
-    try:
-        if datetime.now(timezone.utc) < _MAINT_PAUSE_UNTIL:
-            return False
-    except Exception:
-        pass
     try:
         db = get_db()
         cur = db.cursor()
@@ -542,34 +536,6 @@ def _maintenance_on():
         return bool(val)
     except Exception:
         return False
-
-
-# ===== نافذة سماح مؤقتة لتعطيل الصيانة =====
-# أول ما التطبيق يشتغل، الصيانة بتتعطّل لمدة MAINT_PAUSE_MINUTES دقيقة (افتراضي 10)
-try:
-    _MAINT_PAUSE_MINUTES = int(os.environ.get("MAINT_PAUSE_MINUTES", "10"))
-except Exception:
-    _MAINT_PAUSE_MINUTES = 10
-_MAINT_PAUSE_UNTIL = datetime.now(timezone.utc) + timedelta(minutes=_MAINT_PAUSE_MINUTES)
-_MAINT_PAUSE_KEY = os.environ.get("MAINT_PAUSE_KEY", "1")
-
-
-@app.route("/maintenance-pause")
-def maintenance_pause():
-    """رابط طوارئ: بيعطّل الصيانة 10 دقايق عشان المسؤول يقدر يدخل.
-    الاستخدام: /maintenance-pause?key=المفتاح
-    """
-    global _MAINT_PAUSE_UNTIL
-    if request.args.get("key", "") != _MAINT_PAUSE_KEY:
-        return "غير مسموح", 403
-    _MAINT_PAUSE_UNTIL = datetime.now(timezone.utc) + timedelta(minutes=_MAINT_PAUSE_MINUTES)
-    return (
-        f"تم إيقاف وضع الصيانة مؤقتًا لمدة {_MAINT_PAUSE_MINUTES} دقيقة. "
-        f"<a href='/login'>اضغط هنا لتسجيل الدخول</a>",
-        200,
-        {"Content-Type": "text/html; charset=utf-8"},
-    )
-
 
 
 def _iso_utc(dt):
