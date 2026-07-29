@@ -390,3 +390,23 @@ select option{ background:#131a2c; color:#fff; }
 
 /* بطاقات الإحصاء الصغيرة في صفحة المساحة */
 .st-box, .stat-box{ min-width:0; }
+
+/* ------------------------------------------------------------
+   6) تمرير الصفحات — ضمان إن الصفحة بتتحرك فوق وتحت على الموبايل
+   ------------------------------------------------------------ */
+html, body{
+  height:auto !important;
+  min-height:100%;
+  overflow-y:auto !important;
+  overflow-x:hidden;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
+}
+body.no-copy{ -webkit-user-select:none; user-select:none; }
+body.no-copy input,
+body.no-copy textarea,
+body.no-copy [contenteditable="true"]{
+  -webkit-user-select:text !important;
+  user-select:text !important;
+  -webkit-touch-callout:default;
+}
