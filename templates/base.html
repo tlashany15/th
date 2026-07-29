@@ -72,27 +72,29 @@
   </script>
 {% block head_extra %}{% endblock %}
 </head>
-<body class="no-copy" oncopy="return false" oncut="return false" oncontextmenu="return false" ondragstart="return false" onselectstart="return false">
+<body class="no-copy">
 {% block body %}{% endblock %}
 <script>
   (function(){
-    var stop = function(e){ e.preventDefault(); return false; };
-    document.addEventListener('contextmenu', stop);
-    document.addEventListener('copy', stop);
-    document.addEventListener('cut', stop);
-    document.addEventListener('dragstart', stop);
-    document.addEventListener('selectstart', function(e){
-      var t = e.target;
-      var tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
-      if (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable)) return true;
+    // اسمح بالنسخ/اللصق/التحديد داخل حقول الكتابة فقط (input / textarea / contenteditable)
+    function isEditable(t){
+      if (!t) return false;
+      var tag = (t.tagName || '').toLowerCase();
+      return tag === 'input' || tag === 'textarea' || t.isContentEditable === true;
+    }
+    function stopIfNotEditable(e){
+      if (isEditable(e.target)) return true;
       e.preventDefault(); return false;
-    });
+    }
+    document.addEventListener('contextmenu', stopIfNotEditable);
+    document.addEventListener('copy',       stopIfNotEditable);
+    document.addEventListener('cut',        stopIfNotEditable);
+    document.addEventListener('dragstart',  stopIfNotEditable);
+    document.addEventListener('selectstart',stopIfNotEditable);
     document.addEventListener('keydown', function(e){
       var k = (e.key || '').toLowerCase();
-      var t = e.target;
-      var tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
-      var editable = (tag === 'input' || tag === 'textarea' || (t && t.isContentEditable));
-      if (!editable && (e.ctrlKey || e.metaKey) && (k === 'c' || k === 'x' || k === 'a' || k === 's' || k === 'p' || k === 'u')) {
+      if (!isEditable(e.target) && (e.ctrlKey || e.metaKey) &&
+          (k === 'c' || k === 'x' || k === 'a' || k === 's' || k === 'p' || k === 'u')) {
         e.preventDefault(); return false;
       }
     });

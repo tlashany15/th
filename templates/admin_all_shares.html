@@ -12,25 +12,12 @@
         حساب سريع
       </span>
       <h1 class="hero-h1">نصيب كل الفريق مرة واحدة</h1>
-      <p class="hero-sub">{{ period_label }} — كل واحد وله قد إيه ({{ price }} ج للكتكوت)</p>
     </div>
   </div>
 </section>
 
 <!-- ===== اختيار المدة ===== -->
 <form class="card" method="get" action="{{ url_for('admin_all_shares') }}">
-  <div class="sec-head">
-    <div class="sec-h-l">
-      <div class="sec-h-ico sec-h-ico-gold">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
-      </div>
-      <div>
-        <div class="sec-h-t">المدة</div>
-        <div class="sec-h-s">اختر التواريخ ثم احسب</div>
-      </div>
-    </div>
-  </div>
-
   <div class="field">
     <label>من تاريخ</label>
     <input type="date" name="start_day" value="{{ start_day }}">
@@ -44,24 +31,6 @@
     احسب
   </button>
 </form>
-
-<!-- ===== الإجماليات ===== -->
-<div class="card">
-  <div class="stat-row cols-3">
-    <div class="stat-cell">
-      <div class="v">{{ "{:,}".format(totals.chicks) }}</div>
-      <div class="l">إجمالي الكتاكيت</div>
-    </div>
-    <div class="stat-cell">
-      <div class="v">{{ "{:,}".format(totals.money) }}</div>
-      <div class="l">إجمالي المستحق (ج)</div>
-    </div>
-    <div class="stat-cell">
-      <div class="v">{{ totals.people }}</div>
-      <div class="l">عدد اللي اشتغلوا</div>
-    </div>
-  </div>
-</div>
 
 <!-- ===== إرسال الحساب ===== -->
 <form method="post" action="{{ url_for('admin_all_shares_send') }}" class="card"
@@ -77,17 +46,6 @@
 
 <!-- ===== قائمة الفريق ===== -->
 <div class="card">
-  <div class="sec-head">
-    <div class="sec-h-l">
-      <div class="sec-h-ico sec-h-ico-blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
-      </div>
-      <div>
-        <div class="sec-h-t">الفريق</div>
-        <div class="sec-h-s">اضغط على العين لعرض نصيب أي حد بالتفصيل</div>
-      </div>
-    </div>
-  </div>
 
   {% if rows|length > 9 %}
   <div class="list-search">
