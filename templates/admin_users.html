@@ -21,8 +21,8 @@
 </section>
 
 <!-- زر الوصول لصفحة تعديل بياناتي -->
-<div style="display:flex;justify-content:flex-end;margin-top:-6px;">
-  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_profile') }}" style="display:inline-flex;align-items:center;gap:6px;">
+<div class="page-actions">
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_profile') }}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 0115 0"/></svg>
     تعديل بياناتي
   </a>
@@ -58,9 +58,6 @@
         <option value="worker">عامل</option>
         <option value="admin">مسؤول</option>
       </select>
-    </div>
-    <div class="field-hint" style="color:var(--muted, #9aa3af);font-size:13px;margin-bottom:8px;">
-      💡 الحساب هيتفعّل بالاسم وكلمة السر — من غير أي رقم أو آي دي.
     </div>
     <button class="btn btn-primary btn-lg">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
