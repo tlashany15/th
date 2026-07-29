@@ -755,7 +755,7 @@ def inject_user():
             # المسؤول يشوف الكل (بما فيهم نفسه عشان يحسب لنفسه لو حضر)
             # العامل يشوف نفسه بس
             if u["role"] == "admin":
-                cur.execute("SELECT id, full_name, username, role, avatar FROM users ORDER BY (role='admin') DESC, full_name")
+                cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE role IN ('worker','admin') ORDER BY (role='admin') DESC, full_name")
             else:
                 cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE id=%s", (u["id"],))
             sidebar_workers = cur.fetchall()
@@ -1489,6 +1489,225 @@ def admin_worker_clear_period():
 
 
 
+
+# ============================================================
+# ====== حساب نصيب كل الناس مرة واحدة + رسائل حساب "الإدارة" ======
+# ============================================================
+CHICK_PRICE = 55
+ADMIN_BOT_USERNAME = "__idara__"
+ADMIN_BOT_NAME = "الإدارة"
+AR_MONTHS_LIST = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
+                  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+
+
+def _period_bounds(d=None):
+    """يرجّع (بداية المدة، نهاية المدة، رقم النصف) للمدة اللي فيها التاريخ ده."""
+    import calendar as _cal
+    d = d or date.today()
+    last_day = _cal.monthrange(d.year, d.month)[1]
+    if d.day <= 15:
+        return date(d.year, d.month, 1), date(d.year, d.month, min(15, last_day)), 1
+    return date(d.year, d.month, 16), date(d.year, d.month, last_day), 2
+
+
+def _period_label(start_d, end_d, half=None):
+    if half is None:
+        half = 1 if start_d.day <= 15 else 2
+    lbl = "النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{end_d.day})"
+    return f"{lbl} من {AR_MONTHS_LIST[start_d.month-1]} {start_d.year}"
+
+
+def _get_admin_bot_id(cur):
+    """حساب وهمي باسم (الإدارة) — مش بتاع حد، بيتبعت منه رسايل خاصة لكل واحد."""
+    cur.execute("SELECT id FROM users WHERE username=%s", (ADMIN_BOT_USERNAME,))
+    r = cur.fetchone()
+    if r:
+        return int(r["id"])
+    cur.execute(
+        """INSERT INTO users(username, full_name, password_hash, role)
+           VALUES(%s,%s,%s,'system')
+           ON CONFLICT (username) DO UPDATE SET full_name=EXCLUDED.full_name
+           RETURNING id""",
+        (ADMIN_BOT_USERNAME, ADMIN_BOT_NAME, generate_password_hash(os.urandom(24).hex())),
+    )
+    return int(cur.fetchone()["id"])
+
+
+def _compute_shares_range(cur, s_iso, e_iso):
+    """
+    يحسب نصيب كل الناس (عمال + مسؤولين) في مدة معيّنة — بنفس طريقة صفحة
+    (نصيب العامل) بالظبط: نصيب اليوم = إجمالي القسم بعد الخصم ÷ حاضري القسم
+    + نصيب الإضافي لو الشخص متحدد إضافي.
+    """
+    cur.execute("SELECT id, full_name, role, avatar FROM users "
+                "WHERE role IN ('worker','admin') ORDER BY full_name")
+    people = cur.fetchall()
+    out = []
+    for p in people:
+        pid = int(p["id"])
+        cur.execute("""
+            SELECT c.day,
+                   CASE WHEN COALESCE(c.tasmeen_after,0)=0 AND COALESCE(c.bayad_after,0)=0
+                        THEN c.total_count ELSE COALESCE(c.tasmeen_after,0) END AS tasmeen_after,
+                   COALESCE(c.bayad_after,0) AS bayad_after,
+                   COALESCE(c.extra_tasmeen,0) AS extra_tasmeen,
+                   COALESCE(c.extra_bayad,0)   AS extra_bayad,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen') AS att_tasmeen,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad')   AS att_bayad,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen'
+                      AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_tasmeen,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad'
+                      AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_bayad,
+                   (SELECT a3.farm FROM attendance a3 WHERE a3.day=c.day AND a3.user_id=%s LIMIT 1) AS my_farm,
+                   COALESCE((SELECT a4.extra FROM attendance a4
+                     WHERE a4.day=c.day AND a4.user_id=%s LIMIT 1), FALSE) AS my_extra
+            FROM day_closures c
+            WHERE c.day BETWEEN %s AND %s
+            ORDER BY c.day ASC
+        """, (pid, pid, s_iso, e_iso))
+        share_sum = 0.0
+        extra_sum = 0.0
+        att_days = 0
+        for dr in cur.fetchall():
+            my_farm = dr["my_farm"]
+            if not my_farm:
+                continue
+            if my_farm == "tasmeen":
+                farm_total = int(dr["tasmeen_after"] or 0); farm_att = int(dr["att_tasmeen"] or 0)
+                extra_pool = int(dr["extra_tasmeen"] or 0); extra_att = int(dr["att_extra_tasmeen"] or 0)
+            else:
+                farm_total = int(dr["bayad_after"] or 0);   farm_att = int(dr["att_bayad"] or 0)
+                extra_pool = int(dr["extra_bayad"] or 0);   extra_att = int(dr["att_extra_bayad"] or 0)
+            base_share  = (farm_total / farm_att) if farm_att > 0 else 0.0
+            extra_share = (extra_pool / extra_att) if (bool(dr["my_extra"]) and extra_att > 0) else 0.0
+            share_sum += base_share + extra_share
+            extra_sum += extra_share
+            att_days  += 1
+
+        cur.execute("""SELECT COALESCE(SUM(CASE WHEN amount>0 THEN amount ELSE 0 END),0) AS bonus,
+                              COALESCE(SUM(CASE WHEN amount<0 THEN -amount ELSE 0 END),0) AS deduct
+                         FROM worker_adjustments
+                        WHERE user_id=%s AND day BETWEEN %s AND %s""", (pid, s_iso, e_iso))
+        adj = cur.fetchone() or {}
+        bonus  = int(adj.get("bonus") or 0)
+        deduct = int(adj.get("deduct") or 0)
+        chicks = int(share_sum)
+        out.append({
+            "id": pid,
+            "full_name": p["full_name"],
+            "avatar": p["avatar"],
+            "days": att_days,
+            "chicks": chicks,
+            "extra_chicks": int(extra_sum),
+            "bonus": bonus,
+            "deduct": deduct,
+            "money": chicks * CHICK_PRICE + bonus - deduct,
+        })
+    out.sort(key=lambda r: r["money"], reverse=True)
+    return out
+
+
+def _send_period_shares_dm(cur, s_iso, e_iso, label, rows=None):
+    """
+    يبعت لكل شخص رسالة خاصة في الشات من حساب (الإدارة) فيها حسابه في المدة دي.
+    بيرجّع عدد الرسائل اللي اتبعتت.
+    """
+    rows = rows if rows is not None else _compute_shares_range(cur, s_iso, e_iso)
+    bot_id = _get_admin_bot_id(cur)
+    sent_ids = []
+    for r in rows:
+        if r["id"] == bot_id:
+            continue
+        if r["days"] <= 0 and r["bonus"] == 0 and r["deduct"] == 0:
+            continue
+        body = (
+            f"حساب {label}\n"
+            f"الفترة: {s_iso} → {e_iso}\n"
+            f"— أيام الشغل: {r['days']}\n"
+            f"— عدد الكتاكيت: {r['chicks']:,}\n"
+            + (f"— منها إضافي: {r['extra_chicks']:,}\n" if r["extra_chicks"] else "")
+            + (f"— إضافي مالي: {r['bonus']:,} ج\n" if r["bonus"] else "")
+            + (f"— خصم: {r['deduct']:,} ج\n" if r["deduct"] else "")
+            + f"— الإجمالي المستحق: {r['money']:,} ج"
+        )
+        cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body)
+                       VALUES(%s,%s,'text',%s)""", (bot_id, r["id"], body))
+        sent_ids.append(r["id"])
+    return sent_ids, bot_id
+
+
+@app.route("/admin/all-shares")
+@admin_required
+def admin_all_shares():
+    """زر (حساب نصيب كل العمال مرة واحدة) — بيحسب لكل واحد نصيبه في المدة."""
+    db = get_db(); cur = db.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS worker_adjustments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL, amount INTEGER NOT NULL, reason TEXT,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(user_id, day))""")
+    s_arg = (request.args.get("start_day") or "").strip()
+    e_arg = (request.args.get("end_day") or "").strip()
+    try:
+        start_d = datetime.strptime(s_arg, "%Y-%m-%d").date()
+        end_d   = datetime.strptime(e_arg, "%Y-%m-%d").date()
+        if end_d < start_d:
+            start_d, end_d = end_d, start_d
+        half = None
+    except ValueError:
+        start_d, end_d, half = _period_bounds()
+    s_iso = start_d.isoformat(); e_iso = end_d.isoformat()
+    rows = _compute_shares_range(cur, s_iso, e_iso)
+    db.commit()
+    cur.close()
+    totals = {
+        "chicks": sum(r["chicks"] for r in rows),
+        "money":  sum(r["money"] for r in rows),
+        "people": len([r for r in rows if r["days"] > 0]),
+    }
+    return render_template("admin_all_shares.html",
+                           rows=rows, totals=totals,
+                           start_day=s_iso, end_day=e_iso,
+                           period_label=_period_label(start_d, end_d, half),
+                           price=CHICK_PRICE)
+
+
+@app.route("/admin/all-shares/send", methods=["POST"])
+@admin_required
+def admin_all_shares_send():
+    """يبعت لكل واحد حسابه في رسالة خاصة من حساب (الإدارة)."""
+    db = get_db(); cur = db.cursor()
+    s_arg = (request.form.get("start_day") or "").strip()
+    e_arg = (request.form.get("end_day") or "").strip()
+    try:
+        start_d = datetime.strptime(s_arg, "%Y-%m-%d").date()
+        end_d   = datetime.strptime(e_arg, "%Y-%m-%d").date()
+        if end_d < start_d:
+            start_d, end_d = end_d, start_d
+        half = None
+    except ValueError:
+        start_d, end_d, half = _period_bounds()
+    s_iso = start_d.isoformat(); e_iso = end_d.isoformat()
+    label = _period_label(start_d, end_d, half)
+    try:
+        sent_ids, _bot = _send_period_shares_dm(cur, s_iso, e_iso, label)
+        db.commit()
+        cur.close()
+        try:
+            _notify_users(sent_ids, "رسالة من الإدارة",
+                          f"حسابك عن {label} وصلك في الدردشة",
+                          url=url_for("chats_list"), type_="general")
+        except Exception as _e:
+            print("notify shares error:", _e)
+        flash(f"تم إرسال الحساب لـ {len(sent_ids)} شخص من حساب الإدارة ✓", "success")
+    except Exception as ex:
+        db.rollback(); cur.close()
+        flash("خطأ أثناء الإرسال: " + str(ex), "error")
+    return redirect(url_for("admin_all_shares", start_day=s_iso, end_day=e_iso))
+
+
+
 # ---------- المسؤول ----------
 def _parse_day(s):
     try:
@@ -1637,40 +1856,13 @@ def admin_close_day():
                                             closed_by = EXCLUDED.closed_by""",
         (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total),
     )
-    # ==== نحدّث رسالة الإغلاق: نمسح القديمة (لو موجودة) ونضيف الجديدة بالإجمالي المحدّث ====
+    # ==== اتلغى نشر ملخص الإغلاق في الجروب بناءً على طلب المسؤول ====
+    # بدل الرسايل في الجروب، آخر كل مدة بيتبعت لكل واحد حسابه في رسالة خاصة
+    # من حساب (الإدارة) — شوف _send_period_shares_dm بالأسفل.
     try:
-        marker = f"[CLOSED:{day}]"
-        # امسح أي ملخّص إغلاق سابق لنفس اليوم (سواء كان مضاف لرسالة تحضير أو رسالة مستقلة)
         _purge_closure_message(cur, day)
-        # ندوّر على أحدث رسالة كنوعها attendance و بتاعت نفس اليوم بعد التنضيف
-        cur.execute("""SELECT id, body FROM group_messages
-                       WHERE kind='attendance' AND deleted=FALSE AND body LIKE %s
-                       ORDER BY id DESC LIMIT 1""", (f"%حضور يوم {day}%",))
-        att = cur.fetchone()
-        cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day,))
-        present_c = int(cur.fetchone()["c"] or 0)
-        summary_line = (
-            f"\n\n[ICON:check] تم إغلاق اليوم"
-            f"\n- تسمين: {tasmeen_after:,} كتكوت"
-            f"\n- بياض: {bayad_after:,} كتكوت"
-            + (f"\n- إضافي تسمين: {extra_tasmeen:,} كتكوت" if extra_tasmeen else "")
-            + (f"\n- إضافي بياض: {extra_bayad:,} كتكوت" if extra_bayad else "")
-            + f"\n- الإجمالي: {total:,} كتكوت"
-            + f"\n- الحاضرون: {present_c}"
-            + f"\n{marker}"
-        )
-        if att:
-            new_body = (att["body"] or "").rstrip() + summary_line
-            cur.execute("UPDATE group_messages SET body=%s, pinned=TRUE WHERE id=%s",
-                        (new_body, att["id"]))
-        else:
-            # ما فيش رسالة حضور لليوم ده — ننشر رسالة إغلاق مثبّتة
-            cur.execute("UPDATE group_messages SET pinned=FALSE WHERE pinned=TRUE AND kind='attendance'")
-            body_new = f"[ICON:clipboard] إغلاق يوم {day}{summary_line}"
-            cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
-                           VALUES (%s, 'attendance', %s, TRUE)""", (u["id"], body_new))
     except Exception as _e:
-        print("update pinned attendance error:", _e)
+        print("purge closure msg error:", _e)
 
     db.commit()
     cur.close()
@@ -1696,24 +1888,21 @@ def admin_close_day():
                         (y, m, half))
             already = cur.fetchone()
             if not already and period_total > 0:
-                AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
-                             "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
-                half_lbl = f"النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})"
-                body = (
-                    "[ICON:chart] ملخص " + half_lbl + " من " + AR_MONTHS[m-1] + f" {y}\n"
-                    + f"- الإجمالي: {period_total:,} كتكوت\n"
-                    + f"- عدد أيام العمل: {days_closed}\n"
-                    + f"- الفترة: {start_d} → {end_d}"
-                )
-                cur.execute("""INSERT INTO group_messages(sender_id, kind, body, pinned)
-                               VALUES (%s, 'system', %s, TRUE)""", (u["id"], body))
-                # نلغي تثبيت أى ملخّص فتره قديم
-                cur.execute("""UPDATE group_messages SET pinned=FALSE
-                               WHERE pinned=TRUE AND kind='system' AND id <> (SELECT MAX(id) FROM group_messages WHERE kind='system')""")
+                half_lbl = "النصف الأول (1-15)" if half == 1 else f"النصف الثاني (16-{last_day})"
+                label = _period_label(date(y, m, 1 if half == 1 else 16),
+                                      date(y, m, 15 if half == 1 else last_day), half)
+                # آخر المدة: رسالة خاصة لكل شخص من حساب (الإدارة) بحسابه — مش في الجروب
+                sent_ids, _bot = _send_period_shares_dm(cur, start_d, end_d, label)
                 cur.execute("INSERT INTO period_summaries(year, month, half, total) VALUES(%s,%s,%s,%s)",
                             (y, m, half, period_total))
                 db.commit()
-                flash(f"تم نشر ملخص {half_lbl} في الجروب تلقائيًا", "success")
+                try:
+                    _notify_users(sent_ids, "رسالة من الإدارة",
+                                  f"حسابك عن {label} وصلك في الدردشة",
+                                  url=url_for("chats_list"), type_="general")
+                except Exception as _e2:
+                    print("notify period error:", _e2)
+                flash(f"آخر {half_lbl}: تم إرسال حساب كل واحد في رسالة خاصة من الإدارة ✓", "success")
         cur.close()
     except Exception as _e:
         print("period summary error:", _e)
@@ -4424,95 +4613,7 @@ def _sorted_by_dependency(conn, tables):
     return ordered
 
 
-# ---------- نسخة احتياطية كاملة + وضع طوارئ ----------
-def _full_dump_dict():
-    """يجمع كل الجداول في dict بدون أي منطق معقد — يشتغل حتى لو حاجات تانية باظت."""
-    import decimal, datetime as _dt
-    def _norm(v):
-        if isinstance(v, (_dt.date, _dt.datetime)):
-            return v.isoformat()
-        if isinstance(v, decimal.Decimal):
-            return float(v)
-        if isinstance(v, (bytes, bytearray, memoryview)):
-            try: return bytes(v).decode("utf-8", "ignore")
-            except Exception: return None
-        return v
-    db = get_db(); cur = db.cursor()
-    cur.execute("""SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename""")
-    tables = [r["tablename"] for r in cur.fetchall()]
-    out = {"generated_at": datetime.now(timezone.utc).isoformat(), "tables": {}}
-    for t in tables:
-        try:
-            cur.execute(f'SELECT * FROM "{t}"')
-            rows = cur.fetchall()
-            out["tables"][t] = [{k: _norm(v) for k, v in dict(r).items()} for r in rows]
-        except Exception as e:
-            out["tables"][t] = {"_error": str(e)[:200]}
-    cur.close()
-    return out
-
-
-@app.route("/admin/backup/full")
-@super_admin_required
-def admin_full_backup():
-    """صفحة النسخة الاحتياطية الكاملة — تعرض معلومات وتنزيل."""
-    try:
-        db = get_db(); cur = db.cursor()
-        cur.execute("""SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename""")
-        tables = [r["tablename"] for r in cur.fetchall()]
-        counts = {}
-        for t in tables:
-            try:
-                cur.execute(f'SELECT COUNT(*) AS c FROM "{t}"')
-                counts[t] = int(cur.fetchone()["c"] or 0)
-            except Exception:
-                counts[t] = None
-        cur.close()
-        db_ok = True; db_err = None
-    except Exception as e:
-        tables, counts, db_ok, db_err = [], {}, False, str(e)[:200]
-    return render_template(
-        "admin_full_backup.html",
-        tables=tables, counts=counts, db_ok=db_ok, db_err=db_err,
-        emergency_url=url_for("emergency_backup", _external=False),
-    )
-
-
-@app.route("/admin/backup/full/download")
-@super_admin_required
-def admin_full_backup_download():
-    data = _full_dump_dict()
-    payload = _json.dumps(data, ensure_ascii=False, indent=2, default=str).encode("utf-8")
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    fname = f"tahseen-backup-{stamp}.json"
-    resp = make_response(payload)
-    resp.headers["Content-Type"] = "application/json; charset=utf-8"
-    resp.headers["Content-Disposition"] = f'attachment; filename="{fname}"'
-    return resp
-
-
-# ---------- وضع الطوارئ ----------
-# مسار مبسّط جدًا — لو التطبيق موقف أو الواجهة باظت، لسه تقدر تنزّل النسخة
-# من هنا باستخدام مفتاح سري (EMERGENCY_KEY في متغيرات البيئة).
-# مثال: /emergency/backup?key=YOUR_SECRET
-@app.route("/emergency/backup")
-def emergency_backup():
-    key = request.args.get("key", "")
-    expected = os.environ.get("EMERGENCY_KEY", "").strip()
-    if not expected or key != expected:
-        return ("emergency backup: missing or invalid key. "
-                "Set EMERGENCY_KEY env var and pass ?key=... to download.", 403,
-                {"Content-Type": "text/plain; charset=utf-8"})
-    try:
-        data = _full_dump_dict()
-        payload = _json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-        resp = make_response(payload)
-        resp.headers["Content-Type"] = "application/json; charset=utf-8"
-        resp.headers["Content-Disposition"] = f'attachment; filename="tahseen-emergency-{stamp}.json"'
-        return resp
-    except Exception as e:
-        return (f"emergency error: {e}", 500, {"Content-Type": "text/plain; charset=utf-8"})
+# ---------- (تم حذف خاصية النسخة الاحتياطية الكاملة بالكامل) ----------
 
 
 @app.route("/emergency/health")
@@ -4532,9 +4633,9 @@ def emergency_health():
 @app.route("/admin/db-migrate", methods=["GET"])
 @super_admin_required
 def admin_db_migrate():
-    # تم إلغاء نقل قاعدة البيانات بناءً على طلب المسؤول — نحوّل للنسخة الاحتياطية الكاملة.
-    flash("خاصية نقل قاعدة البيانات اتشالت. استخدم النسخة الاحتياطية الكاملة بدلًا منها.", "info")
-    return redirect(url_for("admin_full_backup"))
+    # تم إلغاء نقل قاعدة البيانات وكذلك النسخة الاحتياطية الكاملة.
+    flash("الخاصية دي اتشالت.", "info")
+    return redirect(url_for("admin_panel"))
 
 
 
