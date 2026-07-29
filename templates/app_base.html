@@ -70,7 +70,11 @@
         <div class="sidebar-name">{{ current_user.full_name }}</div>
       </div>
     </div>
+    <button id="sidebarClose" class="sidebar-close" type="button" aria-label="إغلاق القائمة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
   </div>
+
 
   <nav class="sidebar-nav">
     {% if current_user.role == 'admin' %}
