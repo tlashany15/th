@@ -1,0 +1,369 @@
+/* ============================================================
+   native-ui.css — طبقة "الإحساس الأندرويدي" النهائية
+   تُحمَّل بعد كل ملفات CSS، فهي المرجع الأخير لأحجام وشكل
+   الحقول والأزرار والبطاقات والقوائم في كل صفحات التطبيق.
+
+   ⚠️ لا تغيّر أي منطق أو طريقة عمل — شكل فقط.
+   ⚠️ صفحات الدردشة (المُحرِّر/الفقاعات) مستثناة عمدًا.
+   ============================================================ */
+
+:root{
+  /* مقاسات لمس مريحة زي تطبيقات أندرويد (Material 3) */
+  --n-touch: 52px;          /* ارتفاع الحقل/الزر الأساسي */
+  --n-touch-sm: 42px;
+  --n-touch-lg: 58px;
+  --n-icon: 44px;           /* زر الأيقونة */
+
+  --n-r-xs: 12px;
+  --n-r-sm: 16px;
+  --n-r: 20px;
+  --n-r-lg: 26px;
+  --n-r-pill: 999px;
+
+  --n-fs-lbl: 13px;
+  --n-fs: 15.5px;
+  --n-fs-btn: 15.5px;
+
+  --n-pad-x: 16px;
+  --n-gap: 12px;
+
+  --n-field-bg: rgba(255,255,255,.045);
+  --n-field-bg-focus: rgba(255,255,255,.075);
+  --n-field-line: rgba(255,255,255,.10);
+  --n-field-line-focus: var(--gold, #f5b950);
+
+  --n-ease: cubic-bezier(.2,.8,.28,1);
+  --n-fast: .16s var(--n-ease);
+  --n-slow: .26s var(--n-ease);
+
+  --n-elev-1: 0 1px 2px rgba(0,0,0,.32), 0 4px 14px -8px rgba(0,0,0,.5);
+  --n-elev-2: 0 2px 6px rgba(0,0,0,.34), 0 16px 34px -18px rgba(0,0,0,.62);
+}
+
+/* منع وميض اللمس الأزرق (أهم حاجة تخلي الويب يحس تطبيق) */
+html, body, a, button, input, select, textarea, label, .card, .wcard{
+  -webkit-tap-highlight-color: transparent;
+}
+button, a, .btn, .icon-btn, .chip, .pill{ touch-action: manipulation; }
+
+/* ============================================================
+   1) الحقول — Material filled fields
+   ============================================================ */
+.field{
+  display:flex; flex-direction:column; gap:7px;
+  margin-bottom:14px;
+}
+.field:last-child{ margin-bottom:0; }
+
+.field > label,
+.field-lbl{
+  font-size:var(--n-fs-lbl);
+  font-weight:700;
+  color:var(--text-2, #c2c9db);
+  letter-spacing:.1px;
+  margin:0 2px;
+  display:flex; align-items:center; gap:6px;
+}
+
+/* كل الحقول بنفس المقاس والشكل */
+.field input,
+.field select,
+.field textarea,
+.modal-input,
+.note-input,
+.note-textarea,
+.notify-field input,
+.notify-field textarea,
+.pw-form input,
+input[type="text"]:not(.wa-input):not(#textInput),
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="search"],
+input[type="tel"],
+input[type="email"],
+select,
+textarea:not(#textInput):not(.wa-textarea){
+  -webkit-appearance:none; appearance:none;
+  width:100%;
+  min-height:var(--n-touch);
+  padding:13px var(--n-pad-x);
+  border-radius:var(--n-r-sm);
+  background:var(--n-field-bg);
+  border:1.5px solid var(--n-field-line);
+  color:var(--text, #eef2fb);
+  font-size:var(--n-fs);
+  font-weight:600;
+  line-height:1.35;
+  box-shadow:none;
+  outline:none;
+  transition:border-color var(--n-fast), background var(--n-fast), box-shadow var(--n-fast);
+}
+
+/* استثناءات الدردشة */
+.wa-composer input, .wa-composer textarea,
+#textInput, .chat-input, .chat-input *{
+  min-height:initial;
+}
+
+textarea:not(#textInput):not(.wa-textarea){
+  min-height:112px;
+  padding-top:14px;
+  line-height:1.7;
+  resize:vertical;
+}
+
+::placeholder{ color:var(--text-mute, #6a748c); font-weight:500; }
+
+/* تركيز واضح زي أندرويد: خط أعرض + هالة خفيفة */
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.modal-input:focus,
+.note-input:focus,
+.note-textarea:focus,
+.pw-form input:focus,
+input:focus:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select:focus,
+textarea:focus:not(#textInput){
+  background:var(--n-field-bg-focus);
+  border-color:var(--n-field-line-focus);
+  box-shadow:0 0 0 4px color-mix(in oklab, var(--gold, #f5b950) 16%, transparent);
+}
+
+/* السهم المخصص للـ select (بدل السهم الافتراضي القبيح) */
+select{
+  padding-inline-end:42px;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238891a7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;
+  background-position:left 14px center;
+  background-size:18px 18px;
+}
+html[dir="rtl"] select{ background-position:left 14px center; }
+select option{ background:var(--surface, #171f33); color:var(--text, #eef2fb); }
+
+/* حقول التاريخ/الوقت — توحيد اتجاه ولون الأيقونة */
+input[type="date"], input[type="time"]{ text-align:start; }
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator{
+  filter:invert(.72); opacity:.8; cursor:pointer;
+}
+
+/* منع تكبير الشاشة عند التركيز في iOS/WebView */
+@supports (-webkit-touch-callout: none){
+  input, select, textarea{ font-size:16px !important; }
+}
+
+.field-hint, .hint{
+  font-size:12.5px; line-height:1.6;
+  color:var(--text-3, #8891a7);
+  margin:2px 2px 0;
+}
+
+/* صف حقلين جنب بعض */
+.field-row{
+  display:grid; grid-template-columns:1fr 1fr; gap:var(--n-gap);
+}
+@media (max-width:420px){
+  .field-row{ grid-template-columns:1fr; }
+}
+
+/* ============================================================
+   2) الأزرار — مقاس واحد، ضغط واقعي، ريبل خفيف
+   ============================================================ */
+.btn,
+button.btn,
+a.btn,
+input[type="submit"]{
+  position:relative; overflow:hidden;
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  min-height:var(--n-touch);
+  padding:0 22px;
+  border-radius:var(--n-r-pill);
+  border:1.5px solid transparent;
+  font-size:var(--n-fs-btn);
+  font-weight:800;
+  letter-spacing:.1px;
+  line-height:1;
+  white-space:nowrap;
+  user-select:none;
+  transition:transform var(--n-fast), box-shadow var(--n-slow),
+             background var(--n-fast), border-color var(--n-fast), opacity var(--n-fast);
+}
+.btn svg{ width:19px; height:19px; flex:0 0 auto; }
+
+.btn:active{ transform:scale(.965); }
+.btn:focus-visible{ outline:none; box-shadow:0 0 0 4px color-mix(in oklab, var(--gold,#f5b950) 30%, transparent); }
+.btn[disabled], .btn.is-disabled{ opacity:.45; pointer-events:none; }
+
+/* ريبل */
+.btn::after{
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(circle at var(--rx,50%) var(--ry,50%), rgba(255,255,255,.28), transparent 45%);
+  opacity:0; transition:opacity .45s ease;
+  pointer-events:none;
+}
+.btn:active::after{ opacity:1; transition:none; }
+
+.btn-sm{ min-height:var(--n-touch-sm); padding:0 16px; font-size:13.5px; }
+.btn-sm svg{ width:16px; height:16px; }
+.btn-lg{ min-height:var(--n-touch-lg); padding:0 26px; font-size:16.5px; }
+.btn-lg svg{ width:21px; height:21px; }
+
+.btn-primary{ box-shadow:var(--n-elev-1); }
+.btn-primary:active{ box-shadow:var(--n-elev-2); }
+
+/* الزر الوحيد داخل نموذج = ممتد بعرض الكارت (سلوك تطبيقات الموبايل) */
+form > .btn:only-of-type:not(.btn-sm){ width:100%; }
+.btn.u-w-full, .btn.btn-block{ width:100%; }
+@media (min-width:720px){
+  form > .btn:only-of-type:not(.btn-sm){ width:auto; min-width:240px; }
+}
+
+/* صفوف الأزرار */
+.btn-row, .actions, .row-actions, .modal-actions, .app-modal-actions{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+}
+.modal-actions .btn, .app-modal-actions .btn{ flex:1 1 130px; }
+
+/* أزرار الأيقونة — مقاس لمس صحيح ودائرية */
+.icon-btn{
+  width:var(--n-icon); height:var(--n-icon);
+  min-width:var(--n-icon);
+  display:inline-grid; place-items:center;
+  border-radius:var(--n-r-pill);
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--n-field-line);
+  color:var(--text-2, #c2c9db);
+  transition:transform var(--n-fast), background var(--n-fast), color var(--n-fast), border-color var(--n-fast);
+}
+.icon-btn svg{ width:19px; height:19px; }
+.icon-btn:active{ transform:scale(.9); background:rgba(255,255,255,.1); }
+.icon-btn-danger{ color:var(--red, #ef4444); border-color:rgba(239,68,68,.28); background:rgba(239,68,68,.09); }
+.icon-btn-danger:active{ background:rgba(239,68,68,.18); }
+.icon-btn.is-active{ color:var(--gold,#f5b950); border-color:rgba(245,185,80,.4); background:rgba(245,185,80,.12); }
+
+/* الهمبرجر والجرس بنفس مقاس أزرار الأيقونة */
+.sidebar-toggle, .topbar-bell{
+  width:var(--n-icon); height:var(--n-icon);
+  border-radius:var(--n-r-pill);
+  display:inline-grid; place-items:center;
+}
+.sidebar-toggle:active, .topbar-bell:active{ transform:scale(.9); }
+.sidebar-toggle svg, .topbar-bell svg{ width:22px; height:22px; }
+
+/* ============================================================
+   3) البطاقات والأقسام
+   ============================================================ */
+.card, .ap-card{
+  border-radius:var(--n-r);
+  padding:18px 16px;
+  box-shadow:var(--n-elev-1);
+}
+.card > :first-child{ margin-top:0; }
+.card > :last-child{ margin-bottom:0; }
+
+.sec-head{ margin-bottom:14px; }
+.sec-h-ico{ width:42px; height:42px; border-radius:14px; }
+.sec-h-ico svg{ width:20px; height:20px; }
+.sec-h-t{ font-size:16px; font-weight:800; }
+.sec-h-s{ font-size:12.5px; }
+
+/* ============================================================
+   4) صفوف المستخدمين/العمال
+   ============================================================ */
+.wcard{
+  border-radius:var(--n-r-sm);
+  padding:12px 14px;
+  min-height:66px;
+  transition:background var(--n-fast), transform var(--n-fast);
+}
+.wcard:active{ transform:scale(.99); }
+.wcard-name{ font-size:15px; font-weight:800; }
+.wcard-meta{ font-size:12.5px; }
+.wcard-r{ gap:8px; }
+.wlist{ display:flex; flex-direction:column; gap:10px; }
+
+/* نماذج مخفية داخل صف المستخدم (تغيير الاسم / كلمة السر) */
+.pw-form,
+.rename-form{
+  display:none;
+  gap:10px;
+  padding:0 4px 12px;
+  align-items:center;
+}
+.pw-form.is-open,
+.rename-form.is-open{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  animation:nSlideDown .22s var(--n-ease) both;
+}
+.pw-form .btn, .rename-form .btn{ min-height:var(--n-touch); padding:0 18px; }
+
+@keyframes nSlideDown{
+  from{ opacity:0; transform:translateY(-6px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ============================================================
+   5) الشرائح والبادجات
+   ============================================================ */
+.chip, .pill, .badge, .hero-chip, .mini-chip{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  border-radius:var(--n-r-pill);
+  font-weight:800; line-height:1;
+  white-space:nowrap;
+}
+.chip, .pill, .hero-chip{ min-height:36px; padding:0 14px; font-size:13px; }
+.badge{ min-height:26px; padding:0 10px; font-size:11.5px; }
+.badge.sm{ min-height:22px; padding:0 8px; font-size:11px; }
+.mini-chip{ min-height:28px; padding:0 10px; font-size:12px; }
+
+/* ============================================================
+   6) القائمة الجانبية
+   ============================================================ */
+.sidebar-nav a{
+  min-height:50px;
+  border-radius:var(--n-r-sm);
+  font-size:15px; font-weight:700;
+  transition:background var(--n-fast), transform var(--n-fast);
+}
+.sidebar-nav a:active{ transform:scale(.985); }
+.snav-ico{ width:38px; height:38px; border-radius:12px; }
+.snav-ico svg{ width:19px; height:19px; }
+.snav-group{ font-size:11.5px; font-weight:800; letter-spacing:.6px; opacity:.55; padding:14px 12px 6px; }
+
+/* ============================================================
+   7) النوافذ المنبثقة — تطلع من تحت زي البوتوم شيت
+   ============================================================ */
+.modal-card, .app-modal-card{
+  border-radius:var(--n-r-lg);
+  padding:22px 18px 18px;
+  box-shadow:var(--n-elev-2);
+}
+.modal-title, .app-modal-title{ font-size:17.5px; font-weight:900; }
+.modal-sub, .app-modal-sub{ font-size:13.5px; line-height:1.6; }
+
+@media (max-width:480px){
+  .modal-card, .app-modal-card{
+    border-radius:26px 26px 0 0;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  }
+}
+
+/* ============================================================
+   8) الإحساس العام
+   ============================================================ */
+.container{ gap:16px; }
+
+/* تمرير ناعم بدون سكرول بار مزعج */
+*{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.14) transparent; }
+*::-webkit-scrollbar{ width:6px; height:6px; }
+*::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.14); border-radius:99px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
