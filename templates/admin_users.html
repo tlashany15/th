@@ -11,7 +11,7 @@
         إدارة المستخدمين
       </span>
       <h1 class="hero-h1">الفريق</h1>
-      <p class="hero-sub">أضف، احذف، أو غيّر كلمات السر.</p>
+      <p class="hero-sub">أضف، احذف، غيّر أسماء العمال أو كلمات السر.</p>
     </div>
     <div class="hero-date">
       <div class="hero-date-d">{{ users|length }}</div>
@@ -97,7 +97,10 @@
         </div>
       </div>
       <div class="wcard-r">
-        <button class="icon-btn" type="button" data-toggle-pw="u{{ u.id }}" aria-label="تغيير السر">
+        <button class="icon-btn" type="button" data-toggle-pw="rn{{ u.id }}" aria-label="تغيير الاسم" title="تغيير الاسم">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.86 4.49l2.65 2.65M4 20h3.2l9.5-9.5-3.2-3.2L4 16.8V20zM15.1 6.25l1.76-1.76a1.5 1.5 0 012.12 0l1.08 1.08a1.5 1.5 0 010 2.12L18.3 9.45"/></svg>
+        </button>
+        <button class="icon-btn" type="button" data-toggle-pw="u{{ u.id }}" aria-label="تغيير السر" title="تغيير كلمة السر">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
         </button>
         {% if u.id != current_user.id %}
@@ -111,6 +114,12 @@
         {% endif %}
       </div>
     </div>
+    <form method="post" class="rename-form" id="rn{{ u.id }}">
+      <input type="hidden" name="action" value="rename">
+      <input type="hidden" name="user_id" value="{{ u.id }}">
+      <input name="full_name" type="text" value="{{ u.full_name }}" placeholder="الاسم الجديد" required>
+      <button class="btn btn-primary btn-sm" type="submit">حفظ الاسم</button>
+    </form>
     <form method="post" class="pw-form" id="u{{ u.id }}">
       <input type="hidden" name="action" value="reset_pw">
       <input type="hidden" name="user_id" value="{{ u.id }}">
@@ -143,7 +152,10 @@
   document.querySelectorAll('[data-toggle-pw]').forEach(function(btn){
     btn.addEventListener('click', function(){
       var el = document.getElementById(btn.dataset.togglePw);
-      if (el) el.classList.toggle('is-open');
+      if (!el) return;
+      var open = el.classList.toggle('is-open');
+      btn.classList.toggle('is-active', open);
+      if (open){ var f = el.querySelector('input:not([type=hidden])'); if (f) setTimeout(function(){ f.focus(); }, 60); }
     });
   });
 
