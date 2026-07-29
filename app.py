@@ -885,6 +885,11 @@ def login():
             cur.execute("SELECT * FROM users WHERE username=%s", (identifier,))
             row = cur.fetchone()
         cur.close()
+        if row and row["role"] == "system":
+            # حساب (الإدارة) حساب نظام — الدخول بيه من المسؤول الرئيسي فقط
+            # عن طريق «الدخول بحساب» من لوحة الإدارة، مش من صفحة الدخول.
+            flash("الحساب ده حساب نظام — مينفعش الدخول بيه", "error")
+            return render_template("login.html")
         if row and check_password_hash(row["password_hash"], password):
             session["user_id"] = row["id"]
             return redirect(url_for("dashboard"))
@@ -1637,7 +1642,7 @@ def _send_period_shares_dm(cur, s_iso, e_iso, label, rows=None):
 
 
 @app.route("/admin/all-shares")
-@admin_required
+@super_admin_required
 def admin_all_shares():
     """زر (حساب نصيب كل العمال مرة واحدة) — بيحسب لكل واحد نصيبه في المدة."""
     db = get_db(); cur = db.cursor()
@@ -1674,7 +1679,7 @@ def admin_all_shares():
 
 
 @app.route("/admin/all-shares/send", methods=["POST"])
-@admin_required
+@super_admin_required
 def admin_all_shares_send():
     """يبعت لكل واحد حسابه في رسالة خاصة من حساب (الإدارة)."""
     db = get_db(); cur = db.cursor()
@@ -2258,6 +2263,20 @@ def admin_users():
                 cur.execute("DELETE FROM users WHERE id=%s", (uid,))
                 db.commit()
                 flash("تم حذف المستخدم", "info")
+        elif action == "rename":
+            uid = int(request.form.get("user_id"))
+            new_name = (request.form.get("full_name") or "").strip()
+            if not new_name:
+                flash("الاسم مطلوب", "error")
+            else:
+                try:
+                    cur.execute("UPDATE users SET full_name=%s WHERE id=%s AND role<>'system'",
+                                (new_name[:80], uid))
+                    db.commit()
+                    flash("تم تعديل الاسم ✓", "success")
+                except psycopg2.IntegrityError:
+                    db.rollback()
+                    flash("الاسم ده موجود بالفعل", "error")
         elif action == "reset_pw":
             uid = int(request.form.get("user_id"))
             new_pw = request.form.get("password", "")
