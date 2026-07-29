@@ -99,6 +99,7 @@
           ✓ تأكيد الاستلام وتصفير المدة نهائيًا
         </button>
       </form>
+      {% endif %}
 
       <div class="money-box" style="padding:12px 14px;">
         <div class="l" style="font-size:12.5px;color:var(--text-3);">قيمة الكتاكيت المتبقية</div>
@@ -106,12 +107,14 @@
           {{ '{:,}'.format(p.pending_chicks) }} كتكوت × 55 ج = <b>{{ '{:,}'.format(p.pending_money) }} ج</b>
         </div>
         <div class="final" style="font-size:14px;margin-top:6px;font-weight:800;">
-          المستحق حاليًا:
+          {% if is_admin_view %}المستحق حاليًا:{% else %}نصيبي في هذه المدة:{% endif %}
           <span class="v" style="color:var(--gold-2);">{{ '{:,}'.format(p.pending_money + p.bonus_total - p.deduct_total) }} ج</span>
         </div>
       </div>
 
 
+
+      {% if is_admin_view %}
       {% if p.settled_days_list or p.pending_days_list or p.bonus_list or p.deduct_list or p.settle_list %}
       <details class="acc-item" style="box-shadow:none;">
         <summary style="padding:10px 12px;">

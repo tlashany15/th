@@ -2,64 +2,115 @@
 {% block head_extra %}
   <meta http-equiv="refresh" content="3;url={{ next_url }}">
   <style>
-    html,body{margin:0;padding:0;background:#0b1220;overflow:hidden}
-    .sp-wrap{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(1200px 800px at 30% 20%,#132238 0%,#0b1220 55%,#070a12 100%);overflow:hidden;font-family:inherit}
-    .sp-bg{position:absolute;inset:-20%;filter:blur(60px);opacity:.55;pointer-events:none}
-    .sp-bg span{position:absolute;display:block;border-radius:50%;mix-blend-mode:screen;animation:spFloat 9s ease-in-out infinite alternate}
-    .sp-bg .b1{width:520px;height:520px;left:-8%;top:-12%;background:radial-gradient(circle,#e3b445 0%,transparent 65%)}
-    .sp-bg .b2{width:460px;height:460px;right:-6%;top:20%;background:radial-gradient(circle,#3b82f6 0%,transparent 65%);animation-delay:-3s}
-    .sp-bg .b3{width:600px;height:600px;left:20%;bottom:-25%;background:radial-gradient(circle,#8b5cf6 0%,transparent 65%);animation-delay:-6s}
+    html,body{margin:0;padding:0;background:#05070d;overflow:hidden;height:100%}
+    .sp-wrap{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;font-family:inherit;
+      background:
+        radial-gradient(1200px 900px at 30% 15%, #16243d 0%, transparent 55%),
+        radial-gradient(1000px 800px at 80% 85%, #2a1a3f 0%, transparent 60%),
+        linear-gradient(180deg,#070b16 0%,#05070d 100%);
+    }
+    /* شبكة إضاءة ناعمة */
+    .sp-grid{position:absolute;inset:0;background-image:
+      linear-gradient(rgba(227,180,69,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(227,180,69,.06) 1px,transparent 1px);
+      background-size:44px 44px;mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 45%,transparent 75%);
+      -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 45%,transparent 75%);
+      opacity:.55;animation:spGridPulse 6s ease-in-out infinite}
+    @keyframes spGridPulse{0%,100%{opacity:.35}50%{opacity:.7}}
+    /* أورب متحركة */
+    .sp-bg{position:absolute;inset:-20%;filter:blur(70px);opacity:.6;pointer-events:none}
+    .sp-bg span{position:absolute;display:block;border-radius:50%;mix-blend-mode:screen;animation:spFloat 10s ease-in-out infinite alternate}
+    .sp-bg .b1{width:540px;height:540px;left:-8%;top:-12%;background:radial-gradient(circle,#e3b445 0%,transparent 65%)}
+    .sp-bg .b2{width:480px;height:480px;right:-6%;top:15%;background:radial-gradient(circle,#3b82f6 0%,transparent 65%);animation-delay:-3s}
+    .sp-bg .b3{width:620px;height:620px;left:18%;bottom:-28%;background:radial-gradient(circle,#8b5cf6 0%,transparent 65%);animation-delay:-6s}
     @keyframes spFloat{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(60px,-40px,0) scale(1.15)}}
-    .sp-shine{position:absolute;inset:0;background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,rgba(255,255,255,.05) 30deg,transparent 90deg,transparent 360deg);animation:spSpin 8s linear infinite;opacity:.4;pointer-events:none}
+    /* أشعة كونية */
+    .sp-shine{position:absolute;inset:-10%;background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,rgba(247,220,134,.10) 25deg,transparent 80deg,transparent 180deg,rgba(139,92,246,.08) 210deg,transparent 260deg,transparent 360deg);animation:spSpin 14s linear infinite;pointer-events:none}
     @keyframes spSpin{to{transform:rotate(360deg)}}
-    .sp-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;z-index:2}
-    .sp-logo{width:118px;height:118px;display:grid;place-items:center;opacity:0;transform:scale(.6) rotate(-8deg);animation:spLogoIn 900ms cubic-bezier(.2,.9,.25,1.2) 120ms forwards;filter:drop-shadow(0 12px 30px rgba(227,180,69,.35))}
+    /* جسيمات صاعدة */
+    .sp-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+    .sp-particles i{position:absolute;bottom:-20px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle,#f7dc86 0%,rgba(247,220,134,0) 70%);opacity:0;animation:spRise linear infinite}
+    @keyframes spRise{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:.9}100%{transform:translateY(-110vh) scale(1);opacity:0}}
+    .sp-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:22px;z-index:2}
+    /* حلقات نبض حول اللوجو */
+    .sp-halo{position:absolute;top:50%;left:50%;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;border:1px solid rgba(247,220,134,.22);animation:spHalo 2.6s ease-out infinite}
+    .sp-halo.d2{animation-delay:.9s}
+    .sp-halo.d3{animation-delay:1.8s}
+    @keyframes spHalo{0%{transform:scale(.55);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+    .sp-logo-wrap{position:relative;width:150px;height:150px;display:grid;place-items:center}
+    .sp-logo{width:140px;height:140px;display:grid;place-items:center;opacity:0;transform:scale(.55) rotate(-10deg);animation:spLogoIn 1000ms cubic-bezier(.2,.9,.25,1.25) 150ms forwards;filter:drop-shadow(0 18px 40px rgba(227,180,69,.45))}
     .sp-logo svg{width:100%;height:100%}
-    @keyframes spLogoIn{60%{opacity:1;transform:scale(1.08) rotate(3deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
-    .sp-logo::after{content:"";position:absolute;width:118px;height:118px;border-radius:50%;background:radial-gradient(circle,rgba(243,214,117,.55) 0%,transparent 60%);filter:blur(10px);opacity:0;animation:spGlow 1.8s ease-out 200ms forwards;z-index:-1}
-    @keyframes spGlow{40%{opacity:.9}100%{opacity:.55}}
-    .sp-name{font-size:26px;font-weight:900;color:#f7dc86;letter-spacing:.5px;opacity:0;transform:translateY(14px);animation:spUp 700ms cubic-bezier(.2,.7,.2,1) 700ms forwards;text-shadow:0 4px 20px rgba(227,180,69,.35)}
-    .sp-tag{font-size:12.5px;color:#9fb0c8;opacity:0;transform:translateY(10px);animation:spUp 700ms cubic-bezier(.2,.7,.2,1) 1050ms forwards;letter-spacing:2px}
-    @keyframes spUp{to{opacity:1;transform:translateY(0)}}
-    .sp-load{margin-top:12px;width:120px;height:3px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;opacity:0;animation:spUp 500ms ease 1300ms forwards}
-    .sp-load i{display:block;width:35%;height:100%;background:linear-gradient(90deg,transparent,#e3b445,transparent);animation:spBar 1.15s linear infinite}
+    @keyframes spLogoIn{60%{opacity:1;transform:scale(1.12) rotate(4deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+    .sp-logo::after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(243,214,117,.55) 0%,transparent 60%);filter:blur(14px);opacity:0;animation:spGlow 2s ease-out 260ms forwards;z-index:-1}
+    @keyframes spGlow{40%{opacity:1}100%{opacity:.6}}
+    /* اسم بحروف تظهر واحد واحد */
+    .sp-name{font-size:30px;font-weight:900;letter-spacing:.5px;text-shadow:0 6px 24px rgba(227,180,69,.4);display:flex;gap:2px}
+    .sp-name span{opacity:0;transform:translateY(16px) scale(.9);display:inline-block;background:linear-gradient(180deg,#fff2c0 0%,#f7dc86 45%,#e3b445 100%);-webkit-background-clip:text;background-clip:text;color:transparent;animation:spChar 600ms cubic-bezier(.2,.8,.2,1) forwards}
+    @keyframes spChar{to{opacity:1;transform:translateY(0) scale(1)}}
+    /* شريط تحميل ذهبي */
+    .sp-load{margin-top:6px;width:150px;height:3px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;opacity:0;animation:spFade 500ms ease 1200ms forwards;position:relative}
+    .sp-load i{display:block;width:35%;height:100%;background:linear-gradient(90deg,transparent,#f7dc86,#e3b445,transparent);animation:spBar 1.2s linear infinite;box-shadow:0 0 12px rgba(247,220,134,.6)}
     @keyframes spBar{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}
-    .sp-manual{margin-top:8px;opacity:0;pointer-events:none;font-size:12.5px;font-weight:800;color:#f2d675;text-decoration:none;padding:9px 18px;border-radius:99px;border:1px solid rgba(242,214,117,.35);background:rgba(242,214,117,.10);transition:opacity .25s ease}
-    .sp-manual.on{opacity:1;pointer-events:auto}
+    @keyframes spFade{to{opacity:1}}
+    /* نقاط أسفل */
+    .sp-dots{display:flex;gap:6px;opacity:0;animation:spFade 500ms ease 1400ms forwards}
+    .sp-dots i{width:6px;height:6px;border-radius:50%;background:#e3b445;opacity:.35;animation:spDot 1.2s ease-in-out infinite}
+    .sp-dots i:nth-child(2){animation-delay:.15s}
+    .sp-dots i:nth-child(3){animation-delay:.3s}
+    @keyframes spDot{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
   </style>
 {% endblock %}
 {% block body %}
 <div class="sp-wrap" role="status" aria-label="جاري التحميل">
+  <div class="sp-grid" aria-hidden="true"></div>
   <div class="sp-bg" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
   <div class="sp-shine" aria-hidden="true"></div>
+  <div class="sp-particles" aria-hidden="true" id="spPart"></div>
   <div class="sp-center">
-    <div class="sp-logo">
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="spShield" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#f7dc86"/>
-            <stop offset=".52" stop-color="#e3b445"/>
-            <stop offset="1" stop-color="#c3871a"/>
-          </linearGradient>
-        </defs>
-        <path d="M32 5 L54.5 13.2 V31c0 13.6-9.2 23.1-22.5 28.4C18.7 54.1 9.5 44.6 9.5 31V13.2Z" fill="url(#spShield)"/>
-        <path d="M32 11.6 L48.4 17.5 V31c0 10.2-6.7 17.6-16.4 21.8C22.3 48.6 15.6 41.2 15.6 31V17.5Z" fill="#0f1a24" opacity=".14"/>
-        <path d="M21.8 32.6 L29.2 40 L43 25.4" stroke="#12202b" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
+    <div class="sp-logo-wrap">
+      <span class="sp-halo" aria-hidden="true"></span>
+      <span class="sp-halo d2" aria-hidden="true"></span>
+      <span class="sp-halo d3" aria-hidden="true"></span>
+      <div class="sp-logo">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="spShield" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#fff2c0"/>
+              <stop offset=".5" stop-color="#e3b445"/>
+              <stop offset="1" stop-color="#a86d0f"/>
+            </linearGradient>
+          </defs>
+          <path d="M32 5 L54.5 13.2 V31c0 13.6-9.2 23.1-22.5 28.4C18.7 54.1 9.5 44.6 9.5 31V13.2Z" fill="url(#spShield)"/>
+          <path d="M32 11.6 L48.4 17.5 V31c0 10.2-6.7 17.6-16.4 21.8C22.3 48.6 15.6 41.2 15.6 31V17.5Z" fill="#0f1a24" opacity=".16"/>
+          <path d="M21.8 32.6 L29.2 40 L43 25.4" stroke="#12202b" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
     </div>
-    <div class="sp-name">فريق التحصين</div>
-    <div class="sp-tag">TAHSEEN · TEAM</div>
+    <div class="sp-name" aria-label="فريق التحصين">
+      <span style="animation-delay:.75s">ف</span><span style="animation-delay:.82s">ر</span><span style="animation-delay:.89s">ي</span><span style="animation-delay:.96s">ق</span><span style="animation-delay:1.03s">&nbsp;</span><span style="animation-delay:1.10s">ا</span><span style="animation-delay:1.17s">ل</span><span style="animation-delay:1.24s">ت</span><span style="animation-delay:1.31s">ح</span><span style="animation-delay:1.38s">ص</span><span style="animation-delay:1.45s">ي</span><span style="animation-delay:1.52s">ن</span>
+    </div>
     <div class="sp-load"><i></i></div>
-    <a class="sp-manual" id="splashManual" href="{{ next_url }}">اضغط للدخول</a>
+    <div class="sp-dots" aria-hidden="true"><i></i><i></i><i></i></div>
   </div>
 </div>
 <script>
 (function(){
+  // جسيمات ذهبية تصعد
+  var host = document.getElementById('spPart');
+  if(host){
+    for(var i=0;i<14;i++){
+      var p = document.createElement('i');
+      p.style.left = (Math.random()*100)+'%';
+      p.style.animationDuration = (5 + Math.random()*5)+'s';
+      p.style.animationDelay = (Math.random()*3)+'s';
+      p.style.width = p.style.height = (4 + Math.random()*6)+'px';
+      host.appendChild(p);
+    }
+  }
   var target = {{ next_url|tojson }};
   var done = false;
   function go(){ if(done) return; done=true; try{ window.location.replace(target); } catch(e){ window.location.href=target; } }
-  setTimeout(go, 1900);
-  setTimeout(function(){ var m=document.getElementById('splashManual'); if(m) m.classList.add('on'); }, 2600);
+  setTimeout(go, 2400);
 })();
 </script>
 {% endblock %}
