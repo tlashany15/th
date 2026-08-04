@@ -2,9 +2,9 @@
    fix-v11.css — إصلاحات نهائية
    1) صفحة إغلاق اليوم: صورة العامل مش بتاكل الاسم + أزرار تسمين/بياض جوّه حقلها
    2) الدردشة: سكرول شغّال + حقل الإدخال ظاهر دايمًا
-   3) الرسالة الصوتية بشكل تلجرام
-   4) علامة التوثيق داخل الدردشة جنب الاسم بس (مش على الصورة)
-   5) انتقال بين الصفحات زي لفّ المكعب + دخول المحتوى زي القائمة الجانبية
+   3) الرسالة الصوتية في صف واحد
+   4) الشريط العلوي/السفلي ثابتين
+   5) انتقال عادي بين الصفحات
    لازم يتحمّل آخر ملف CSS.
    ========================================================================== */
 
@@ -107,25 +107,27 @@
   z-index: 3;
 }
 .wa-composer { padding-bottom: calc(6px + env(safe-area-inset-bottom)) !important; }
-
 /* ------------------------------------------------------------------
-   3) الرسالة الصوتية — شكل تلجرام
+   3) الرسالة الصوتية — صف واحد: زر التشغيل + موجة الصوت + المدة
+   (الزر والموجة على نفس الاستواء تمامًا، والمدة جنبهم مش تحتهم)
    ------------------------------------------------------------------ */
 .wa-audio2 {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
   min-width: 210px;
-  max-width: 260px;
-  padding: 4px 2px !important;
+  max-width: 265px;
+  padding: 2px 2px !important;
 }
 .wa-a-play {
   width: 40px !important;
   height: 40px !important;
   min-width: 40px !important;
+  min-height: 40px !important;
   border-radius: 50% !important;
   display: grid !important;
   place-items: center !important;
+  align-self: center !important;
   flex: 0 0 auto !important;
   border: 0 !important;
   background: #2f7dff !important;
@@ -137,8 +139,22 @@
   color: #1a1f2e !important;
 }
 .wa-a-play svg { width: 17px !important; height: 17px !important; }
-.wa-a-mid { flex: 1 1 auto; min-width: 0; }
-.wa-a-wave { height: 24px !important; }
+
+/* الوسط: الموجة + المدة في نفس السطر */
+.wa-a-mid {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+}
+.wa-a-wave {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  height: 26px !important;
+  margin: 0 !important;
+}
 .wa-a-bars i { max-width: 3px !important; border-radius: 99px !important; opacity: .35; }
 .wa-a-bars--fill { color: #2f7dff !important; filter: none !important; }
 .wa-me .wa-a-bars--fill { color: #fff !important; }
@@ -149,105 +165,66 @@
 }
 .wa-me .wa-a-thumb { background: #fff !important; }
 .wa-a-time {
-  margin-top: 3px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
   font-size: 11.5px !important;
-  opacity: .7 !important;
+  font-weight: 700 !important;
+  opacity: .72 !important;
   direction: ltr;
-  text-align: start;
+  font-variant-numeric: tabular-nums;
+  align-self: center !important;
 }
 .wa-audio2.is-playing .wa-a-bars i { animation: none !important; }
 
-/* ------------------------------------------------------------------
-   4) علامة التوثيق جوّه الدردشة: جنب الاسم بس
-   ------------------------------------------------------------------ */
-.wa-head-avatar .verified-badge,
-.wa-head-avatar .dev-badge,
-.wa-msg-av .verified-badge,
-.wa-msg-av .dev-badge,
-.wa-av .verified-badge,
-.wa-av .dev-badge { display: none !important; }
-
-.wa-head-name .verified-badge,
-.wa-head-name .dev-badge {
-  display: inline-grid !important;
-  width: 15px !important;
-  height: 15px !important;
-  vertical-align: -3px;
-  margin-inline-start: 4px;
+/* داخل معاينة التسجيل قبل الإرسال — نفس النظام */
+.wa-rec-preview .wa-rec-preview-mid .wa-a-mid,
+.wa-rec-preview-mid .wa-a-mid {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
-.wa-head-name .verified-badge svg,
-.wa-head-name .dev-badge svg { width: 15px !important; height: 15px !important; }
-.wa-head-avatar { overflow: hidden !important; }
+.wa-rec-preview .wa-rec-preview-mid .wa-a-time,
+.wa-rec-preview-mid .wa-a-time { margin: 0 !important; }
 
 /* ------------------------------------------------------------------
-   5) انتقال الصفحات — لفّة مكعّب + دخول المحتوى زي القائمة الجانبية
+   4) الشريط العلوي والسفلي ثابتين + القائمة الجانبية ما تظهرش مع السكرول
+   (السبب كان perspective على body اللي بيكسر position:fixed)
    ------------------------------------------------------------------ */
-body { perspective: 1400px; }
+html, body { perspective: none !important; transform-style: flat !important; }
 
-@keyframes cubeInFwd {
-  from { opacity: .25; transform: perspective(1400px) translate3d(34%, 0, -160px) rotateY(-26deg); }
-  to   { opacity: 1;   transform: none; }
-}
-@keyframes cubeInBack {
-  from { opacity: .25; transform: perspective(1400px) translate3d(-34%, 0, -160px) rotateY(26deg); }
-  to   { opacity: 1;   transform: none; }
-}
-@keyframes cubeOutFwd {
-  from { opacity: 1;  transform: none; }
-  to   { opacity: .15; transform: perspective(1400px) translate3d(-30%, 0, -160px) rotateY(22deg); }
-}
-@keyframes cubeOutBack {
-  from { opacity: 1;  transform: none; }
-  to   { opacity: .15; transform: perspective(1400px) translate3d(30%, 0, -160px) rotateY(-22deg); }
+/* overflow-x:hidden على body كان بيخلّيه scroll-container وبيكسر ثبات الشريط العلوي.
+   clip بيمنع الخروج الأفقي من غير ما يعمل سكرول جديد. */
+html, body {
+  overflow-x: clip !important;
+  overflow-y: visible !important;
 }
 
-body.pg-enter .container,
-body.pg-enter .wa-wrap {
-  animation: cubeInFwd .42s cubic-bezier(.22, 1, .36, 1) both !important;
-  opacity: 1 !important;
-  transform-origin: 0% 50%;
-  backface-visibility: hidden;
+.topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 60 !important;
 }
-body.pg-enter-back .container,
-body.pg-enter-back .wa-wrap {
-  animation: cubeInBack .42s cubic-bezier(.22, 1, .36, 1) both !important;
-  opacity: 1 !important;
-  transform-origin: 100% 50%;
-  backface-visibility: hidden;
+.bottom-nav {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+  z-index: 55 !important;
 }
-body.pg-leave .container,
-body.pg-leave .wa-wrap {
-  animation: cubeOutFwd .2s cubic-bezier(.4, 0, 1, 1) both !important;
-  transform-origin: 100% 50%;
+.app-sidebar {
+  position: fixed !important;
+  z-index: 90 !important;
+  visibility: hidden;
+  pointer-events: none;
 }
-body.pg-leave-back .container,
-body.pg-leave-back .wa-wrap {
-  animation: cubeOutBack .2s cubic-bezier(.4, 0, 1, 1) both !important;
-  transform-origin: 0% 50%;
+.app-sidebar.is-open {
+  visibility: visible;
+  pointer-events: auto;
 }
+.sidebar-overlay { position: fixed !important; inset: 0 !important; z-index: 85 !important; }
 
-/* محتوى أي صفحة يدخل زي عناصر القائمة الجانبية (انزلاق من الجنب بالتتابع) */
-@keyframes drawerItemIn {
-  from { opacity: 0; transform: translate3d(18px, 6px, 0); }
-  to   { opacity: 1; transform: none; }
-}
-body.pg-enter .container > *,
-body.pg-enter-back .container > * {
-  animation: drawerItemIn .38s cubic-bezier(.22, 1, .36, 1) both !important;
-}
-body.pg-enter .container > *:nth-child(1) { animation-delay: .04s !important; }
-body.pg-enter .container > *:nth-child(2) { animation-delay: .09s !important; }
-body.pg-enter .container > *:nth-child(3) { animation-delay: .14s !important; }
-body.pg-enter .container > *:nth-child(4) { animation-delay: .19s !important; }
-body.pg-enter .container > *:nth-child(5) { animation-delay: .24s !important; }
-body.pg-enter .container > *:nth-child(n+6) { animation-delay: .28s !important; }
-
-@media (prefers-reduced-motion: reduce) {
-  body.pg-enter .container, body.pg-enter .wa-wrap,
-  body.pg-enter-back .container, body.pg-enter-back .wa-wrap,
-  body.pg-leave .container, body.pg-leave .wa-wrap,
-  body.pg-leave-back .container, body.pg-leave-back .wa-wrap,
-  body.pg-enter .container > *, body.pg-enter-back .container > * {
-    animation: none !important;
-  }
-}
+/* ------------------------------------------------------------------
+   5) انتقال عادي بين الصفحات (اتشال انتقال المكعب 3D)
+   الانتقال الطبيعي متعرّف في fix-v6.css — من غير أي تعديل هنا.
+   ------------------------------------------------------------------ */
