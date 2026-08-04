@@ -318,7 +318,7 @@ window.ChatHelpers = (function(){
       if (pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
       if (!longPressed && !isRecording){
         // نقرة قصيرة
-        (window.ChatHelpers && ChatHelpers.toast) ? ChatHelpers.toast('اضغط مطوّلاً للتسجيل 🎤')
+        (window.ChatHelpers && ChatHelpers.toast) ? ChatHelpers.toast('اضغط مطوّلاً للتسجيل')
                                                    : null;
         return;
       }

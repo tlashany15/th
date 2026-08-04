@@ -148,8 +148,26 @@
     }
   }
 
+  // كلمات ثابتة تتكتب دايمًا بتطويل (زي: تـسمين)
+  var WORD_TATWEEL = [
+    [/\u062A\u0633\u0645\u064A\u0646/g, '\u062A\u0640\u0633\u0645\u064A\u0646']
+  ];
+  function wordTatweelIn(root) {
+    walkTextNodes(root, function (n) {
+      if (shouldSkip(n)) return;
+      var v = n.nodeValue;
+      if (!v) return;
+      var nv = v;
+      for (var i = 0; i < WORD_TATWEEL.length; i++) {
+        nv = nv.replace(WORD_TATWEEL[i][0], WORD_TATWEEL[i][1]);
+      }
+      if (nv !== v) n.nodeValue = nv;
+    });
+  }
+
   function runAll(root) {
     try { normalizeDigitsIn(root || document.body); } catch (e) {}
+    try { wordTatweelIn(root || document.body); } catch (e) {}
     try { tatweelIn(root || document.body); } catch (e) {}
     try { normalizeInputs(root || document); } catch (e) {}
   }
