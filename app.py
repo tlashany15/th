@@ -27,7 +27,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 # كاش طويل للملفات الثابتة (CSS/JS) — بيخلي التنقل بين الصفحات أسرع بكتير
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 60 * 60 * 24 * 365
 # رقم إصدار للملفات الثابتة — غيّره لو عدّلت CSS/JS عشان الكاش يتجدد
-ASSET_VER = os.environ.get("ASSET_VER", "20260804b")
+ASSET_VER = os.environ.get("ASSET_VER", "20260804c")
 
 
 @app.context_processor
