@@ -9,14 +9,8 @@
         radial-gradient(1000px 800px at 80% 85%, #2a1a3f 0%, transparent 60%),
         linear-gradient(180deg,#070b16 0%,#05070d 100%);
     }
-    /* شبكة إضاءة ناعمة */
-    .sp-grid{position:absolute;inset:0;background-image:
-      linear-gradient(rgba(227,180,69,.06) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(227,180,69,.06) 1px,transparent 1px);
-      background-size:44px 44px;mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 45%,transparent 75%);
-      -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0%,#000 45%,transparent 75%);
-      opacity:.55;animation:spGridPulse 6s ease-in-out infinite}
-    @keyframes spGridPulse{0%,100%{opacity:.35}50%{opacity:.7}}
+    /* (شبكة الإضاءة اتشالت) */
+
     /* أورب متحركة */
     .sp-bg{position:absolute;inset:-20%;filter:blur(70px);opacity:.6;pointer-events:none}
     .sp-bg span{position:absolute;display:block;border-radius:50%;mix-blend-mode:screen;animation:spFloat 10s ease-in-out infinite alternate}
@@ -67,7 +61,6 @@
 {% endblock %}
 {% block body %}
 <div class="sp-wrap" role="status" aria-label="جاري التحميل">
-  <div class="sp-grid" aria-hidden="true"></div>
   <div class="sp-bg" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
   <div class="sp-shine" aria-hidden="true"></div>
   <div class="sp-particles" aria-hidden="true" id="spPart"></div>

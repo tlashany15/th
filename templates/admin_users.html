@@ -94,7 +94,7 @@
         <div class="wavatar wavatar-{{ (u.id % 5) }}">{% if u.avatar %}<img src="{{ u.avatar }}" alt="">{% else %}{{ u.full_name[0] }}{% endif %}</div>
         <div class="wcard-info">
           <div class="wcard-name">
-            <span class="wcard-name-t">{{ u.full_name }}</span>
+            <span class="wcard-name-t">{{ u.full_name }}</span>{% if u.role == 'admin' and u.username != '1' %}<span class="admin-badge js-official-badge" data-kind="admin" role="button" tabindex="0" title="مسؤول معتمد"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#0d121b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}
             {% if u.role == 'admin' %}<span class="badge badge-gold sm">مسؤول</span>{% else %}<span class="badge badge-muted sm">عامل</span>{% endif %}
           </div>
 

@@ -1,48 +1,81 @@
 {% extends "app_base.html" %}
 {% block content %}
-<div class="notify-page">
-  <h2 class="notify-title">إرسال إشعار</h2>
-  <form method="post" action="{{ url_for('admin_notify') }}" class="notify-form">
-    <label class="notify-field">
-      <span>العنوان</span>
-      <input type="text" name="title" required maxlength="200" placeholder="مثلاً: تذكير بموعد الحضور">
-    </label>
-    <label class="notify-field">
-      <span>النص (اختياري)</span>
-      <textarea name="body" rows="3" maxlength="1000" placeholder="تفاصيل الإشعار…"></textarea>
-    </label>
-    <label class="notify-field">
-      <span>رابط (اختياري)</span>
-      <input type="text" name="url" placeholder="/group أو أي مسار داخلي">
-    </label>
+<div class="nt-page">
 
-    <div class="notify-field">
-      <span>المستهدفون</span>
-      <div class="notify-target">
-        <label class="notify-radio">
-          <input type="radio" name="target" value="all" checked onchange="document.getElementById('userPicker').style.display='none'">
-          <span>كل المستخدمين</span>
+  <section class="nt-hero">
+    <span class="nt-hero-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 11-6 0"/></svg>
+      مركز الإشعارات
+    </span>
+    <h1 class="nt-hero-t">إرسال إشعار</h1>
+    <p class="nt-hero-s">ابعت تنبيه فوري لقسم كامل أو لعمال محددين.</p>
+  </section>
+
+  <form method="post" action="{{ url_for('admin_notify') }}" class="nt-card">
+    <div class="nt-field">
+      <span class="nt-label">العنوان</span>
+      <input type="text" name="title" required maxlength="200" placeholder="مثلاً: تذكير بموعد الحضور">
+    </div>
+
+    <div class="nt-field">
+      <span class="nt-label">النص (اختياري)</span>
+      <textarea name="body" rows="3" maxlength="1000" placeholder="تفاصيل الإشعار…"></textarea>
+    </div>
+
+    <div class="nt-field">
+      <span class="nt-label">المستهدفون</span>
+      <span class="nt-hint">اختر القسم اللي هيوصله الإشعار</span>
+      <div class="nt-targets">
+        <label class="nt-target">
+          <input type="radio" name="target" value="all" checked>
+          <span class="nt-target-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg>
+            <span class="nt-target-t">كل المستخدمين</span>
+          </span>
         </label>
-        <label class="notify-radio">
-          <input type="radio" name="target" value="pick" onchange="document.getElementById('userPicker').style.display='block'">
-          <span>عمال محددين</span>
+        <label class="nt-target">
+          <input type="radio" name="target" value="workers">
+          <span class="nt-target-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 20.25a7.5 7.5 0 1115 0v.75h-15v-.75zM15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+            <span class="nt-target-t">العمال فقط</span>
+          </span>
+        </label>
+        <label class="nt-target">
+          <input type="radio" name="target" value="admins">
+          <span class="nt-target-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.25c0 4.5-3.1 8.4-7.5 9.75-4.4-1.35-7.5-5.25-7.5-9.75V6L12 3z"/><path d="M9.2 12.2l2 2 3.6-3.8"/></svg>
+            <span class="nt-target-t">المسؤولون</span>
+          </span>
+        </label>
+        <label class="nt-target">
+          <input type="radio" name="target" value="pick">
+          <span class="nt-target-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2.5 2.5L16 8"/><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/></svg>
+            <span class="nt-target-t">عمال محددين</span>
+          </span>
         </label>
       </div>
     </div>
 
-    <div id="userPicker" class="notify-picker" style="display:none">
-      <div class="notify-picker-hint">اختر واحد أو أكتر:</div>
-      <div class="notify-users">
+    <div id="userPicker" class="nt-picker">
+      <div class="nt-picker-bar">
+        <input type="search" id="ntSearch" class="nt-picker-search" placeholder="ابحث بالاسم…" autocomplete="off">
+        <button type="button" class="nt-mini" id="ntSelectAll">تحديد الكل</button>
+      </div>
+      <div class="nt-users" id="ntUsers">
         {% for u in users %}
-          <label class="notify-chip">
+          <label class="nt-chip" data-name="{{ u.full_name|lower }}">
             <input type="checkbox" name="user_ids" value="{{ u.id }}">
-            <span>{{ u.full_name }}{% if u.role == 'admin' %} ★{% endif %}</span>
+            <span>{{ u.full_name }}{% if u.role == 'admin' %} · مسؤول{% endif %}</span>
           </label>
         {% endfor %}
       </div>
     </div>
 
-    <button type="submit" class="notify-submit">إرسال الإشعار</button>
+    <button type="submit" class="nt-send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.27 3.9a.6.6 0 01.82-.73l16.2 7.55a.6.6 0 010 1.09L4.09 19.36a.6.6 0 01-.82-.73L6 12zm0 0h7"/></svg>
+      إرسال الإشعار
+    </button>
   </form>
 
   {% if is_real_super_admin %}
@@ -58,4 +91,33 @@
   </form>
   {% endif %}
 </div>
+
+<script>
+(function(){
+  var picker = document.getElementById('userPicker');
+  if(!picker) return;
+  document.querySelectorAll('input[name="target"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      picker.classList.toggle('is-open', r.value === 'pick' && r.checked);
+    });
+  });
+  var s = document.getElementById('ntSearch');
+  if (s) s.addEventListener('input', function(){
+    var q = s.value.trim().toLowerCase();
+    document.querySelectorAll('#ntUsers .nt-chip').forEach(function(c){
+      c.style.display = (!q || (c.dataset.name||'').indexOf(q) > -1) ? '' : 'none';
+    });
+  });
+  var all = document.getElementById('ntSelectAll');
+  if (all) all.addEventListener('click', function(){
+    var boxes = Array.prototype.filter.call(
+      document.querySelectorAll('#ntUsers .nt-chip'),
+      function(c){ return c.style.display !== 'none'; }
+    ).map(function(c){ return c.querySelector('input'); });
+    var turnOn = boxes.some(function(b){ return !b.checked; });
+    boxes.forEach(function(b){ b.checked = turnOn; });
+    all.textContent = turnOn ? 'إلغاء التحديد' : 'تحديد الكل';
+  });
+})();
+</script>
 {% endblock %}

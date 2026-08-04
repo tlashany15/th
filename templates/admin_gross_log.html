@@ -39,13 +39,13 @@
     </div>
   </div>
   {% if current_period.total > 0 %}
-  <form method="post" action="{{ url_for('admin_gross_clear_period') }}" style="margin-top:10px;"
+  <form method="post" action="{{ url_for('admin_gross_clear_period') }}" class="gl-clear-form"
         onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير عمود (بدون خصم) لأيام هذه المدة نهائيًا بدون أرشيف.',{title:'تصفير أعداد بدون خصم للمدة الحالية؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير أعداد بدون خصم للمدة الحالية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
     <input type="hidden" name="year"  value="{{ current_period.year }}">
     <input type="hidden" name="month" value="{{ current_period.month }}">
     <input type="hidden" name="half"  value="{{ current_period.half }}">
-    <button type="submit" class="btn btn-danger" style="width:100%;">
-      <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تصفير المدة الحالية (بدون خصم)
+    <button type="submit" class="btn btn-danger btn-sm gl-clear-btn">
+      <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تصفير المدة الحالية
     </button>
   </form>
   {% endif %}
