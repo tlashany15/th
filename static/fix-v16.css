@@ -193,7 +193,8 @@
 .isl-q-t{ font-size:14.5px; font-weight:900; }
 .isl-q-s{ font-size:12.5px; color:var(--text-2,#a1a4b2); font-weight:700; margin-top:4px; line-height:1.6; }
 .isl-q-link{
-  display:inline-flex; align-items:center; gap:6px; margin-top:9px;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  margin:12px auto 0; width:100%; max-width:260px; cursor:pointer;
   padding:7px 13px; border-radius:999px;
   background:var(--gold-soft, rgba(47,125,255,.14));
   border:1px solid var(--gold-line, rgba(47,125,255,.32));
@@ -201,7 +202,98 @@
   transition:transform .15s ease;
 }
 .isl-q-link:active{ transform:scale(.97); }
-.isl-q-link svg{ width:14px; height:14px; }
+.isl-q-link svg{ width:15px; height:15px; }
+
+.isl-loc{ justify-content:center; text-align:center; }
+
+/* ===== قارئ المصحف داخل التطبيق ===== */
+body.isl-lock{ overflow:hidden; }
+.isl-ov{
+  position:fixed; inset:0; z-index:2147483000;
+  background:rgba(4,6,14,.62); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; transition:opacity .25s ease;
+}
+.isl-ov.is-open{ opacity:1; }
+.isl-sheet{
+  width:min(560px,100%); max-height:92vh; display:flex; flex-direction:column;
+  background:var(--surface-1,#12141d);
+  border:1px solid var(--line,rgba(255,255,255,.08));
+  border-bottom:0; border-radius:26px 26px 0 0;
+  box-shadow:0 -22px 60px rgba(0,0,0,.45);
+  transform:translateY(24px); opacity:.6;
+  transition:transform .3s cubic-bezier(.2,.9,.25,1.02), opacity .25s ease;
+}
+.isl-ov.is-open .isl-sheet{ transform:none; opacity:1; }
+.isl-sheet-bar{
+  width:42px; height:4px; border-radius:99px; margin:9px auto 2px;
+  background:rgba(255,255,255,.16);
+}
+.isl-sheet-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 16px 12px; border-bottom:1px solid var(--line,rgba(255,255,255,.07));
+}
+.isl-sheet-t{ display:flex; align-items:center; gap:8px; font-size:14.5px; font-weight:900; }
+.isl-sheet-t svg{ width:17px; height:17px; color:var(--green-2,#7ff3cd); }
+.isl-sheet-t b{ font-variant-numeric:tabular-nums; }
+.isl-sheet-x{
+  width:32px; height:32px; border-radius:11px; display:grid; place-items:center; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid var(--line,rgba(255,255,255,.08));
+  color:var(--text-2,#a1a4b2);
+}
+.isl-sheet-x svg{ width:15px; height:15px; }
+.isl-sheet-x:active{ transform:scale(.95); }
+.isl-sheet-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+.isl-sheet-foot{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  padding:10px 16px calc(14px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line,rgba(255,255,255,.07));
+}
+.isl-nav{
+  padding:10px; border-radius:14px; cursor:pointer; font-size:12.5px; font-weight:800;
+  background:rgba(255,255,255,.05); border:1px solid var(--line,rgba(255,255,255,.08));
+  color:var(--text-2,#a1a4b2);
+}
+.isl-nav-p{
+  background:var(--gold-soft,rgba(47,125,255,.14));
+  border-color:var(--gold-line,rgba(47,125,255,.32));
+  color:var(--gold-2,#7fb0ff);
+}
+.isl-nav:active{ transform:scale(.97); }
+.isl-bism{
+  text-align:center; font-size:19px; font-weight:800; margin-bottom:14px;
+  color:var(--green-2,#7ff3cd);
+}
+.isl-ayat{
+  margin:0; text-align:center; direction:rtl;
+  font-size:22px; line-height:2.35; font-weight:600;
+  font-family:"Amiri Quran","Amiri","Scheherazade New","Traditional Arabic",serif;
+}
+.isl-aya-n{
+  display:inline-block; margin:0 4px; font-size:14px; font-weight:900;
+  color:var(--gold-2,#7fb0ff);
+}
+.isl-aya-n::before{ content:"\FD3E"; }
+.isl-aya-n::after{ content:"\FD3F"; }
+.isl-mushaf-f{
+  margin-top:16px; text-align:center; font-size:11.5px; font-weight:800;
+  color:var(--text-3,#63667a);
+}
+.isl-load{ display:flex; gap:7px; justify-content:center; padding:38px 0; }
+.isl-load i{
+  width:9px; height:9px; border-radius:50%; background:var(--gold-2,#7fb0ff);
+  animation:islDot .9s ease-in-out infinite;
+}
+.isl-load i:nth-child(2){ animation-delay:.15s; }
+.isl-load i:nth-child(3){ animation-delay:.3s; }
+@keyframes islDot{ 0%,100%{ opacity:.3; transform:translateY(0);} 50%{ opacity:1; transform:translateY(-6px);} }
+.isl-err{ text-align:center; padding:30px 10px; }
+.isl-err p{ font-size:13px; color:var(--text-2,#a1a4b2); font-weight:700; margin:0 0 12px; }
+.isl-retry{
+  padding:8px 16px; border-radius:999px; cursor:pointer; font-size:12.5px; font-weight:800;
+  background:var(--gold-soft,rgba(47,125,255,.14));
+  border:1px solid var(--gold-line,rgba(47,125,255,.32)); color:var(--gold-2,#7fb0ff);
+}
 
 .isl-skel{
   height:96px; border-radius:18px;

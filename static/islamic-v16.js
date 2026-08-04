@@ -167,7 +167,7 @@
   ];
 
   var state = {
-    lat: 30.0444, lng: 31.2357, city: 'القاهرة (افتراضي)', located: false
+    lat: 31.0409, lng: 30.4682, city: 'البحيرة'
   };
   var tickTimer = null;
 
@@ -269,8 +269,9 @@
       '<div class="isl-q-b">' +
       '<div class="isl-q-t">اقرأ صفحة ' + page + ' النهاردة</div>' +
       '<div class="isl-q-s">صفحة واحدة كل يوم تخلّيك تختم المصحف بإذن الله — والقراءة راحة للقلب.</div>' +
-      '<a class="isl-q-link" href="https://quran.com/page/' + page + '" target="_blank" rel="noopener">' + IC.ext + ' افتح الصفحة</a>' +
-      '</div></div></div>';
+      '</div></div>' +
+      '<button type="button" class="isl-q-link" id="islRead" data-page="' + page + '">' + IC.book + ' اقرأ الصفحة</button>' +
+      '</div>';
 
     /* مواقيت الصلاة */
     var prayersHtml =
@@ -292,9 +293,8 @@
                '<div class="isl-p-t">' + esc(fmtTime(p.date)) + '</div></div>';
       }).join('') +
       '</div>' +
-      '<div class="isl-loc"><span>المواقيت حسب: ' + esc(state.city) + '</span>' +
-      (state.located ? '' : '<button type="button" id="islGeo">حدّد موقعي</button>') +
-      '</div></div>';
+      '<div class="isl-loc"><span>المواقيت حسب محافظة ' + esc(state.city) + '</span></div>' +
+      '</div>';
 
     host.className = 'isl-wrap v2-fade';
     host.innerHTML = prayersHtml + ramHtml + evHtml + quranHtml;
@@ -306,8 +306,8 @@
       });
     });
 
-    var geoBtn = document.getElementById('islGeo');
-    if (geoBtn) geoBtn.addEventListener('click', askLocation);
+    var readBtn = document.getElementById('islRead');
+    if (readBtn) readBtn.addEventListener('click', function(){ openMushaf(page); });
 
     startTick();
   }
@@ -325,34 +325,102 @@
     }, 1000);
   }
 
-  function askLocation(){
-    if (!navigator.geolocation) {
-      if (window.appToast) appToast('المتصفح مش داعم تحديد الموقع', 'error');
-      return;
+
+  /* ============ قارئ المصحف داخل التطبيق ============ */
+  var mushafCache = {};
+
+  function openMushaf(page){
+    var ov = document.getElementById('islMushaf');
+    if (ov) ov.remove();
+    ov = document.createElement('div');
+    ov.id = 'islMushaf';
+    ov.className = 'isl-ov';
+    ov.innerHTML =
+      '<div class="isl-sheet" role="dialog" aria-label="ورد اليوم">' +
+        '<div class="isl-sheet-bar"></div>' +
+        '<div class="isl-sheet-head">' +
+          '<div class="isl-sheet-t">' + IC.book + '<span>صفحة <b class="isl-sheet-p">' + page + '</b></span></div>' +
+          '<button type="button" class="isl-sheet-x" aria-label="إغلاق">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<div class="isl-sheet-body"><div class="isl-load"><i></i><i></i><i></i></div></div>' +
+        '<div class="isl-sheet-foot">' +
+          '<button type="button" class="isl-nav" data-d="-1">الصفحة السابقة</button>' +
+          '<button type="button" class="isl-nav isl-nav-p" data-d="1">الصفحة التالية</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    document.body.classList.add('isl-lock');
+    requestAnimationFrame(function(){ ov.classList.add('is-open'); });
+
+    function close(){
+      ov.classList.remove('is-open');
+      document.body.classList.remove('isl-lock');
+      setTimeout(function(){ if (ov.parentNode) ov.remove(); }, 260);
     }
-    navigator.geolocation.getCurrentPosition(function (pos){
-      state.lat = pos.coords.latitude;
-      state.lng = pos.coords.longitude;
-      state.city = 'موقعك الحالي';
-      state.located = true;
-      try { localStorage.setItem('isl_loc', JSON.stringify({ lat: state.lat, lng: state.lng })); } catch (_){}
-      if (window.appToast) appToast('تم ضبط المواقيت على موقعك', 'success');
-      render();
-    }, function (){
-      if (window.appToast) appToast('متعرفناش نجيب موقعك — المواقيت على القاهرة', 'warning');
-    }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
+    ov.addEventListener('click', function(e){ if (e.target === ov) close(); });
+    ov.querySelector('.isl-sheet-x').addEventListener('click', close);
+
+    var cur = page;
+    ov.querySelectorAll('.isl-nav').forEach(function(b){
+      b.addEventListener('click', function(){
+        var n = cur + parseInt(b.getAttribute('data-d'), 10);
+        if (n < 1) n = 1; if (n > 604) n = 604;
+        if (n === cur) return;
+        cur = n;
+        ov.querySelector('.isl-sheet-p').textContent = n;
+        loadPage(n);
+      });
+    });
+
+    function loadPage(n){
+      var body = ov.querySelector('.isl-sheet-body');
+      body.scrollTop = 0;
+      if (mushafCache[n]) { paint(body, mushafCache[n], n); return; }
+      body.innerHTML = '<div class="isl-load"><i></i><i></i><i></i></div>';
+      fetch('https://api.quran.com/api/v4/verses/by_page/' + n +
+            '?fields=text_uthmani&per_page=all&words=false')
+        .then(function(r){ if (!r.ok) throw new Error('net'); return r.json(); })
+        .then(function(j){
+          var vs = (j && j.verses) || [];
+          if (!vs.length) throw new Error('empty');
+          mushafCache[n] = vs;
+          paint(body, vs, n);
+        })
+        .catch(function(){
+          body.innerHTML = '<div class="isl-err"><p>تعذّر تحميل الصفحة — اتأكد من الاتصال بالإنترنت.</p>' +
+            '<button type="button" class="isl-retry">إعادة المحاولة</button></div>';
+          var rb = body.querySelector('.isl-retry');
+          if (rb) rb.addEventListener('click', function(){ loadPage(n); });
+        });
+    }
+
+    function paint(body, vs, n){
+      var html = '<div class="isl-mushaf v2-fade">' +
+        (String(vs[0].verse_key).split(':')[1] === '1'
+          ? '<div class="isl-bism">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>' : '') +
+        '<p class="isl-ayat">' +
+        vs.map(function(v){
+          var num = String(v.verse_key).split(':')[1];
+          return '<span class="isl-aya">' + esc(v.text_uthmani) +
+                 '<span class="isl-aya-n">' + toArabicNum(num) + '</span></span>';
+        }).join(' ') +
+        '</p><div class="isl-mushaf-f">صفحة ' + n + ' من 604</div></div>';
+      body.innerHTML = html;
+    }
+
+    loadPage(cur);
+  }
+
+  function toArabicNum(s){
+    var ar = '٠١٢٣٤٥٦٧٨٩';
+    return String(s).replace(/\d/g, function(d){ return ar[+d]; });
   }
 
   function init(){
     host = document.getElementById(HOST_ID);
     if (!host) return;
-    try {
-      var saved = JSON.parse(localStorage.getItem('isl_loc') || 'null');
-      if (saved && saved.lat) {
-        state.lat = saved.lat; state.lng = saved.lng;
-        state.city = 'موقعك المحفوظ'; state.located = true;
-      }
-    } catch (_){}
     render();
   }
 
