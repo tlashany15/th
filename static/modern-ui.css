@@ -11,7 +11,7 @@
 .inav-bar.is-on{ opacity: 1; }
 .inav-bar-fill{
   display: block; height: 100%; width: 0;
-  background: linear-gradient(90deg, #a29bfe 0%, #ff8a8f 60%, #a29bfe 100%);
+  background: linear-gradient(90deg, #7fb0ff 0%, #ff8a8f 60%, #7fb0ff 100%);
   box-shadow: 0 0 12px rgba(162,155,254,.55), 0 0 4px rgba(255,90,95,.6);
   transition: width .18s ease-out;
   border-radius: 0 3px 3px 0;
@@ -77,10 +77,10 @@
 .app-toast.is-success .at-ic{ background: rgba(0,214,143,.12); color: #00d68f; }
 .app-toast.is-error  { color: #ff8a8f; }
 .app-toast.is-error   .at-ic{ background: rgba(255,90,95,.15); color: #ff8a8f; }
-.app-toast.is-warning{ color: #6c5ce7; }
-.app-toast.is-warning .at-ic{ background: rgba(108,92,231,.15); color: #6c5ce7; }
-.app-toast.is-info   { color: #a29bfe; }
-.app-toast.is-info    .at-ic{ background: rgba(162,155,254,.14); color: #a29bfe; }
+.app-toast.is-warning{ color: #2f7dff; }
+.app-toast.is-warning .at-ic{ background: rgba(47,125,255,.15); color: #2f7dff; }
+.app-toast.is-info   { color: #7fb0ff; }
+.app-toast.is-info    .at-ic{ background: rgba(162,155,254,.14); color: #7fb0ff; }
 .app-toast > span:not(.at-ic):not(.at-close){ color: #f5f7fb; }
 
 /* ---------- Modern modal ---------- */
@@ -117,7 +117,7 @@
   width: 62px; height: 62px; margin: 0 auto 12px;
   display: grid; place-items: center; border-radius: 20px;
   background: linear-gradient(135deg, rgba(162,155,254,.16), rgba(162,155,254,.06));
-  color: #a29bfe;
+  color: #7fb0ff;
   box-shadow: inset 0 0 0 1px rgba(162,155,254,.25);
 }
 .app-modal-ic.is-danger{

@@ -26,16 +26,16 @@
   --muted:#a1a4b2;
 
   /* ---------- اللون الأساسي (Accent واحد) ---------- */
-  --accent:#6c5ce7;
-  --accent-2:#a29bfe;
-  --accent-soft:rgba(108,92,231,.14);
-  --accent-line:rgba(108,92,231,.32);
+  --accent:#2f7dff;
+  --accent-2:#7fb0ff;
+  --accent-soft:rgba(47,125,255,.14);
+  --accent-line:rgba(47,125,255,.32);
 
   /* أسماء قديمة → كلها بتشاور على نفس الـ accent */
-  --gold:#6c5ce7;      --gold-2:#a29bfe;
-  --gold-soft:rgba(108,92,231,.14); --gold-line:rgba(108,92,231,.32);
-  --blue:#6c5ce7;      --blue-2:#a29bfe;  --blue-soft:rgba(108,92,231,.14);
-  --violet:#6c5ce7;    --primary:#6c5ce7; --primary-2:#a29bfe;
+  --gold:#2f7dff;      --gold-2:#7fb0ff;
+  --gold-soft:rgba(47,125,255,.14); --gold-line:rgba(47,125,255,.32);
+  --blue:#2f7dff;      --blue-2:#7fb0ff;  --blue-soft:rgba(47,125,255,.14);
+  --violet:#2f7dff;    --primary:#2f7dff; --primary-2:#7fb0ff;
   --accent-fg:#ffffff;
 
   /* ---------- ألوان دلالية (للحالات الفعلية فقط) ---------- */
@@ -46,17 +46,17 @@
   --warn:#ff8a8f;    --warn-soft:rgba(255,90,95,.14);
 
   /* ---------- تدرجات وظلال ---------- */
-  --grad-gold:linear-gradient(140deg,#a29bfe 0%,#6c5ce7 55%,#5a4bd6 100%);
-  --grad-accent:linear-gradient(140deg,#a29bfe 0%,#6c5ce7 55%,#5a4bd6 100%);
+  --grad-gold:linear-gradient(140deg,#7fb0ff 0%,#2f7dff 55%,#1f5fe0 100%);
+  --grad-accent:linear-gradient(140deg,#7fb0ff 0%,#2f7dff 55%,#1f5fe0 100%);
   --grad-surface:linear-gradient(180deg,#14161d 0%,#0b0d12 100%);
-  --sh-gold:0 10px 26px -14px rgba(108,92,231,.55);
+  --sh-gold:0 10px 26px -14px rgba(47,125,255,.55);
 }
 
 html{ background:var(--bg-0); }
 body{
   background:
-    radial-gradient(1100px 720px at 100% -8%, rgba(108,92,231,.10), transparent 58%),
-    radial-gradient(900px 640px at -12% 6%, rgba(108,92,231,.07), transparent 58%),
+    radial-gradient(1100px 720px at 100% -8%, rgba(47,125,255,.10), transparent 58%),
+    radial-gradient(900px 640px at -12% 6%, rgba(47,125,255,.07), transparent 58%),
     var(--bg-0);
   color:var(--text);
 }
@@ -104,7 +104,7 @@ input:-webkit-autofill:focus{
   caret-color:var(--text-2);
 }
 
-::selection{ background:rgba(108,92,231,.30); color:var(--text); }
+::selection{ background:rgba(47,125,255,.30); color:var(--text); }
 :focus-visible{ outline:none; }
 
 /* ==========================================================================
@@ -112,22 +112,28 @@ input:-webkit-autofill:focus{
    ========================================================================== */
 .idara-av{
   display:grid; place-items:center;
-  background:linear-gradient(140deg,#a29bfe 0%,#6c5ce7 100%);
+  background:linear-gradient(140deg,#7fb0ff 0%,#2f7dff 100%);
   color:#fff;
 }
 .idara-av svg{ width:58%; height:58%; }
 .av-wrap-rel{ position:relative; }
 .verified-badge{
-  width:15px; height:15px; border-radius:50%;
+  width:17px; height:17px;
   display:inline-grid; place-items:center;
-  background:var(--accent); color:#fff;
-  vertical-align:middle; margin-inline-start:4px; flex:none;
+  color:var(--accent);
+  vertical-align:-3px; margin-inline-start:5px; flex:none;
 }
-.verified-badge svg{ width:9px; height:9px; }
+.verified-badge svg{ width:100%; height:100%; display:block; }
 .verified-badge.on-av{
-  position:absolute; inset-inline-end:-2px; bottom:-2px;
-  width:17px; height:17px; border:2px solid var(--bg-0);
+  position:absolute; inset-inline-end:-3px; bottom:-3px;
+  width:19px; height:19px; margin:0;
+  filter:drop-shadow(0 0 0 var(--bg-0));
 }
+.verified-badge.on-av svg{ filter:drop-shadow(0 0 1.5px var(--bg-0)) drop-shadow(0 0 1.5px var(--bg-0)); }
+
+/* علامات القراءة (صح/صحين) */
+.wa-ticks{ width:15px; height:15px; color:var(--text-3) !important; opacity:.55 !important; transition:color .18s ease, opacity .18s ease; }
+.wa-ticks.read{ color:var(--accent-2) !important; opacity:1 !important; }
 
 /* زر فتح حساب الإدارة — صفحة إرسال إشعار */
 .notify-idara{ margin-top:14px; }
@@ -139,6 +145,6 @@ input:-webkit-autofill:focus{
   font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;
   transition:background .15s ease;
 }
-.notify-idara-btn:hover{ background:rgba(108,92,231,.20); }
+.notify-idara-btn:hover{ background:rgba(47,125,255,.20); }
 .notify-idara-ic{ display:grid; place-items:center; width:22px; height:22px; }
 .notify-idara-ic svg{ width:20px; height:20px; }

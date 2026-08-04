@@ -20,17 +20,17 @@
   } catch(e){}
 
   var THEMES = [
-    { id:'default',  name:'فريق التحصين',  bg:'linear-gradient(180deg,#0b0d12,#14161d)',  me:'linear-gradient(160deg,#6c5ce7,#ff8a8f)', them:'#202a44', meText:'#ffffff', themText:'#f4f4f6' },
+    { id:'default',  name:'فريق التحصين',  bg:'linear-gradient(180deg,#0b0d12,#14161d)',  me:'linear-gradient(160deg,#2f7dff,#ff8a8f)', them:'#202a44', meText:'#ffffff', themText:'#f4f4f6' },
     { id:'wa-dark',  name:'واتساب داكن',    bg:'#0b141a', me:'#005c4b', them:'#202c33', meText:'#f4f4f6', themText:'#f4f4f6' },
     { id:'wa-light', name:'واتساب فاتح',    bg:'#efeae2', me:'#d9fdd3', them:'#ffffff', meText:'#14161d', themText:'#14161d' },
     { id:'tg-blue',  name:'تليجرام أزرق',   bg:'linear-gradient(180deg,#0f1c2e,#17324c)', me:'#2b5278', them:'#1b1e28', meText:'#fff', themText:'#fff' },
     { id:'tg-dark',  name:'تليجرام داكن',   bg:'#14161d', me:'#766ac8', them:'#1b1e28', meText:'#fff', themText:'#fff' },
-    { id:'amoled',   name:'أسود AMOLED',    bg:'#000',    me:'linear-gradient(160deg,#6c5ce7,#ff8a8f)', them:'#0e0e0e', meText:'#ffffff', themText:'#eee' },
+    { id:'amoled',   name:'أسود AMOLED',    bg:'#000',    me:'linear-gradient(160deg,#2f7dff,#ff8a8f)', them:'#0e0e0e', meText:'#ffffff', themText:'#eee' },
     { id:'rose',     name:'وردي',           bg:'linear-gradient(180deg,#2a0f1f,#3d1729)', me:'linear-gradient(160deg,#ff6b9d,#c94b7b)', them:'#4a1e35', meText:'#fff', themText:'#ffe8f0' },
     { id:'ocean',    name:'محيطي',          bg:'linear-gradient(180deg,#062a3d,#0a3d5a)', me:'linear-gradient(160deg,#22d3ee,#0891b2)', them:'#0d485f', meText:'#052732', themText:'#e0f7fa' },
     { id:'forest',   name:'غابة',           bg:'linear-gradient(180deg,#0f2417,#163a24)', me:'linear-gradient(160deg,#4ade80,#00d68f)', them:'#1e4d31', meText:'#062910', themText:'#e6ffed' },
     { id:'sunset',   name:'غروب',           bg:'linear-gradient(180deg,#2d1b4e,#c2185b)', me:'linear-gradient(160deg,#ffb347,#ff6b6b)', them:'#2a2440', meText:'#ffffff', themText:'#ffe5ec' },
-    { id:'midnight', name:'منتصف الليل',    bg:'linear-gradient(180deg,#0a0e27,#1a1e4e)', me:'linear-gradient(160deg,#6c5ce7,#6c5ce7)', them:'#1e1e4e', meText:'#fff', themText:'#e0e7ff' },
+    { id:'midnight', name:'منتصف الليل',    bg:'linear-gradient(180deg,#0a0e27,#1a1e4e)', me:'linear-gradient(160deg,#2f7dff,#2f7dff)', them:'#1e1e4e', meText:'#fff', themText:'#e0e7ff' },
     { id:'mocha',    name:'موكا',           bg:'linear-gradient(180deg,#2b1810,#4a2e1c)', me:'linear-gradient(160deg,#d4a574,#8b5a3c)', them:'#ffffff', meText:'#ffffff', themText:'#f5e6d3' },
     { id:'mint',     name:'نعناع',          bg:'linear-gradient(180deg,#0f2e2a,#1a4d42)', me:'linear-gradient(160deg,#6ee7b7,#00d68f)', them:'#1e4d43', meText:'#052e26', themText:'#d1fae5' },
     { id:'custom',   name:'مخصص',           bg:'#111', me:'#2b5278', them:'#1b1e28', meText:'#fff', themText:'#fff', isCustom:true },
