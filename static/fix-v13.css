@@ -1,0 +1,118 @@
+/* =========================================================
+   fix-v13.css — تنسيق صفحات التقارير والأعداد
+   (أزرار أصغر ومتناسقة، نصوص أنضف، مسافات مرتبة)
+   يجب تحميله آخر ملف CSS.
+   ========================================================= */
+
+/* ---------- 1) التابات ---------- */
+.ptabs{ padding:4px; gap:4px; margin-bottom:10px; border-radius:14px; }
+.ptabs a{ font-size:12px; font-weight:700; padding:8px 12px; border-radius:10px; }
+.ptabs a.is-active{ box-shadow:none; }
+
+/* ---------- 2) الهيرو (كل الصفحات) ---------- */
+.hero-admin{ padding:14px 16px !important; margin-bottom:10px !important; }
+.hero-admin .hero-h1,
+.hero-h1{
+  font-size:19px !important; line-height:1.35 !important;
+  margin:6px 0 2px !important; letter-spacing:0 !important; font-weight:800 !important;
+  word-spacing:normal !important;
+}
+.hero-admin .hero-sub{ font-size:12px !important; margin:2px 0 0 !important; }
+.hero-chip{ font-size:11px !important; padding:4px 10px !important; }
+
+/* ---------- 3) الأزرار: مقاس واحد هادي ---------- */
+.card .btn,
+.card .btn-lg,
+.btn.btn-lg{
+  height:auto !important;
+  min-height:42px;
+  padding:10px 16px !important;
+  font-size:13.5px !important;
+  font-weight:700 !important;
+  border-radius:12px !important;
+  line-height:1.35 !important;
+  box-shadow:none !important;
+}
+.card .btn svg,
+.btn.btn-lg svg{ width:16px !important; height:16px !important; }
+
+/* زر خطر (تصفير) — مقاس محدود ومش full width */
+.btn-danger{
+  min-height:38px !important;
+  padding:9px 14px !important;
+  font-size:13px !important;
+  border-radius:11px !important;
+  width:auto !important;
+  max-width:100%;
+}
+.gl-row .btn-danger{ min-height:32px !important; padding:6px 12px !important; font-size:12px !important; }
+
+.btn-reset-period{
+  min-height:34px; padding:7px 12px; font-size:12px; border-radius:10px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.btn-reset-period svg{ width:14px; height:14px; }
+
+/* ---------- 4) صفحة «نصيب كل الفريق» ---------- */
+.dmy-field{ margin-bottom:10px; }
+.dmy-field label{ font-size:11px; font-weight:700; }
+.dmy-field .dmy-input{
+  min-height:44px; font-size:15px; font-weight:700;
+  padding-inline-start:46px; padding-inline-end:12px;
+  direction:ltr; text-align:left;
+}
+.dmy-pick{ width:30px; height:30px; }
+.dmy-pick svg{ width:16px; height:16px; }
+
+/* ---------- 5) تقرير فترة مخصّصة ---------- */
+.rr2-hero{ padding:14px 16px !important; margin-bottom:10px !important; border-radius:18px !important; }
+.rr2-hero::before{ display:none !important; }      /* شيلنا الحركة/الهالة الزايدة */
+.rr2-title{ font-size:19px !important; margin:6px 0 0 !important; letter-spacing:0 !important; }
+.rr2-badge{ font-size:11px !important; padding:4px 10px !important; }
+
+.rr2-card{ padding:14px !important; border-radius:18px !important; margin-bottom:10px !important; }
+
+.rr2-seg{ gap:4px; padding:4px; border-radius:12px; margin-bottom:10px; }
+.rr2-seg button{
+  font-size:11.5px !important; font-weight:700 !important;
+  padding:9px 6px !important; border-radius:9px !important;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; gap:4px;
+}
+.rr2-seg button.active{ box-shadow:none !important; }
+.rr2-seg button svg{ width:13px !important; height:13px !important; flex:0 0 13px; }
+
+.rr2-presets{ gap:5px; margin-bottom:12px; }
+.rr2-preset{ font-size:11px !important; padding:6px 11px !important; }
+.rr2-preset.active{ box-shadow:none; }
+
+/* التاريخ: النص مش بيدخل تحت أيقونة التقويم */
+.rr2-dates{ gap:12px; margin-bottom:12px; }
+.rr2-date-input{
+  min-height:44px !important;
+  font-size:15px !important;
+  padding:12px 14px 12px 46px !important;
+}
+.rr2-date-ico{ left:8px !important; width:28px !important; height:28px !important; }
+.rr2-date-ico svg{ width:16px !important; height:16px !important; }
+.rr2-date label{ font-size:10px !important; }
+
+.rr2-submit{
+  padding:12px !important; font-size:13.5px !important; border-radius:12px !important;
+  box-shadow:none !important;
+}
+.rr2-submit:hover{ transform:none !important; box-shadow:none !important; }
+.rr2-submit svg{ width:16px !important; height:16px !important; }
+
+.rr2-placeholder{ padding:20px 14px !important; font-size:12.5px !important; }
+.rr2-result{ padding:14px !important; border-radius:18px !important; box-shadow:none !important; }
+.rr2-act{ padding:10px 12px !important; font-size:12.5px !important; border-radius:11px !important; }
+
+/* ---------- 6) أعداد بدون خصم ---------- */
+.kpi-grid-2{ gap:8px; }
+.kpi .kpi-v{ font-size:20px !important; }
+.kpi .kpi-l{ font-size:11px !important; line-height:1.4; }
+.gl-row{ padding:10px !important; gap:10px !important; }
+.gl-nd{ font-size:17px !important; }
+
+/* ---------- 7) عام: منع النصوص الطويلة من كسر الشكل ---------- */
+.card .btn, .btn-danger, .rr2-submit{ text-align:center; }
