@@ -2872,7 +2872,7 @@ def chats_list():
 
     # المحادثات الفردية
     cur.execute("""
-        SELECT u.id, u.full_name, u.username, u.avatar, u.last_seen,
+        SELECT u.id, u.full_name, u.username, u.avatar, u.last_seen, u.role,
           (SELECT row_to_json(t) FROM (
               SELECT id, sender_id, receiver_id, kind, body, created_at
               FROM chat_messages
@@ -2897,6 +2897,7 @@ def chats_list():
             "id": r["id"],
             "full_name": r["full_name"],
             "username": r["username"],
+            "role": r["role"],
             "avatar": r["avatar"],
             "online": _is_online(r["last_seen"]),
             "last_seen": _iso_utc(r["last_seen"]),
@@ -2941,7 +2942,7 @@ def chat_room(other_id):
         return redirect(url_for("chats_list"))
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT id, full_name, username, avatar, last_seen FROM users WHERE id=%s", (other_id,))
+    cur.execute("SELECT id, full_name, username, avatar, last_seen, role FROM users WHERE id=%s", (other_id,))
     other = cur.fetchone()
     if not other:
         cur.close()
@@ -2956,6 +2957,7 @@ def chat_room(other_id):
         "id": other["id"],
         "full_name": other["full_name"],
         "username": other["username"],
+        "role": other["role"],
         "avatar": other["avatar"],
         "online": _is_online(other["last_seen"]),
     }
