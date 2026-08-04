@@ -167,7 +167,7 @@
   ];
 
   var state = {
-    lat: 31.0409, lng: 30.4682, city: 'البحيرة'
+    lat: 30.5525, lng: 31.0094, city: 'المنوفية'
   };
   var tickTimer = null;
 
@@ -403,14 +403,23 @@
         '<p class="isl-ayat">' +
         vs.map(function(v){
           var num = String(v.verse_key).split(':')[1];
-          return '<span class="isl-aya">' + esc(v.text_uthmani) +
-                 '<span class="isl-aya-n">' + toArabicNum(num) + '</span></span>';
+          return '<span class="isl-aya">' + esc(cleanUthmani(v.text_uthmani)) +
+                 '<span class="isl-aya-n" dir="rtl">\uFD3E' + toArabicNum(num) + '\uFD3F</span></span>';
         }).join(' ') +
         '</p><div class="isl-mushaf-f">صفحة ' + n + ' من 604</div></div>';
       body.innerHTML = html;
     }
 
     loadPage(cur);
+  }
+
+  /* تنظيف نص المصحف من الرموز اللي مش موجودة في الخطوط (بتظهر علامات استفهام) */
+  function cleanUthmani(t){
+    return String(t)
+      .replace(/[\u06DD\uFDFD]/g, '')
+      .replace(/[\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 
   function toArabicNum(s){

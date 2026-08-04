@@ -266,15 +266,21 @@ body.isl-lock{ overflow:hidden; }
 }
 .isl-ayat{
   margin:0; text-align:center; direction:rtl;
-  font-size:22px; line-height:2.35; font-weight:600;
-  font-family:"Amiri Quran","Amiri","Scheherazade New","Traditional Arabic",serif;
+  font-size:23px; line-height:2.5; font-weight:400;
+  font-family:"Amiri Quran","Scheherazade New","Amiri","Noto Naskh Arabic","Traditional Arabic",serif;
+  font-feature-settings:"liga" 1,"calt" 1;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+.isl-bism{
+  font-family:"Amiri Quran","Scheherazade New","Amiri",serif;
 }
 .isl-aya-n{
-  display:inline-block; margin:0 4px; font-size:14px; font-weight:900;
+  display:inline-block; margin:0 5px; font-size:17px; font-weight:400;
+  direction:rtl; unicode-bidi:isolate;
+  font-family:"Amiri Quran","Scheherazade New","Amiri",serif;
   color:var(--gold-2,#7fb0ff);
 }
-.isl-aya-n::before{ content:"\FD3E"; }
-.isl-aya-n::after{ content:"\FD3F"; }
 .isl-mushaf-f{
   margin-top:16px; text-align:center; font-size:11.5px; font-weight:800;
   color:var(--text-3,#63667a);
