@@ -10,7 +10,7 @@
         سجل مرجعي
       </span>
       <h1 class="hero-h1">أعداد بدون خصم</h1>
-      <p class="hero-sub">للمراجعة فقط — مش داخلة في التوزيع.</p>
+      <p class="hero-sub">للمراجعة فقط.</p>
     </div>
   </div>
 </section>
@@ -44,9 +44,7 @@
     <input type="hidden" name="year"  value="{{ current_period.year }}">
     <input type="hidden" name="month" value="{{ current_period.month }}">
     <input type="hidden" name="half"  value="{{ current_period.half }}">
-    <button type="submit" class="btn btn-danger" style="width:100%;">
-      ✓ تصفير المدة الحالية (بدون خصم)
-    </button>
+    <button type="submit" class="btn btn-danger">تصفير المدة الحالية</button>
   </form>
   {% endif %}
 </div>
@@ -77,7 +75,7 @@
         <input type="hidden" name="year"  value="{{ p.year }}">
         <input type="hidden" name="month" value="{{ p.month }}">
         <input type="hidden" name="half"  value="{{ p.half }}">
-        <button type="submit" class="btn btn-danger" style="padding:6px 12px;font-size:12px;">✓ تصفير</button>
+        <button type="submit" class="btn btn-danger">تصفير</button>
       </form>
     </div>
     {% endfor %}
