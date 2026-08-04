@@ -18,13 +18,23 @@
 
 <!-- ===== اختيار المدة ===== -->
 <form class="card" method="get" action="{{ url_for('admin_all_shares') }}">
-  <div class="field">
+  <div class="field dmy-field">
     <label>من تاريخ</label>
-    <input type="date" name="start_day" value="{{ start_day }}">
+    <input type="text" class="dmy-input" id="asStartView" inputmode="numeric" autocomplete="off" placeholder="01/07/2026">
+    <input type="hidden" name="start_day" id="asStart" value="{{ start_day }}">
+    <input type="date" class="dmy-native" id="asStartNative" tabindex="-1" aria-hidden="true">
+    <button type="button" class="dmy-pick" data-pick="asStart" aria-label="اختر التاريخ من التقويم">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+    </button>
   </div>
-  <div class="field">
+  <div class="field dmy-field">
     <label>إلى تاريخ</label>
-    <input type="date" name="end_day" value="{{ end_day }}">
+    <input type="text" class="dmy-input" id="asEndView" inputmode="numeric" autocomplete="off" placeholder="01/07/2026">
+    <input type="hidden" name="end_day" id="asEnd" value="{{ end_day }}">
+    <input type="date" class="dmy-native" id="asEndNative" tabindex="-1" aria-hidden="true">
+    <button type="button" class="dmy-pick" data-pick="asEnd" aria-label="اختر التاريخ من التقويم">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+    </button>
   </div>
   <button class="btn btn-primary btn-lg" type="submit">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
@@ -91,6 +101,49 @@
     document.querySelectorAll('#sharesList .wcard').forEach(function(row){
       var n = (row.dataset.name || '').toLowerCase();
       row.style.display = (!q || n.indexOf(q) !== -1) ? '' : 'none';
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  var pad=function(n){return String(n).padStart(2,'0')};
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function dmy(d){return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()}
+  function parseDmy(v){
+    var m=String(v||'').trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/);
+    if(!m) return null;
+    var day=+m[1], mon=+m[2], y=+m[3]; if(y<100) y+=2000;
+    var d=new Date(y,mon-1,day,12,0,0,0);
+    if(d.getFullYear()!==y||d.getMonth()!==mon-1||d.getDate()!==day) return null;
+    return d;
+  }
+  [['asStart','asStartView','asStartNative'],['asEnd','asEndView','asEndNative']].forEach(function(ids){
+    var hid=document.getElementById(ids[0]), view=document.getElementById(ids[1]), nat=document.getElementById(ids[2]);
+    if(!hid||!view) return;
+    function set(d){ hid.value=iso(d); view.value=dmy(d); view.classList.remove('is-invalid'); }
+    if(hid.value){ var p=hid.value.split('-').map(Number); if(p.length===3) set(new Date(p[0],p[1]-1,p[2],12,0,0,0)); }
+    view.addEventListener('input',function(){ view.classList.remove('is-invalid') });
+    view.addEventListener('blur',function(){ var d=parseDmy(view.value); if(d) set(d); else if(view.value) view.classList.add('is-invalid') });
+    var btn=document.querySelector('.dmy-pick[data-pick="'+ids[0]+'"]');
+    if(btn&&nat){
+      btn.addEventListener('click',function(e){
+        e.preventDefault(); nat.value=hid.value||''; nat.style.pointerEvents='auto';
+        try{nat.focus({preventScroll:true})}catch(_){nat.focus()}
+        if(typeof nat.showPicker==='function'){ try{nat.showPicker()}catch(_){nat.click()} } else nat.click();
+        setTimeout(function(){nat.style.pointerEvents='none'},300);
+      });
+      nat.addEventListener('change',function(){
+        if(!nat.value) return; var p=nat.value.split('-').map(Number);
+        var d=new Date(p[0],p[1]-1,p[2],12,0,0,0); if(!isNaN(d.getTime())) set(d);
+      });
+    }
+    var form=view.closest('form');
+    if(form) form.addEventListener('submit',function(e){
+      var d=parseDmy(view.value);
+      if(!d){ e.preventDefault(); view.classList.add('is-invalid'); (window.appAlert||alert)('اكتب التاريخ بالشكل ده: 01/07/2026','error'); return; }
+      set(d);
     });
   });
 })();

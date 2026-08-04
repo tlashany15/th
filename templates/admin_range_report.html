@@ -344,7 +344,7 @@
     <div class="rr2-dates">
       <div class="rr2-date">
         <label for="start_day">من</label>
-        <input class="rr2-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="1/7/2026" required>
+        <input class="rr2-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
         <input type="hidden" id="start_day" name="start_day">
         <input type="date" class="rr2-date-native" id="start_day_native" aria-hidden="true" tabindex="-1">
         <button type="button" class="rr2-date-ico rr2-date-btn" id="start_day_btn" aria-label="اختر التاريخ من التقويم">
@@ -353,7 +353,7 @@
       </div>
       <div class="rr2-date">
         <label for="end_day">إلى</label>
-        <input class="rr2-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="1/7/2026" required>
+        <input class="rr2-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
         <input type="hidden" id="end_day" name="end_day">
         <input type="date" class="rr2-date-native" id="end_day_native" aria-hidden="true" tabindex="-1">
         <button type="button" class="rr2-date-ico rr2-date-btn" id="end_day_btn" aria-label="اختر التاريخ من التقويم">
@@ -368,6 +368,14 @@
     </button>
   </form>
 </div>
+
+{% if not result %}
+<div class="rr2-placeholder">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 6-7"/><path d="M3 21h18"/></svg>
+  اضغط «احسب واحفظ التقرير» لعرض النتيجة
+  <span>اختار المدة والنوع الأول، وهتظهر الأرقام هنا.</span>
+</div>
+{% endif %}
 
 {% if result %}
 <div class="rr2-result">
@@ -520,7 +528,7 @@
   const edView = document.getElementById('end_day_display');
   const pad = n => String(n).padStart(2, '0');
   const fmtIso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const fmtDisplay = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  const fmtDisplay = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
   function parseDisplayDate(v){
     const m = String(v || '').trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/);
     if (!m) return null;
@@ -604,7 +612,7 @@
     const datesOk = syncDate(sd, sdView) & syncDate(ed, edView);
     if (!datesOk) {
       e.preventDefault();
-      alert('اكتب التاريخ بالشكل ده: 1/7/2026');
+      alert('اكتب التاريخ بالشكل ده: 01/07/2026');
       return;
     }
     if (target.value === 'person:' || target.value === 'person:null') {

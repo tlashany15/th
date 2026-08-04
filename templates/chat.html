@@ -27,7 +27,15 @@
   </header>
 
   <!-- MESSAGES -->
-  <main class="wa-msgs" id="msgs"></main>
+  <main class="wa-msgs" id="msgs">
+    <div class="wa-empty-state" id="waEmpty">
+      <div class="wa-empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>
+      </div>
+      <b>ابدأ المحادثة</b>
+      <span>مفيش رسائل لحد دلوقتي — اكتب أول رسالة.</span>
+    </div>
+  </main>
 
   <!-- AUDIO RECORDING UI -->
   <div class="wa-rec-bar" id="recBar" hidden>
@@ -153,10 +161,16 @@
            '</div>';
   }
 
+  var emptyEl = document.getElementById('waEmpty');
+  function toggleEmpty(){
+    if (!emptyEl) return;
+    emptyEl.hidden = !!msgsEl.querySelector('.wa-msg');
+  }
+
   function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
 
   function appendMessages(list){
-    if (!list.length) return;
+    if (!list.length) { toggleEmpty(); return; }
     var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 100;
     // Remove tail/avatar from previous last-them bubble if new message continues same sender
     list.forEach(function(m, i){
@@ -183,6 +197,7 @@
     });
     ChatHelpers.bindAudio(msgsEl);
     ChatHelpers.bindCopy(msgsEl);
+    toggleEmpty();
     if (atBottom) scrollBottom();
   }
 
