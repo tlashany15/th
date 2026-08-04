@@ -1,0 +1,236 @@
+/* ==================================================================
+   fix-v12.css — توحيد واجهة التطبيق (اتساق الحالات، التباين، المسافات)
+   يُحمَّل بعد كل الملفات، فهو المرجع النهائي.
+   ================================================================== */
+
+/* ------------------------------------------------------------------
+   1) حقول التاريخ — الأيقونة ما تركبش على الرقم
+   ------------------------------------------------------------------ */
+.rr2-date-input,
+.dmy-input {
+  padding-inline-start: 52px !important;
+  padding-inline-end: 14px !important;
+  direction: ltr;
+  text-align: left;
+  letter-spacing: .3px;
+  font-variant-numeric: tabular-nums;
+}
+.rr2-date-ico,
+.dmy-pick {
+  left: 8px !important;
+  right: auto !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  background: rgba(47, 125, 255, .12) !important;
+  border: 1px solid rgba(47, 125, 255, .22) !important;
+}
+.rr2-date-ico svg,
+.dmy-pick svg { width: 17px; height: 17px; }
+
+/* حقول التاريخ في صفحة نصيب الفريق */
+.dmy-field { position: relative; }
+.dmy-input {
+  width: 100%; box-sizing: border-box;
+  min-height: 46px; border-radius: 12px;
+  background: rgba(0, 0, 0, .4);
+  border: 1px solid rgba(47, 125, 255, .22);
+  color: #fff; font-size: 16px; font-weight: 800;
+  outline: none; font-family: inherit;
+}
+.dmy-input:focus { border-color: #2f7dff; box-shadow: 0 0 0 3px rgba(47, 125, 255, .18); }
+.dmy-input.is-invalid { border-color: #ff5d5d; box-shadow: 0 0 0 3px rgba(255, 93, 93, .16); }
+.dmy-pick {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  color: #7fb0ff; cursor: pointer; padding: 0;
+}
+.dmy-native {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; pointer-events: none; border: 0; padding: 0; margin: 0;
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------
+   2) حالة "مُختار / Active" واضحة في كل الأزرار والفلاتر
+   ------------------------------------------------------------------ */
+.rr2-preset {
+  background: transparent !important;
+  border: 1px solid rgba(127, 176, 255, .30) !important;
+  color: #b9c4d8 !important;
+  min-height: 36px;
+  padding: 8px 14px !important;
+}
+.rr2-preset:hover { background: rgba(47, 125, 255, .12) !important; color: #fff !important; }
+.rr2-preset.active {
+  background: linear-gradient(180deg, #4b93ff, #2f7dff) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px -8px rgba(47, 125, 255, .9), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+
+.rr2-seg button { min-height: 42px; }
+.rr2-seg button:not(.active) {
+  border: 1px solid rgba(127, 176, 255, .22) !important;
+  color: #b9c4d8 !important;
+}
+.rr2-seg button.active {
+  background: linear-gradient(180deg, #4b93ff, #2f7dff) !important;
+  color: #fff !important;
+}
+
+/* ------------------------------------------------------------------
+   3) رسالة إرشادية بدل الفراغ في "إجمالي الفترة"
+   ------------------------------------------------------------------ */
+.rr2-placeholder {
+  text-align: center;
+  padding: 26px 16px;
+  border-radius: 18px;
+  border: 1px dashed rgba(127, 176, 255, .3);
+  background: rgba(47, 125, 255, .05);
+  color: #b9c4d8;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.rr2-placeholder svg { width: 26px; height: 26px; color: #7fb0ff; margin-bottom: 8px; }
+.rr2-placeholder span { display: block; font-size: 12px; font-weight: 600; opacity: .8; margin-top: 4px; }
+
+/* ------------------------------------------------------------------
+   4) صفحة نصيب الفريق — اتساق الشبكة والتباين
+   ------------------------------------------------------------------ */
+.hero-admin .hero-chip {
+  position: static !important;
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0 0 8px;
+}
+.hero-admin .hero-row { align-items: flex-start; gap: 12px; }
+
+.wcard-meta { color: #a9b4c7 !important; opacity: 1 !important; font-weight: 600; }
+.wcard-name { color: #fff; }
+.wcard .icon-btn {
+  width: 44px; height: 44px; min-width: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(127, 176, 255, .28);
+  background: rgba(47, 125, 255, .12);
+  color: #9dc0ff;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.wcard .icon-btn:hover { background: rgba(47, 125, 255, .22); color: #fff; }
+.wcard .icon-btn svg { width: 18px; height: 18px; }
+
+/* ------------------------------------------------------------------
+   5) قائمة اليوم (تسمين / بياض) — حالة واضحة + مساحة لمس آمنة
+   ------------------------------------------------------------------ */
+.att-actions { display: flex !important; gap: 10px !important; flex-wrap: nowrap; }
+.farm-btn {
+  min-height: 44px !important;
+  min-width: 76px;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  display: inline-flex !important;
+  align-items: center; justify-content: center;
+  background: transparent !important;
+  border: 1px solid rgba(127, 176, 255, .28) !important;
+  color: #b9c4d8 !important;
+  box-shadow: none !important;
+  transition: .18s;
+}
+.farm-btn:hover { background: rgba(47, 125, 255, .12) !important; color: #fff !important; }
+.farm-btn.tasmeen.on {
+  background: linear-gradient(180deg, #4b93ff, #2f7dff) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px -8px rgba(47, 125, 255, .9) !important;
+}
+.farm-btn.bayad.on {
+  background: linear-gradient(180deg, #22c98d, #0f9d68) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 6px 16px -8px rgba(16, 160, 105, .9) !important;
+}
+
+/* نفس المكوّن يظهر في كل الصفوف — بدون حذف عناصر */
+.settle-mark-row { display: flex !important; }
+.settle-mark-row.is-locked { opacity: .42; pointer-events: none; }
+.settle-mark-row.is-locked .settle-details { pointer-events: auto; }
+
+/* Legend يشرح ألوان الصفوف */
+.att-legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  padding: 10px 12px; margin: 0 0 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .28);
+  border: 1px solid rgba(127, 176, 255, .16);
+  font-size: 11.5px; font-weight: 700; color: #b9c4d8;
+}
+.att-legend i {
+  width: 12px; height: 12px; border-radius: 4px; display: inline-block;
+  margin-inline-end: 6px; vertical-align: -2px;
+}
+.att-legend .lg-t { background: #2f7dff; }
+.att-legend .lg-b { background: #12a071; }
+.att-legend .lg-n { background: rgba(255, 255, 255, .18); }
+
+/* ------------------------------------------------------------------
+   6) الشات — Empty State + توحيد ألوان الفقاعات + أفاتار افتراضي ثابت
+   ------------------------------------------------------------------ */
+.wa-empty-state {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; text-align: center; pointer-events: none;
+  color: #8e9bb3; padding: 24px;
+}
+.wa-empty-state[hidden] { display: none; }
+.wa-empty-state .wa-empty-ico {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(47, 125, 255, .12);
+  border: 1px solid rgba(127, 176, 255, .24);
+  color: #7fb0ff;
+}
+.wa-empty-state .wa-empty-ico svg { width: 28px; height: 28px; }
+.wa-empty-state b { color: #dbe3f1; font-size: 15px; font-weight: 800; }
+.wa-empty-state span { font-size: 12.5px; }
+.wa-msgs { position: relative; }
+
+/* فقاعة "أنا" بنفس هوية التطبيق (كحلي/أزرق) في كل الشاشات */
+.wa-me .wa-bubble {
+  background: linear-gradient(160deg, #3f8cff 0%, #2f6fe0 55%, #2559bd 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(47, 125, 255, .28), 0 1px 0 rgba(255, 255, 255, .18) inset !important;
+}
+.wa-me .wa-bubble,
+.wa-me .wa-bubble .wa-text { color: #fff !important; }
+.wa-me .wa-meta { color: rgba(255, 255, 255, .72) !important; }
+.wa-me .wa-a-play { background: rgba(255, 255, 255, .95) !important; color: #1f3f77 !important; }
+.wa-me .wa-a-bars--fill { color: #fff !important; }
+.wa-me .wa-a-thumb { background: #fff !important; }
+.wa-me .wa-link { color: #eaf2ff !important; text-decoration: underline; }
+
+/* أفاتار افتراضي موحّد بدل الأشكال العشوائية */
+.wa-av-fb,
+.wa-head-avatar .av-fb {
+  background: linear-gradient(160deg, #46536f, #2b3550) !important;
+  color: #dfe7f5 !important;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, .10);
+}
+
+/* نص الرسائل الرقمية/التقارير — سطور مرتّبة وأرقام ما تكسرش اتجاه العربي */
+.wa-text {
+  unicode-bidi: plaintext;
+  white-space: pre-wrap;
+  line-height: 1.75;
+}
+.wa-text .wa-kv { display: flex; justify-content: space-between; gap: 12px; }
+
+/* ------------------------------------------------------------------
+   7) تباين عام للنصوص الخافتة
+   ------------------------------------------------------------------ */
+.rr2-r-s, .rr2-item-meta, .rr2-hist-s, .rr2-total-l { color: #98a3b8 !important; }
+.att-sub { color: #98a3b8 !important; }
