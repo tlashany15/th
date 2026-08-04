@@ -18,7 +18,7 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
-        <div class="flash {{ cat }}">{% if cat == 'error' %}✕{% else %}✓{% endif %} {{ msg }}</div>
+        <div class="flash {{ cat }}">{% if cat == 'error' %}✕{% else %}<span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span>{% endif %} {{ msg }}</div>
       {% endfor %}
     {% endwith %}
 

@@ -56,18 +56,18 @@
   <div class="att-tools">
     <input id="workerSearch" class="att-search" type="search" inputmode="search" autocomplete="off" placeholder="ابحث باسم العامل…">
   </div>
-  <div class="att-scroll"><div class="att-list" id="attList">
+  <div class="att-scroll"><div class="att-list {% if day_closed %}is-day-closed{% endif %}" id="attList">
     {% for p in all_people %}
     {% set farm = p.att_farm or '' %}
     <div class="att-row {% if farm %}is-on farm-{{ farm }}{% endif %} {% if p.att_extra %}is-extra{% endif %} {% if p.day_settled and farm %}is-settled{% endif %}" data-uid="{{ p.id }}" data-farm="{{ farm }}" data-extra="{{ '1' if p.att_extra else '0' }}" data-name="{{ (p.full_name or '')|lower }}">
       <div class="att-main">
         <div class="att-av" style="background:hsl({{ (p.id * 47) % 360 }},55%,42%)">{% if p.avatar %}<img src="{{ p.avatar }}" alt="">{% else %}{{ (p.full_name or '?')[:1] }}{% endif %}</div>
         <div class="att-body"><div class="att-name">{{ p.full_name }}{% if p.att_extra %} <span class="extra-flag">إضافي</span>{% endif %}</div><div class="att-sub att-sub-txt">{% if farm == 'tasmeen' %}حاضر تسمين{% elif farm == 'bayad' %}حاضر بياض{% else %}غير مُحضَّر{% endif %}</div></div>
-        <div class="att-actions" role="group" aria-label="تحضير {{ p.full_name }}" {% if day_closed %}style="display:none"{% endif %}><button type="button" class="farm-btn tasmeen {% if farm == 'tasmeen' %}on{% endif %} js-att-toggle" data-uid="{{ p.id }}" data-farm="tasmeen">تسمين</button><button type="button" class="farm-btn bayad {% if farm == 'bayad' %}on{% endif %} js-att-toggle" data-uid="{{ p.id }}" data-farm="bayad">بياض</button></div><span class="att-status {% if farm %}on{% endif %}" {% if not day_closed %}style="display:none"{% endif %}>{% if farm == 'tasmeen' %}تسمين{% elif farm == 'bayad' %}بياض{% else %}—{% endif %}</span>
+        <div class="att-actions" role="group" aria-label="تحضير {{ p.full_name }}" {% if day_closed %}style="display:none"{% endif %}><button type="button" class="farm-btn tasmeen {% if farm == 'tasmeen' %}on{% endif %} js-att-toggle" {% if day_closed %}disabled{% endif %} data-uid="{{ p.id }}" data-farm="tasmeen">تسمين</button><button type="button" class="farm-btn bayad {% if farm == 'bayad' %}on{% endif %} js-att-toggle" {% if day_closed %}disabled{% endif %} data-uid="{{ p.id }}" data-farm="bayad">بياض</button></div><span class="att-status {% if farm %}on{% endif %}" {% if not day_closed %}style="display:none"{% endif %}>{% if farm == 'tasmeen' %}تسمين{% elif farm == 'bayad' %}بياض{% else %}—{% endif %}</span>
       </div>
       <div class="settle-mark-row {% if not farm %}is-locked{% endif %}">
-        <button type="button" {% if day_closed %}style="display:none"{% endif %} class="extra-mark js-extra-toggle {% if p.att_extra %}is-on{% endif %}" data-uid="{{ p.id }}" data-day="{{ day }}" title="حدّد كإضافي — يتوزع عليه الإضافي فقط"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg></span><span class="sm-lbl">{% if p.att_extra %}إضافي مُفعّل{% else %}إضافي{% endif %}</span></button>
-        <button type="button" class="settle-mark js-settle-mark {% if p.day_settled %}is-settled{% endif %}" data-uid="{{ p.id }}" data-day="{{ day }}"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span><span class="sm-lbl">{% if p.day_settled %}تمت المحاسبة{% else %}تم المحاسبة{% endif %}</span></button>
+        <button type="button" {% if day_closed %}style="display:none"{% endif %} class="extra-mark js-extra-toggle {% if p.att_extra %}is-on{% endif %}" {% if day_closed %}disabled{% endif %} data-uid="{{ p.id }}" data-day="{{ day }}" title="حدّد كإضافي — يتوزع عليه الإضافي فقط"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg></span><span class="sm-lbl">{% if p.att_extra %}إضافي مُفعّل{% else %}إضافي{% endif %}</span></button>
+        <button type="button" {% if day_closed %}style="display:none" disabled{% endif %} class="settle-mark js-settle-mark {% if p.day_settled %}is-settled{% endif %}" data-uid="{{ p.id }}" data-day="{{ day }}"><span class="sm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span><span class="sm-lbl">{% if p.day_settled %}تمت المحاسبة{% else %}تم المحاسبة{% endif %}</span></button>
         <a class="settle-details" href="{{ url_for('worker_stats', worker_id=p.id) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>التفاصيل</a>
       </div>
     </div>
@@ -86,9 +86,21 @@
 .att-scroll{max-height:58vh;overflow:auto;padding-inline-end:2px}.att-scroll::-webkit-scrollbar{width:6px}.att-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}.att-list{display:flex;flex-direction:column;gap:7px}.att-row{padding:10px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.16s}.att-row.is-on{background:linear-gradient(135deg,rgba(56,178,102,.10),rgba(255,255,255,.02));border-color:rgba(56,178,102,.32)}.att-row.farm-bayad{border-color:rgba(47,125,255,.32);background:linear-gradient(135deg,rgba(47,125,255,.09),rgba(255,255,255,.02))}.att-row.is-saving{opacity:.72}.att-main{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:9px}.att-av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;overflow:hidden}.att-av img{width:100%;height:100%;object-fit:cover}.att-body{min-width:0}.att-name{font-weight:900;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.att-sub{font-size:11px;color:var(--text-3);margin-top:2px}.att-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;width:128px}.farm-btn{height:34px;border-radius:11px;font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.05);color:var(--text-2);padding:0 8px}.farm-btn.tasmeen.on{background:rgba(47,125,255,.22);border-color:rgba(47,125,255,.55);color:#f2d675}.farm-btn.bayad.on{background:rgba(47,125,255,.22);border-color:rgba(47,125,255,.55);color:#cfe0ff}.att-status{display:inline-flex;align-items:center;justify-content:center;min-width:62px;height:32px;border-radius:999px;font-size:12px;font-weight:900;background:rgba(255,255,255,.05);color:var(--text-3)}.att-status.on{background:rgba(0,214,143,.16);color:#7ff3cd}.settle-mark-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}.settle-mark{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text-2);cursor:pointer;transition:.18s}.settle-mark .sm-ico{display:inline-flex;width:14px;height:14px}.settle-mark .sm-ico svg{width:14px;height:14px}.settle-mark.is-settled{background:linear-gradient(135deg,rgba(0,214,143,.24),rgba(0,214,143,.10));border-color:rgba(0,214,143,.55);color:#7ff3cd}.att-row.is-settled{box-shadow:0 0 0 2px rgba(0,214,143,.08) inset}.settle-details{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;font-size:11.5px;font-weight:800;color:var(--text-3);background:rgba(162,155,254,.08);border:1px solid rgba(162,155,254,.22);text-decoration:none}.settle-details svg{width:13px;height:13px}.att-empty{padding:22px;text-align:center;color:var(--text-3);font-weight:800}
 @media(max-width:420px){.field-input{font-size:22px}.att-main{grid-template-columns:34px minmax(0,1fr) auto;gap:7px}.att-av{width:34px;height:34px}.att-actions{width:116px;gap:4px}.farm-btn{height:32px;font-size:11px;padding:0 5px}.sec-h-s{font-size:11px}}
 .extra-mark{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:99px;font-size:12px;font-weight:800;border:1px solid rgba(47,125,255,.35);background:rgba(47,125,255,.10);color:#f5c76e;cursor:pointer;transition:.18s}.extra-mark.is-on{background:linear-gradient(135deg,rgba(47,125,255,.28),rgba(47,125,255,.12));border-color:rgba(47,125,255,.7);color:#ffd98a}.att-row.is-extra{box-shadow:0 0 0 2px rgba(47,125,255,.22) inset}.extra-flag{display:inline-block;font-size:10px;font-weight:900;background:rgba(47,125,255,.22);color:#ffd98a;padding:2px 7px;border-radius:99px;margin-inline-start:6px;vertical-align:middle}
+.att-list.is-day-closed .js-att-toggle,.att-list.is-day-closed .js-extra-toggle,.att-list.is-day-closed .js-settle-mark{pointer-events:none;opacity:.45}
+.att-list.is-day-closed .att-status{display:inline-flex!important}
+.att-list.is-day-closed .settle-mark-row{margin-top:6px}
 </style>
 
 <script>
+(function(){
+  // بعد إغلاق اليوم: كل أزرار الحضور متوقفة — بيظهر جنب كل واحد حضر فين بس
+  var lst=document.getElementById('attList');
+  if(lst) lst.addEventListener('click', function(e){
+    if(!lst.classList.contains('is-day-closed')) return;
+    var t=e.target.closest('.js-att-toggle,.js-extra-toggle,.js-settle-mark');
+    if(t){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
+})();
 (function(){
   var b=document.getElementById('btnConfirmClose'),form=document.getElementById('closeDayForm'),tIn=document.getElementById('closeTasmeenInput'),bIn=document.getElementById('closeBayadInput'),nIn=document.getElementById('closeNoDeductInput');
   var isClosed={{ 'true' if day_closed else 'false' }};
@@ -109,6 +121,10 @@
     document.querySelectorAll('.att-actions').forEach(function(el){ el.style.display=closed?'none':''; });
     document.querySelectorAll('.att-status').forEach(function(el){ el.style.display=closed?'':'none'; });
     document.querySelectorAll('.js-extra-toggle').forEach(function(el){ el.style.display=closed?'none':''; });
+    document.querySelectorAll('.js-settle-mark').forEach(function(el){ el.style.display=closed?'none':''; });
+    document.querySelectorAll('.js-att-toggle,.js-extra-toggle,.js-settle-mark').forEach(function(el){ el.disabled=!!closed; });
+    var lst=document.getElementById('attList');
+    if(lst) lst.classList.toggle('is-day-closed',!!closed);
   }
   // إعادة فتح اليوم بدون إعادة تحميل
   (function(){

@@ -19,10 +19,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
         </span>
       {% endif %}
-      <span class="verified-badge on-av"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </label>
     <button type="button" class="wa-head-info wa-head-info-btn" id="openMembers" aria-label="عرض الأعضاء">
-      <div class="wa-head-name">{{ group.name }}<span class="verified-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% if group.is_locked %} <span class="wa-lock-badge" title="مقفولة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg></span>{% endif %}</div>
+      <div class="wa-head-name">{{ group.name }}<span class="verified-badge js-official-badge" data-kind="group" role="button" tabindex="0" title="حساب رسمي موثّق"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% if group.is_locked %} <span class="wa-lock-badge" title="مقفولة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg></span>{% endif %}</div>
       <div class="wa-head-status" id="grpStatus">{{ group.members }} عضو</div>
     </button>
     {% if is_admin %}
@@ -330,7 +329,7 @@
             memberSheetTogglePerm.dataset.state = can ? '1' : '0';
             memberSheetTogglePerm.textContent = can ? 'سحب صلاحية حذف الرسائل' : 'منح صلاحية حذف الرسائل';
             memberSheetTogglePerm.classList.toggle('is-danger', can);
-            if (window.appToast) window.appToast(can ? 'تم منح الصلاحية ✓' : 'تم سحب الصلاحية');
+            if (window.appToast) window.appToast(can ? 'تم منح الصلاحية' : 'تم سحب الصلاحية');
           }
         }).catch(function(){ memberSheetTogglePerm.disabled = false; });
     });
@@ -575,7 +574,7 @@
             if (meta && !meta.querySelector('.wa-edited')){
               meta.insertAdjacentHTML('afterbegin','<span class="wa-edited">معدَّلة</span>');
             }
-            ChatHelpers.toast('تم التعديل ✓');
+            ChatHelpers.toast('تم التعديل');
           } else { (window.appAlert||alert)('تعذّر التعديل','error'); }
         }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); });
       return;

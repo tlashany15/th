@@ -107,7 +107,7 @@
     <div class="state" style="margin-top:10px">
       <div class="row">
         <b>القاعدة النشطة الآن
-          {% if is_overridden %}<span class="pill live">محوّلة ✓</span>
+          {% if is_overridden %}<span class="pill live">محوّلة <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span></span>
           {% else %}<span class="pill env">الأصلية (env)</span>{% endif %}
         </b>
         <code dir="ltr">{{ active_masked }}</code>
@@ -158,7 +158,7 @@
             <td dir="ltr" style="text-align:left">{{ d.table }}</td>
             <td>{{ d.src }}</td>
             <td>{{ d.dst }}</td>
-            <td class="{{ 'good' if d.src == d.dst else 'bad' }}">{{ '✓' if d.src == d.dst else '✗' }}</td>
+            <td class="{{ 'good' if d.src == d.dst else 'bad' }}">{% if d.src == d.dst %}<span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span>{% else %}✗{% endif %}</td>
           </tr>
           {% endfor %}
         </table>

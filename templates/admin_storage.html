@@ -168,7 +168,7 @@
     <div class="sv-cell"><div class="sv-l">التطابق مع الحجم أعلاه</div>
       <div class="sv-v">
         {% if server_info.db_size_bytes == stats.db_size %}
-          <span class="sv-ok">✓ متطابق</span>
+          <span class="sv-ok"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> متطابق</span>
         {% else %}
           <span class="sv-warn">فرق: {{ (server_info.db_size_bytes - stats.db_size)|abs }} بايت</span>
         {% endif %}

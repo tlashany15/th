@@ -88,8 +88,8 @@
 
 
 
-{% if is_today %}
-<!-- ============ ADMIN SELF CHECK-IN ============ -->
+{% if is_today and not admin_checked_in %}
+<!-- ============ ADMIN SELF CHECK-IN (يختفي بعد تسجيل الحضور) ============ -->
 <div class="ap-selfcheck {% if admin_checked_in %}is-done{% endif %}">
   <div class="ap-sc-ic">
     {% if admin_checked_in %}
@@ -100,7 +100,7 @@
   </div>
   <div class="ap-sc-body">
     <div class="ap-sc-t">{% if admin_checked_in %}تم تسجيل حضورك اليوم{% else %}سجّل حضورك اليوم{% endif %}</div>
-    <div class="ap-sc-s">{% if admin_checked_in %}أنت ضمن الحاضرين ✓{% else %}اضغط الزر لتضاف كحاضر مع الفريق{% endif %}</div>
+    <div class="ap-sc-s">{% if admin_checked_in %}أنت ضمن الحاضرين{% else %}اضغط الزر لتضاف كحاضر مع الفريق{% endif %}</div>
   </div>
   {% if not admin_checked_in and not day_closed %}
   <form method="post" action="{{ url_for('check_in') }}" class="ap-sc-form">

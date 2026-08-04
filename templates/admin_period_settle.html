@@ -10,7 +10,7 @@
         تصفية المدة
       </span>
       <h1 class="hero-h1">{{ label }}</h1>
-      <p class="hero-sub">اللي اتحاسبوا على المدة دي.</p>
+      <p class="hero-sub">حدّد اللي اتحاسبوا على المدة دي.</p>
     </div>
   </div>
 </section>
@@ -50,7 +50,7 @@
       <button type="submit" class="btn-reset-period" {% if not all_settled %}style="opacity:.6;"{% endif %}
               title="{% if all_settled %}كل العمال اتحاسبوا — يمكنك التصفير{% else %}تحذير: لسه فيه عمال لم يُحاسَبوا على المدة{% endif %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 006.34 6.34M4 16a8 8 0 0013.66 1.66"/></svg>
-        تصفير المدة
+        تصفير المدة نهائيًا
       </button>
     </form>
   </div>
@@ -86,7 +86,7 @@
             {% if r.period_settled %}
               <button type="submit" class="ps-btn ps-btn-off">✕ إلغاء</button>
             {% else %}
-              <button type="submit" class="ps-btn ps-btn-on">✓ تم المحاسبة</button>
+              <button type="submit" class="ps-btn ps-btn-on"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تم المحاسبة</button>
             {% endif %}
           </form>
         </div>

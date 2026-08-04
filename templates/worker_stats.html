@@ -57,7 +57,7 @@
           <input type="hidden" name="month"   value="{{ p.m }}">
           <input type="hidden" name="half"    value="{{ p.half }}">
           <button type="submit" class="btn btn-danger btn-sm u-w-full" style="margin-top:10px;">
-            ✓ تأكيد الاستلام وتصفير المدة نهائيًا
+            <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تأكيد الاستلام وتصفير المدة نهائيًا
           </button>
         </form>
         {% endif %}
@@ -96,7 +96,7 @@
         <input type="hidden" name="month"   value="{{ p.m }}">
         <input type="hidden" name="half"    value="{{ p.half }}">
         <button type="submit" class="btn btn-danger btn-sm u-w-full">
-          ✓ تأكيد الاستلام وتصفير المدة نهائيًا
+          <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تأكيد الاستلام وتصفير المدة نهائيًا
         </button>
       </form>
       {% endif %}
@@ -136,7 +136,7 @@
               <form method="post" action="{{ url_for('admin_worker_day_settle') }}">
                 <input type="hidden" name="user_id" value="{{ worker.id }}">
                 <input type="hidden" name="day" value="{{ it.date }}">
-                <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده">✓ تم</button>
+                <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تم</button>
               </form>
             </div>
             {% endfor %}
