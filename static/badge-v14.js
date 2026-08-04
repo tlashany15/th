@@ -34,11 +34,16 @@
   }
 
   document.addEventListener('click', function (e) {
-    var b = e.target.closest('.verified-badge');
+    var b = e.target.closest('.verified-badge, .admin-badge');
     if (!b) return;
     e.preventDefault();
     e.stopPropagation();
-    if (b.dataset.kind === 'group') {
+    if (b.dataset.kind === 'admin') {
+      openOfficial(
+        'مسؤول معتمد',
+        'ده مسؤول معيّن من المسؤول الرئيسي — هو المسؤول عن الرواتب والأعداد.'
+      );
+    } else if (b.dataset.kind === 'group') {
       openOfficial('مجموعة رسمية', 'دي مجموعة رسمية موثّقة تابعة لإدارة التطبيق.');
     } else {
       openOfficial(
