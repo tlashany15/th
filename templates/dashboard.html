@@ -22,7 +22,7 @@
     مرحباً،
     <span class="v2-name">{{ current_user.full_name }}</span>
   </h1>
-  <p class="v2-hello-sub">يوم جديد من العمل المنظَّم. خلّيك مركّز.</p>
+  <p class="v2-hello-sub">ابدأ يومك بذكر الله وصلِّ على النبي محمد ﷺ</p>
 
   <div class="v2-hero-stats">
     <div class="v2-hstat">
@@ -47,20 +47,6 @@
       تم إغلاق اليوم
     </span>
     <p class="v2-closed-note">ده ملخص شغل النهارده بعد ما المسؤول أقفل اليوم.</p>
-  </div>
-
-  <!-- ============ BIG TOTAL ============ -->
-  <div class="v2-total v2-fade" style="--i:1">
-    <div class="v2-total-label">{% if my_farm_label %}إجمالي {{ my_farm_label }} بعد الخصم{% else %}إجمالي التحصين{% endif %}</div>
-    <div class="v2-total-num">
-      <span data-countup="{{ team_total }}">0</span>
-      <em>كتكوت</em>
-    </div>
-    <div class="v2-total-foot">
-      <!-- syringe -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-      تم إنجازه بواسطة <strong>{{ present_list|length }}</strong> عامل{% if my_farm_label %} في {{ my_farm_label }}{% endif %}
-    </div>
   </div>
 
   {# قائمة الحاضرين اتشالت من اللوحة — بتظهر في صفحة إغلاق اليوم عند المسؤول #}
@@ -99,7 +85,7 @@
       .v2-cta-row{display:flex;flex-direction:column;gap:10px;width:100%}
       .v2-cta-form{width:100%}
       .v2-cta-row .v2-cta{width:100%}
-      .v2-cta-bayad{background:linear-gradient(135deg,#4aa3ff 0%,#6c5ce7 100%);color:#fff}
+      .v2-cta-bayad{background:linear-gradient(135deg,#4aa3ff 0%,#2f7dff 100%);color:#fff}
     </style>
   </div>
   {% else %}

@@ -82,14 +82,14 @@
             <div class="tg-av idara-av">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg>
             </div>
-            <span class="verified-badge on-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+            <span class="verified-badge on-av"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           {% elif c.avatar %}<img class="tg-av" src="{{ c.avatar }}" alt="">
           {% else %}<div class="tg-av tg-av-fb" style="background:hsl({{ (c.id * 47) % 360 }},60%,45%)">{{ c.full_name[0] }}</div>{% endif %}
           {% if c.online %}<span class="tg-online-dot"></span>{% endif %}
         </div>
         <div class="tg-mid">
           <div class="tg-top">
-            <span class="tg-name">{{ c.full_name }}{% if c.username == ADMIN_BOT_USERNAME %}<span class="verified-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>{% endif %}</span>
+            <span class="tg-name">{{ c.full_name }}{% if c.username == ADMIN_BOT_USERNAME %}<span class="verified-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}</span>
             {% if c.last_time %}
               <span class="tg-time" data-time="{{ c.last_time }}"></span>
             {% endif %}

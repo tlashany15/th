@@ -47,13 +47,13 @@
 
   {% if is_real_super_admin %}
   <form method="post" action="{{ url_for('admin_open_idara') }}" class="notify-idara"
-        onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('هتفتح حساب الإدارة مؤقتًا.',{title:'فتح حساب الإدارة؟',okText:'فتح'}):Promise.resolve(confirm('فتح حساب الإدارة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+        onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('هتفتح حساب خدمة العمال مؤقتًا.',{title:'فتح حساب خدمة العمال؟',okText:'فتح'}):Promise.resolve(confirm('فتح حساب خدمة العمال؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
     <button type="submit" class="notify-idara-btn">
       <span class="notify-idara-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg>
       </span>
-      <span>فتح حساب الإدارة</span>
-      <span class="verified-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span>فتح حساب خدمة العمال</span>
+      <span class="verified-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </button>
   </form>
   {% endif %}

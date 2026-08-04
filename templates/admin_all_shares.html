@@ -35,12 +35,12 @@
 <!-- ===== إرسال الحساب ===== -->
 <form method="post" action="{{ url_for('admin_all_shares_send') }}" class="card"
       onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
-        (window.appConfirm?window.appConfirm('هيتبعت لكل واحد حسابه في رسالة خاصة من حساب الإدارة.',{title:'إرسال الحساب للكل؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال الحساب للكل؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+        (window.appConfirm?window.appConfirm('هيتبعت لكل واحد حسابه في رسالة خاصة من حساب خدمة العمال.',{title:'إرسال الحساب للكل؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال الحساب للكل؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
   <input type="hidden" name="start_day" value="{{ start_day }}">
   <input type="hidden" name="end_day" value="{{ end_day }}">
   <button class="btn btn-ghost btn-lg" type="submit" style="width:100%">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.27 3.9a.6.6 0 01.82-.73l16.2 7.55a.6.6 0 010 1.09L4.09 19.36a.6.6 0 01-.82-.73L6 12zm0 0h7"/></svg>
-    إرسال الحساب لكل واحد في رسالة خاصة من «الإدارة»
+    إرسال الحساب لكل واحد في رسالة خاصة من «خدمة العمال»
   </button>
 </form>
 

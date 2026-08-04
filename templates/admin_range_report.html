@@ -8,15 +8,15 @@
   position:relative;overflow:hidden;border-radius:22px;
   padding:20px 18px 22px;margin-bottom:14px;
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(108,92,231,.22), transparent 55%),
-    radial-gradient(120% 140% at 0% 100%, rgba(108,92,231,.14), transparent 55%),
+    radial-gradient(120% 140% at 100% 0%, rgba(47,125,255,.22), transparent 55%),
+    radial-gradient(120% 140% at 0% 100%, rgba(47,125,255,.14), transparent 55%),
     linear-gradient(180deg, rgba(15,21,36,.9), rgba(11,15,23,.95));
-  border:1px solid rgba(108,92,231,.22);
-  box-shadow:0 20px 60px -30px rgba(108,92,231,.55), inset 0 1px 0 rgba(255,255,255,.05);
+  border:1px solid rgba(47,125,255,.22);
+  box-shadow:0 20px 60px -30px rgba(47,125,255,.55), inset 0 1px 0 rgba(255,255,255,.05);
 }
 .rr2-hero::before{
   content:"";position:absolute;inset:-2px;border-radius:24px;pointer-events:none;
-  background:conic-gradient(from 140deg,rgba(108,92,231,.35),transparent 30%,rgba(108,92,231,.22) 60%,transparent 85%);
+  background:conic-gradient(from 140deg,rgba(47,125,255,.35),transparent 30%,rgba(47,125,255,.22) 60%,transparent 85%);
   filter:blur(28px);opacity:.55;z-index:0;animation:rr2-orbit 12s linear infinite;
 }
 @keyframes rr2-orbit{to{transform:rotate(360deg)}}
@@ -24,8 +24,8 @@
 .rr2-badge{
   display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
   padding:6px 12px;border-radius:999px;color:var(--gold-2);
-  background:linear-gradient(180deg,rgba(108,92,231,.16),rgba(108,92,231,.06));
-  border:1px solid rgba(108,92,231,.35);
+  background:linear-gradient(180deg,rgba(47,125,255,.16),rgba(47,125,255,.06));
+  border:1px solid rgba(47,125,255,.35);
   letter-spacing:.3px;
 }
 .rr2-title{font-size:22px;font-weight:900;margin:8px 0 2px;color:var(--text);letter-spacing:-.2px}
@@ -34,7 +34,7 @@
 /* form card */
 .rr2-card{
   background:var(--grad-surface);
-  border:1px solid rgba(108,92,231,.14);
+  border:1px solid rgba(47,125,255,.14);
   border-radius:20px;padding:16px;margin-bottom:14px;
   box-shadow:0 12px 40px -24px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.03);
 }
@@ -43,7 +43,7 @@
 .rr2-seg{
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
   background:rgba(0,0,0,.35);padding:5px;border-radius:14px;
-  border:1px solid rgba(108,92,231,.12);margin-bottom:12px;
+  border:1px solid rgba(47,125,255,.12);margin-bottom:12px;
 }
 .rr2-seg button{
   all:unset;text-align:center;cursor:pointer;font-size:12.5px;font-weight:800;
@@ -53,27 +53,27 @@
 .rr2-seg button svg{width:14px;height:14px}
 .rr2-seg button.active{
   background:linear-gradient(180deg,var(--gold),var(--gold));color:#0b0d12;
-  box-shadow:0 6px 16px -6px rgba(108,92,231,.6), inset 0 1px 0 rgba(255,255,255,.4);
+  box-shadow:0 6px 16px -6px rgba(47,125,255,.6), inset 0 1px 0 rgba(255,255,255,.4);
 }
-.rr2-seg button:not(.active):hover{background:rgba(108,92,231,.06);color:#fff}
+.rr2-seg button:not(.active):hover{background:rgba(47,125,255,.06);color:#fff}
 
 /* person picker with search */
 .rr2-person-wrap{position:relative;margin-bottom:12px}
 .rr2-person-wrap.hidden{display:none}
 .rr2-search{
   width:100%;padding:12px 40px 12px 14px;border-radius:14px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(108,92,231,.2);
+  background:rgba(0,0,0,.4);border:1px solid rgba(47,125,255,.2);
   color:#fff;font-size:14px;font-weight:600;outline:none;transition:.2s;
   box-sizing:border-box;
 }
-.rr2-search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(108,92,231,.18)}
+.rr2-search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(47,125,255,.18)}
 .rr2-search-ico{
   position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%);
   width:16px;height:16px;color:var(--gold);pointer-events:none;
 }
 .rr2-persons{
   margin-top:8px;max-height:220px;overflow:auto;
-  border:1px solid rgba(108,92,231,.14);border-radius:14px;
+  border:1px solid rgba(47,125,255,.14);border-radius:14px;
   background:rgba(0,0,0,.35);
   scrollbar-width:thin;scrollbar-color:var(--gold) transparent;
 }
@@ -81,18 +81,18 @@
 .rr2-persons::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
 .rr2-person{
   display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
-  border-bottom:1px solid rgba(108,92,231,.06);transition:.15s;
+  border-bottom:1px solid rgba(47,125,255,.06);transition:.15s;
 }
 .rr2-person:last-child{border-bottom:0}
-.rr2-person:hover{background:rgba(108,92,231,.06)}
-.rr2-person.sel{background:linear-gradient(90deg,rgba(108,92,231,.16),transparent)}
+.rr2-person:hover{background:rgba(47,125,255,.06)}
+.rr2-person.sel{background:linear-gradient(90deg,rgba(47,125,255,.16),transparent)}
 .rr2-avatar{
   width:38px;height:38px;flex:0 0 38px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   font-weight:900;font-size:14px;color:#0b0d12;
-  background:linear-gradient(135deg,var(--gold),#6c5ce7);
-  box-shadow:0 4px 10px -4px rgba(108,92,231,.7);
-  border:2px solid rgba(108,92,231,.35);
+  background:linear-gradient(135deg,var(--gold),#2f7dff);
+  box-shadow:0 4px 10px -4px rgba(47,125,255,.7);
+  border:2px solid rgba(47,125,255,.35);
   position:relative;
 }
 .rr2-avatar img{width:100%;height:100%;object-fit:cover;display:block}
@@ -106,10 +106,10 @@
 .rr2-preset{
   all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
   padding:7px 12px;border-radius:999px;color:var(--text-2);
-  background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.18);
+  background:rgba(47,125,255,.08);border:1px solid rgba(47,125,255,.18);
   transition:.2s;
 }
-.rr2-preset:hover{background:rgba(108,92,231,.16);color:#fff}
+.rr2-preset:hover{background:rgba(47,125,255,.16);color:#fff}
 .rr2-preset.active{background:linear-gradient(180deg,var(--gold),var(--gold));color:#0b0d12;border-color:transparent}
 
 /* date fields — عرض واضح ومتناسق */
@@ -130,7 +130,7 @@
   width:100%;max-width:100%;
   padding:13px 14px 13px 40px;
   border-radius:12px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(108,92,231,.22);
+  background:rgba(0,0,0,.4);border:1px solid rgba(47,125,255,.22);
   color:#fff;font-size:16px;font-weight:800;letter-spacing:0;
   outline:none;transition:.2s;
   box-sizing:border-box;font-family:inherit;
@@ -141,7 +141,7 @@
   unicode-bidi:plaintext;
 }
 .rr2-date-input::placeholder{color:rgba(255,255,255,.42);font-weight:700}
-.rr2-date-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(108,92,231,.18)}
+.rr2-date-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(47,125,255,.18)}
 .rr2-date-input.is-invalid{border-color:#ff5d5d;box-shadow:0 0 0 3px rgba(255,93,93,.16)}
 .rr2-date-ico{
   position:absolute;top:50%;left:6px;transform:translateY(-50%);
@@ -152,7 +152,7 @@
   transition:.15s;
 }
 .rr2-date-ico svg{width:18px;height:18px}
-.rr2-date-btn:hover{background:rgba(108,92,231,.14);color:#fff}
+.rr2-date-btn:hover{background:rgba(47,125,255,.14);color:#fff}
 .rr2-date-btn:active{transform:translateY(-50%) scale(.94)}
 .rr2-date-native{
   position:absolute;inset:0;width:100%;height:100%;
@@ -164,22 +164,22 @@
 .rr2-submit{
   all:unset;box-sizing:border-box;width:100%;text-align:center;cursor:pointer;
   padding:14px;border-radius:14px;font-size:14.5px;font-weight:900;color:#0b0d12;
-  background:linear-gradient(135deg,var(--gold-2),var(--gold) 45%,#6c5ce7);
-  box-shadow:0 12px 30px -12px rgba(108,92,231,.7), inset 0 1px 0 rgba(255,255,255,.4);
+  background:linear-gradient(135deg,var(--gold-2),var(--gold) 45%,#2f7dff);
+  box-shadow:0 12px 30px -12px rgba(47,125,255,.7), inset 0 1px 0 rgba(255,255,255,.4);
   display:flex;align-items:center;justify-content:center;gap:8px;
   transition:.2s;
 }
-.rr2-submit:hover{transform:translateY(-1px);box-shadow:0 16px 36px -12px rgba(108,92,231,.85), inset 0 1px 0 rgba(255,255,255,.5)}
+.rr2-submit:hover{transform:translateY(-1px);box-shadow:0 16px 36px -12px rgba(47,125,255,.85), inset 0 1px 0 rgba(255,255,255,.5)}
 .rr2-submit:active{transform:translateY(0)}
 .rr2-submit svg{width:18px;height:18px}
 
 /* result */
 .rr2-result{
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(108,92,231,.18), transparent 55%),
+    radial-gradient(120% 140% at 100% 0%, rgba(47,125,255,.18), transparent 55%),
     linear-gradient(180deg,rgba(23,31,51,.95),rgba(15,21,36,.95));
-  border:1px solid rgba(108,92,231,.3);border-radius:22px;padding:18px;margin-bottom:14px;
-  box-shadow:0 20px 60px -30px rgba(108,92,231,.55);
+  border:1px solid rgba(47,125,255,.3);border-radius:22px;padding:18px;margin-bottom:14px;
+  box-shadow:0 20px 60px -30px rgba(47,125,255,.55);
   animation:rr2-pop .5s cubic-bezier(.2,.9,.3,1.4);
 }
 @keyframes rr2-pop{from{opacity:0;transform:translateY(12px) scale(.98)}}
@@ -187,8 +187,8 @@
 .rr2-r-ico{
   width:44px;height:44px;flex:0 0 44px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;color:#0b0d12;
-  background:linear-gradient(135deg,var(--gold),#6c5ce7);
-  box-shadow:0 8px 20px -8px rgba(108,92,231,.7);
+  background:linear-gradient(135deg,var(--gold),#2f7dff);
+  box-shadow:0 8px 20px -8px rgba(47,125,255,.7);
 }
 .rr2-r-ico svg{width:22px;height:22px}
 .rr2-r-t{font-weight:900;font-size:15.5px;color:#fff}
@@ -200,8 +200,8 @@
 }
 .rr2-total{
   text-align:center;padding:20px 12px;border-radius:16px;
-  background:linear-gradient(180deg,rgba(108,92,231,.14),rgba(108,92,231,.04));
-  border:1px dashed rgba(108,92,231,.35);
+  background:linear-gradient(180deg,rgba(47,125,255,.14),rgba(47,125,255,.04));
+  border:1px dashed rgba(47,125,255,.35);
 }
 .rr2-total-v{
   font-size:38px;font-weight:900;
@@ -213,27 +213,27 @@
 .rr2-total-l{font-size:12px;color:#63667a;margin-top:6px;font-weight:700}
 .rr2-breakdown{
   margin-top:12px;padding:12px 14px;border-radius:12px;
-  background:rgba(0,0,0,.35);border:1px solid rgba(108,92,231,.12);
+  background:rgba(0,0,0,.35);border:1px solid rgba(47,125,255,.12);
   font-size:13px;color:var(--text-2);font-weight:600;text-align:center;
 }
 .rr2-breakdown b{color:var(--gold-2)}
 .rr2-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .rr2-chip{
   font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;
-  background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.16);color:var(--text-2);
+  background:rgba(47,125,255,.08);border:1px solid rgba(47,125,255,.16);color:var(--text-2);
 }
 .rr2-chip b{color:#fff}
 .rr2-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
 .rr2-act{
   all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 auto;min-width:0;text-align:center;
   padding:10px 8px;border-radius:12px;font-size:12px;font-weight:800;
-  border:1px solid rgba(108,92,231,.22);color:var(--gold);
+  border:1px solid rgba(47,125,255,.22);color:var(--gold);
   background:rgba(0,0,0,.35);transition:.2s;
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .rr2-act svg{width:14px;height:14px;flex-shrink:0}
-.rr2-act:hover{background:rgba(108,92,231,.1);color:#fff}
+.rr2-act:hover{background:rgba(47,125,255,.1);color:#fff}
 .rr2-act.primary{
   background:linear-gradient(135deg,#00d68f,#128c7e);color:#fff;border-color:transparent;
 }
@@ -248,15 +248,15 @@
 .rr2-hist-s{font-size:11.5px;color:#63667a;margin-top:2px}
 .rr2-hist-count{
   font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;
-  background:rgba(108,92,231,.14);color:var(--gold);border:1px solid rgba(108,92,231,.22);
+  background:rgba(47,125,255,.14);color:var(--gold);border:1px solid rgba(47,125,255,.22);
 }
 .rr2-hist{display:flex;flex-direction:column;gap:8px}
 .rr2-item{
   display:flex;gap:10px;padding:12px;border-radius:14px;
-  background:linear-gradient(180deg,rgba(108,92,231,.05),rgba(0,0,0,.25));
-  border:1px solid rgba(108,92,231,.1);transition:.2s;
+  background:linear-gradient(180deg,rgba(47,125,255,.05),rgba(0,0,0,.25));
+  border:1px solid rgba(47,125,255,.1);transition:.2s;
 }
-.rr2-item:hover{border-color:rgba(108,92,231,.28);transform:translateX(2px)}
+.rr2-item:hover{border-color:rgba(47,125,255,.28);transform:translateX(2px)}
 .rr2-item-l{flex:1;min-width:0}
 .rr2-item-range{font-size:13px;font-weight:800;color:#fff;margin-bottom:3px}
 .rr2-item-range small{color:#63667a;font-weight:600;margin-inline-start:6px}
@@ -275,7 +275,7 @@
 .rr2-item-del svg{width:14px;height:14px}
 .rr2-empty{
   text-align:center;padding:30px 12px;color:#63667a;font-size:13px;
-  border:1px dashed rgba(108,92,231,.18);border-radius:14px;
+  border:1px dashed rgba(47,125,255,.18);border-radius:14px;
 }
 </style>
 

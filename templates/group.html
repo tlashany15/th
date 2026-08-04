@@ -8,7 +8,7 @@
     <a class="wa-back" href="{{ url_for('chats_list') }}" aria-label="رجوع">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
     </a>
-    <label class="wa-head-avatar wa-head-avatar-group {% if is_admin %}is-clickable{% endif %}" title="{% if is_admin %}تغيير صورة المجموعة{% endif %}">
+    <label class="wa-head-avatar wa-head-avatar-group av-wrap-rel {% if is_admin %}is-clickable{% endif %}" title="{% if is_admin %}تغيير صورة المجموعة{% endif %}">
       {% if group.avatar %}<img src="{{ group.avatar }}" alt="">
       {% else %}<div class="wa-head-fb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg></div>{% endif %}
       {% if is_admin %}
@@ -19,9 +19,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
         </span>
       {% endif %}
+      <span class="verified-badge on-av"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </label>
     <button type="button" class="wa-head-info wa-head-info-btn" id="openMembers" aria-label="عرض الأعضاء">
-      <div class="wa-head-name">{{ group.name }}{% if group.is_locked %} <span class="wa-lock-badge" title="مقفولة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg></span>{% endif %}</div>
+      <div class="wa-head-name">{{ group.name }}<span class="verified-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% if group.is_locked %} <span class="wa-lock-badge" title="مقفولة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg></span>{% endif %}</div>
       <div class="wa-head-status" id="grpStatus">{{ group.members }} عضو</div>
     </button>
     {% if is_admin %}
@@ -595,7 +596,7 @@
 .wa-sys-tap{cursor:pointer;transition:transform .15s}
 .wa-sys-tap:active{transform:scale(.98)}
 .wa-sys-tap.is-flash > *{animation:waFlash 1.2s ease-out}
-@keyframes waFlash{0%{box-shadow:0 0 0 3px rgba(108,92,231,.9),0 0 0 8px rgba(108,92,231,.25)}100%{box-shadow:none}}
+@keyframes waFlash{0%{box-shadow:0 0 0 3px rgba(47,125,255,.9),0 0 0 8px rgba(47,125,255,.25)}100%{box-shadow:none}}
 .wa-img-tap{cursor:zoom-in}
 .wa-lightbox{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px}
 .wa-lb-back{position:absolute;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(6px)}
@@ -606,8 +607,8 @@
 .wa-lb-btn svg{width:16px;height:16px}
 
 /* Lock UI */
-.wa-lock-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(108,92,231,.18);color:#ffcf7a;margin-inline-start:4px}
-.wa-locked-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;background:linear-gradient(180deg,rgba(108,92,231,.14),rgba(108,92,231,.06));border-bottom:1px solid rgba(108,92,231,.22);color:#ffdca6;font-weight:700;font-size:13px}
+.wa-lock-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(47,125,255,.18);color:#ffcf7a;margin-inline-start:4px}
+.wa-locked-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;background:linear-gradient(180deg,rgba(47,125,255,.14),rgba(47,125,255,.06));border-bottom:1px solid rgba(47,125,255,.22);color:#ffdca6;font-weight:700;font-size:13px}
 .wa-locked-bar svg{width:16px;height:16px}
 .wa-wrap.is-locked-guest .wa-composer{opacity:.35;pointer-events:none;filter:grayscale(.3)}
 .wa-wrap.is-locked-guest .wa-mic,.wa-wrap.is-locked-guest .wa-send,.wa-wrap.is-locked-guest .wa-attach{pointer-events:none}
