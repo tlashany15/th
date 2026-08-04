@@ -1,0 +1,114 @@
+/* ==========================================================================
+   fix-v7.css — آخر ملف يتحمّل (أعلى أولوية)
+   1) شارة التوثيق/المبرمج من غير ظل ولا خلفية
+   2) الصور الشخصية دايرية (مفيش مربعات)
+   3) دخول المحتوى عنصر ورا عنصر من غير تأخير محسوس
+   4) الأزرق متطعّم بالدهبي بنسبة ضعيفة جدًا
+   5) ضبط تفاصيل عامة زي التطبيقات العالمية
+   ========================================================================== */
+
+/* ---------- 4) الأكسنت: أزرق مطعّم بالدهبي بنسبة خفيفة جدًا ---------- */
+:root{
+  --accent:#3980f3;
+  --accent-2:#85b2f7;
+  --accent-soft:rgba(57,128,243,.14);
+  --accent-line:rgba(57,128,243,.32);
+  --gold:#3980f3;   --gold-2:#85b2f7;
+  --gold-soft:rgba(57,128,243,.14); --gold-line:rgba(57,128,243,.32);
+  --blue:#3980f3;   --blue-2:#85b2f7; --blue-soft:rgba(57,128,243,.14);
+  --violet:#3980f3; --primary:#3980f3; --primary-2:#85b2f7;
+}
+
+/* ---------- 1) الشارات: من غير ظل / هالة / خلفية ---------- */
+.verified-badge,
+.dev-badge,
+.verified-badge.on-av,
+.dev-badge.on-av{
+  background:none !important;
+  box-shadow:none !important;
+  filter:none !important;
+  border:0 !important;
+}
+.verified-badge svg,
+.dev-badge svg,
+.verified-badge.on-av svg,
+.dev-badge.on-av svg{ filter:none !important; box-shadow:none !important; }
+
+/* الشارة اللي فوق الصورة تفضل واضحة من غير ظل */
+.verified-badge.on-av,
+.dev-badge.on-av{
+  inset-inline-end:-2px;
+  bottom:-2px;
+  width:18px; height:18px;
+}
+
+/* ---------- 2) صور شخصية دايرية ---------- */
+.hero-admin .sidebar-avatar,
+.sidebar-avatar,
+.wavatar,
+.tg-av,
+.tg-av-wrap,
+.wa-head-avatar,
+.profile-avatar-pick{ border-radius:50% !important; }
+.hero-admin .sidebar-avatar img,
+.sidebar-avatar img,
+.wavatar img,
+.tg-av,
+.wa-head-avatar img{ object-fit:cover; }
+
+/* ---------- 3) دخول متتابع للعناصر (من غير تأخير في أول عنصر) ---------- */
+body.pg-enter .container,
+body.pg-enter-back .container,
+body.pg-enter .wa-wrap,
+body.pg-enter-back .wa-wrap{ animation:none !important; opacity:1 !important; transform:none !important; }
+
+body.pg-enter .container > *,
+body.pg-enter-back .container > *{
+  animation:v7In .34s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes v7In{
+  from{ opacity:0; transform:translate3d(0,10px,0); }
+  to{ opacity:1; transform:none; }
+}
+body.pg-enter .container > *:nth-child(1),
+body.pg-enter-back .container > *:nth-child(1){ animation-delay:0s; }
+body.pg-enter .container > *:nth-child(2),
+body.pg-enter-back .container > *:nth-child(2){ animation-delay:.045s; }
+body.pg-enter .container > *:nth-child(3),
+body.pg-enter-back .container > *:nth-child(3){ animation-delay:.09s; }
+body.pg-enter .container > *:nth-child(4),
+body.pg-enter-back .container > *:nth-child(4){ animation-delay:.135s; }
+body.pg-enter .container > *:nth-child(5),
+body.pg-enter-back .container > *:nth-child(5){ animation-delay:.18s; }
+body.pg-enter .container > *:nth-child(6),
+body.pg-enter-back .container > *:nth-child(6){ animation-delay:.225s; }
+body.pg-enter .container > *:nth-child(7),
+body.pg-enter-back .container > *:nth-child(7){ animation-delay:.27s; }
+body.pg-enter .container > *:nth-child(n+8),
+body.pg-enter-back .container > *:nth-child(n+8){ animation-delay:.3s; }
+
+/* عناصر قوائم الشات كمان تدخل ورا بعض */
+body.pg-enter .tg-list > li:nth-child(1){ animation:v7In .3s cubic-bezier(.22,1,.36,1) both; animation-delay:0s; }
+body.pg-enter .tg-list > li:nth-child(2){ animation:v7In .3s cubic-bezier(.22,1,.36,1) both; animation-delay:.04s; }
+body.pg-enter .tg-list > li:nth-child(3){ animation:v7In .3s cubic-bezier(.22,1,.36,1) both; animation-delay:.08s; }
+body.pg-enter .tg-list > li:nth-child(4){ animation:v7In .3s cubic-bezier(.22,1,.36,1) both; animation-delay:.12s; }
+body.pg-enter .tg-list > li:nth-child(5){ animation:v7In .3s cubic-bezier(.22,1,.36,1) both; animation-delay:.16s; }
+body.pg-enter .tg-list > li:nth-child(n+6){ animation:v7In .3s cubic-bezier(.22,1,.36,1) both; animation-delay:.2s; }
+
+/* ---------- 5) تفاصيل عامة زي التطبيقات العالمية ---------- */
+html{ -webkit-text-size-adjust:100%; }
+*{ -webkit-tap-highlight-color:transparent; }
+body{ overscroll-behavior-y:none; }
+img{ -webkit-user-drag:none; user-select:none; }
+button, a, .btn, .tg-row{ -webkit-touch-callout:none; }
+input, textarea, select{ font-size:16px; } /* يمنع الزوم التلقائي على iOS */
+:focus{ outline:none; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.btn:active, .tg-row:active{ transform:scale(.985); }
+.btn, .tg-row{ transition:transform .12s ease, background-color .15s ease, opacity .15s ease; }
+
+@media (prefers-reduced-motion: reduce){
+  body.pg-enter .container > *,
+  body.pg-enter-back .container > *,
+  body.pg-enter .tg-list > li{ animation:none !important; }
+}
