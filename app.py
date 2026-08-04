@@ -3975,14 +3975,23 @@ def admin_notify():
     if request.method == "POST":
         title = (request.form.get("title") or "").strip()
         body  = (request.form.get("body") or "").strip()
-        url   = (request.form.get("url") or "").strip()
+        url   = ""
         target = request.form.get("target", "all")
         if not title:
             flash("لازم تكتب عنوان للإشعار", "error")
             return redirect(url_for("admin_notify"))
-        if target == "all":
-            cur.execute("SELECT id FROM users WHERE role<>'system'")
+        if target in ("all", "workers", "admins"):
+            if target == "workers":
+                cur.execute("SELECT id FROM users WHERE role='worker'")
+            elif target == "admins":
+                cur.execute("SELECT id FROM users WHERE role='admin'")
+            else:
+                cur.execute("SELECT id FROM users WHERE role<>'system'")
             user_ids = [r["id"] for r in cur.fetchall()]
+            if not user_ids:
+                cur.close()
+                flash("مفيش مستخدمين في القسم ده", "error")
+                return redirect(url_for("admin_notify"))
         else:
             raw = request.form.getlist("user_ids")
             user_ids = [int(x) for x in raw if x]
