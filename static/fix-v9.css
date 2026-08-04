@@ -1,0 +1,110 @@
+/* ==========================================================================
+   fix-v9.css — إصلاح تكبير الصور الشخصية
+   المشكلة: في fix-v8 القاعدة (.tg-av-wrap > img{width:100%;height:100%})
+   كانت أقوى من (.tg-av{width:52px}) فالصورة كانت بتفرد على عرض الصف كله.
+   الحل: نثبّت مقاس الغلاف نفسه لكل مكان، والصورة تملا الغلاف بس —
+   بالظبط زي قائمة شاتات تلجرام، مع الحفاظ على ظهور شارة التوثيق.
+   ========================================================================== */
+
+/* ---------- 1) قائمة الدردشات (زي تلجرام) ---------- */
+.tg-list .tg-av-wrap,
+.tg-list .av-wrap-rel{
+  width:54px !important;
+  height:54px !important;
+  min-width:54px !important;
+  min-height:54px !important;
+  flex:0 0 54px !important;
+  position:relative;
+  overflow:visible !important;   /* عشان الشارة تفضل بارزة */
+}
+
+.tg-list .tg-av{
+  width:54px !important;
+  height:54px !important;
+  min-width:54px !important;
+  min-height:54px !important;
+  max-width:54px !important;
+  max-height:54px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  display:block;
+}
+
+.tg-list .tg-av-wrap > img,
+.tg-list .av-wrap-rel > img{
+  width:54px !important;
+  height:54px !important;
+  max-width:54px !important;
+  max-height:54px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+}
+
+.tg-row{ align-items:center; gap:12px; }
+.tg-mid{ min-width:0; flex:1 1 auto; }
+.tg-name,.tg-preview{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---------- 2) صورة صاحب الحساب فوق ---------- */
+.tg-me-av{
+  width:74px !important;
+  height:74px !important;
+  min-width:74px !important;
+  min-height:74px !important;
+  flex:0 0 74px !important;
+  border-radius:50% !important;
+  overflow:visible !important;
+  position:relative;
+}
+.tg-me-av > img{
+  width:74px !important;
+  height:74px !important;
+  max-width:74px !important;
+  max-height:74px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+}
+
+/* ---------- 3) باقي الأماكن (رأس الدردشة، الشريط الجانبي، الأعضاء) ---------- */
+.wa-head-avatar{ width:42px !important; height:42px !important; flex:0 0 42px !important; }
+.wa-head-avatar > img{ width:42px !important; height:42px !important; max-width:42px !important; max-height:42px !important; }
+
+.sidebar-avatar,.hero-admin .sidebar-avatar{ width:56px !important; height:56px !important; flex:0 0 56px !important; }
+.sidebar-avatar > img,.hero-admin .sidebar-avatar > img{ width:56px !important; height:56px !important; max-width:56px !important; max-height:56px !important; }
+
+.wavatar,.wa-av,.wmp-av,.tg-mem-av{ width:44px !important; height:44px !important; flex:0 0 44px !important; }
+.wavatar > img,.wa-av > img,.wmp-av > img,.tg-mem-av > img{ width:44px !important; height:44px !important; max-width:44px !important; max-height:44px !important; }
+
+.u-av{ width:38px !important; height:38px !important; flex:0 0 38px !important; }
+.u-av > img{ width:38px !important; height:38px !important; max-width:38px !important; max-height:38px !important; }
+
+/* كل الصور الشخصية دايرية ومقصوصة صح */
+.tg-av,.tg-me-av > img,.wa-head-avatar > img,.sidebar-avatar > img,
+.wavatar > img,.wa-av > img,.wmp-av > img,.tg-mem-av > img,.u-av > img,
+.avatar > img,.profile-avatar-pick > img{
+  border-radius:50% !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  aspect-ratio:1 / 1;
+}
+
+/* ---------- 4) شارة التوثيق / المبرمج تفضل صغيرة وفوق الصورة ---------- */
+.verified-badge.on-av,
+.dev-badge.on-av{
+  width:19px !important;
+  height:19px !important;
+  inset-inline-end:-3px !important;
+  bottom:-3px !important;
+  z-index:5;
+}
+.verified-badge.on-av svg,
+.dev-badge.on-av svg{ width:19px !important; height:19px !important; }
+
+/* الشارة اللي جنب الاسم تفضل صغيرة برضه */
+.tg-name .verified-badge,
+.tg-name .dev-badge{ width:16px !important; height:16px !important; display:inline-grid; vertical-align:-3px; margin-inline-start:4px; }
+.tg-name .verified-badge svg,
+.tg-name .dev-badge svg{ width:16px !important; height:16px !important; }
+
+/* نقطة الأونلاين */
+.tg-online-dot{ width:13px !important; height:13px !important; }
