@@ -115,7 +115,7 @@
   border: 1px solid var(--card-br, rgba(255,255,255,.10));
   font-size: 14px; cursor: pointer;
 }
-.notify-radio input { accent-color: #e3b445; width: 18px; height: 18px; }
+.notify-radio input { accent-color: #6c5ce7; width: 18px; height: 18px; }
 .notify-picker { margin: 6px 0 14px; }
 .notify-picker-hint { font-size: 13px; opacity: .75; margin-bottom: 8px; }
 .notify-users { display: flex; flex-wrap: wrap; gap: 8px; }

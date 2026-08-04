@@ -36,7 +36,7 @@ input[type="submit"],
 }
 .btn svg{ width:18px; height:18px; flex:0 0 auto; }
 .btn:active{ transform:scale(.975); }
-.btn:focus-visible{ outline:2px solid var(--gold,#f5b950); outline-offset:2px; }
+.btn:focus-visible{ outline:2px solid var(--gold,#6c5ce7); outline-offset:2px; }
 .btn[disabled], .btn.is-disabled{ opacity:.55; pointer-events:none; }
 
 .btn-sm{ min-height:var(--u-h-sm); padding:7px 14px; font-size:var(--u-fs-sm); border-radius:var(--u-r-sm); }

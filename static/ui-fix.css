@@ -10,9 +10,9 @@
    0) توكنات موحّدة
    ------------------------------------------------------------ */
 :root{
-  --uf-gold:#f5b950;
-  --uf-gold-soft:rgba(245,185,80,.12);
-  --uf-gold-line:rgba(245,185,80,.28);
+  --uf-gold:#6c5ce7;
+  --uf-gold-soft:rgba(108,92,231,.12);
+  --uf-gold-line:rgba(108,92,231,.28);
   --uf-line:rgba(255,255,255,.09);
   --uf-surface:rgba(255,255,255,.035);
   --uf-r:16px;
@@ -57,8 +57,8 @@ button.uf-icon-btn{
   transition:transform .12s ease, background .16s ease, box-shadow .16s ease;
 }
 .sidebar-worker-imp:hover{
-  background:rgba(245,185,80,.2);
-  box-shadow:0 4px 14px -6px rgba(245,185,80,.6);
+  background:rgba(108,92,231,.2);
+  box-shadow:0 4px 14px -6px rgba(108,92,231,.6);
 }
 .sidebar-worker-imp:active{ transform:scale(.93); }
 
@@ -127,7 +127,7 @@ select, textarea{
 /* السلكت: سهم واحد بس، ومساحة كافية للنص */
 select{
   appearance:none; -webkit-appearance:none; -moz-appearance:none;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5b950' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a29bfe' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
   background-repeat:no-repeat;
   background-size:16px 16px;
   background-position:left 12px center;
@@ -316,14 +316,14 @@ form select,
 select.field,
 select.notify-field{
   appearance:none !important; -webkit-appearance:none !important; -moz-appearance:none !important;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5b950' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>") !important;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a29bfe' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>") !important;
   background-repeat:no-repeat !important;
   background-size:16px 16px !important;
   background-position:left 13px center !important;
   padding-inline-end:40px !important;
   cursor:pointer;
 }
-select option{ background:#131a2c; color:#fff; }
+select option{ background:#14161d; color:#fff; }
 
 /* ------------------------------------------------------------
    10) قوائم البطاقات (المستخدمين/العمال) — صف مضغوط ومتّسق
