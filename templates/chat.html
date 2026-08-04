@@ -8,12 +8,17 @@
     <a class="wa-back" href="{{ url_for('chats_list') }}" aria-label="رجوع">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
     </a>
-    <div class="wa-head-avatar">
-      {% if other.avatar %}<img src="{{ other.avatar }}" alt="">
+    <div class="wa-head-avatar av-wrap-rel">
+      {% if other.username == ADMIN_BOT_USERNAME %}
+        <div class="wa-head-fb idara-av">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg>
+        </div>
+        <span class="verified-badge on-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      {% elif other.avatar %}<img src="{{ other.avatar }}" alt="">
       {% else %}<div class="wa-head-fb">{{ other.full_name[0] }}</div>{% endif %}
     </div>
     <div class="wa-head-info">
-      <div class="wa-head-name">{{ other.full_name }}</div>
+      <div class="wa-head-name">{{ other.full_name }}{% if other.username == ADMIN_BOT_USERNAME %}<span class="verified-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>{% endif %}</div>
       <div class="wa-head-status {% if other.online %}is-online{% endif %}" id="otherStatus">
         {% if other.online %}متصل الآن{% else %}غير متصل{% endif %}
       </div>
@@ -106,7 +111,10 @@
   var OTHER_AVATAR = {{ (other.avatar or '')|tojson }};
   var OTHER_INITIAL = {{ (other.full_name[0] if other.full_name else '?')|tojson }};
 
+  var OTHER_IS_BOT = {{ (other.username == ADMIN_BOT_USERNAME)|tojson }};
+
   function avatarHTML(){
+    if (OTHER_IS_BOT) return '<div class="wa-av idara-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg></div>';
     if (OTHER_AVATAR) return '<img class="wa-av" src="'+OTHER_AVATAR+'" alt="">';
     return '<div class="wa-av wa-av-fb">'+ChatHelpers.escape(OTHER_INITIAL)+'</div>';
   }
