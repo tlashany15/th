@@ -441,7 +441,7 @@ window.ChatHelpers = (function(){
       function trigger(){
         var txt = getText();
         if (!txt) return;
-        copyText(txt).then(function(ok){ toast(ok ? 'تم نسخ الرسالة ✓' : 'تعذّر النسخ'); });
+        copyText(txt).then(function(ok){ toast(ok ? 'تم نسخ الرسالة' : 'تعذّر النسخ'); });
       }
       b.addEventListener('dblclick', trigger);
     });
