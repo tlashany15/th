@@ -327,6 +327,8 @@
 
 
   /* ============ قارئ المصحف داخل التطبيق ============ */
+  var SURAHS = ['الفاتحة','البقرة','آل عمران','النساء','المائدة','الأنعام','الأعراف','الأنفال','التوبة','يونس','هود','يوسف','الرعد','إبراهيم','الحجر','النحل','الإسراء','الكهف','مريم','طه','الأنبياء','الحج','المؤمنون','النور','الفرقان','الشعراء','النمل','القصص','العنكبوت','الروم','لقمان','السجدة','الأحزاب','سبأ','فاطر','يس','الصافات','ص','الزمر','غافر','فصلت','الشورى','الزخرف','الدخان','الجاثية','الأحقاف','محمد','الفتح','الحجرات','ق','الذاريات','الطور','النجم','القمر','الرحمن','الواقعة','الحديد','المجادلة','الحشر','الممتحنة','الصف','الجمعة','المنافقون','التغابن','الطلاق','التحريم','الملك','القلم','الحاقة','المعارج','نوح','الجن','المزمل','المدثر','القيامة','الإنسان','المرسلات','النبأ','النازعات','عبس','التكوير','الانفطار','المطففين','الانشقاق','البروج','الطارق','الأعلى','الغاشية','الفجر','البلد','الشمس','الليل','الضحى','الشرح','التين','العلق','القدر','البينة','الزلزلة','العاديات','القارعة','التكاثر','العصر','الهمزة','الفيل','قريش','الماعون','الكوثر','الكافرون','النصر','المسد','الإخلاص','الفلق','الناس'];
+
   var mushafCache = {};
 
   function openMushaf(page){
@@ -397,17 +399,41 @@
     }
 
     function paint(body, vs, n){
-      var html = '<div class="isl-mushaf v2-fade">' +
-        (String(vs[0].verse_key).split(':')[1] === '1'
-          ? '<div class="isl-bism">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>' : '') +
-        '<p class="isl-ayat">' +
-        vs.map(function(v){
-          var num = String(v.verse_key).split(':')[1];
-          return '<span class="isl-aya">' + esc(cleanUthmani(v.text_uthmani)) +
-                 '<span class="isl-aya-n" dir="rtl">\uFD3E' + toArabicNum(num) + '\uFD3F</span></span>';
-        }).join(' ') +
-        '</p><div class="isl-mushaf-f">صفحة ' + n + ' من 604</div></div>';
-      body.innerHTML = html;
+      var out = '';
+      var lastSura = null;
+      var buf = [];
+
+      function flush(){
+        if (!buf.length) return;
+        out += '<p class="isl-ayat">' + buf.join(' ') + '</p>';
+        buf = [];
+      }
+
+      vs.forEach(function(v){
+        var parts = String(v.verse_key).split(':');
+        var sura = parseInt(parts[0], 10);
+        var num = parts[1];
+        if (sura !== lastSura){
+          flush();
+          if (num === '1' || lastSura !== null){
+            out += '<div class="isl-sura">' +
+                     '<span class="isl-sura-o"></span>' +
+                     '<span class="isl-sura-n">سورة ' + esc(SURAHS[sura - 1] || '') + '</span>' +
+                     '<span class="isl-sura-o"></span>' +
+                   '</div>';
+          }
+          if (num === '1' && sura !== 1 && sura !== 9){
+            out += '<div class="isl-bism">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>';
+          }
+          lastSura = sura;
+        }
+        buf.push('<span class="isl-aya">' + esc(cleanUthmani(v.text_uthmani)) +
+                 '<span class="isl-aya-n">' + toArabicNum(num) + '</span></span>');
+      });
+      flush();
+
+      body.innerHTML = '<div class="isl-mushaf v2-fade">' + out +
+        '<div class="isl-mushaf-f">صفحة ' + n + ' من 604</div></div>';
     }
 
     loadPage(cur);

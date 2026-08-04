@@ -276,11 +276,32 @@ body.isl-lock{ overflow:hidden; }
   font-family:"Amiri Quran","Scheherazade New","Amiri",serif;
 }
 .isl-aya-n{
-  display:inline-block; margin:0 5px; font-size:17px; font-weight:400;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; margin:0 5px; vertical-align:middle;
+  font-size:12.5px; font-weight:800; line-height:1;
+  font-family:inherit;
   direction:rtl; unicode-bidi:isolate;
-  font-family:"Amiri Quran","Scheherazade New","Amiri",serif;
+  border-radius:50%;
+  border:1.5px solid var(--gold-line,rgba(47,125,255,.45));
+  background:var(--gold-soft,rgba(47,125,255,.14));
   color:var(--gold-2,#7fb0ff);
 }
+.isl-sura{
+  display:flex; align-items:center; gap:10px; direction:rtl;
+  margin:18px 0 12px; padding:10px 14px;
+  border-radius:14px;
+  border:1.5px solid var(--gold-line,rgba(47,125,255,.32));
+  background:var(--gold-soft,rgba(47,125,255,.10));
+}
+.isl-sura-n{
+  flex:1; text-align:center; font-size:17px; font-weight:800;
+  color:var(--gold-2,#7fb0ff); letter-spacing:.2px;
+}
+.isl-sura-o{
+  width:22px; height:1.5px; border-radius:2px;
+  background:var(--gold-line,rgba(47,125,255,.45));
+}
+.isl-ayat + .isl-sura{ margin-top:22px; }
 .isl-mushaf-f{
   margin-top:16px; text-align:center; font-size:11.5px; font-weight:800;
   color:var(--text-3,#63667a);
