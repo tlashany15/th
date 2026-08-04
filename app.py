@@ -791,7 +791,7 @@ def admin_impersonate(uid):
         return redirect(url_for("admin_panel"))
     if target["role"] == "system":
         # حساب (الإدارة) بيتفتح من صفحة «إرسال إشعار» بس — مش من أي مكان تاني
-        flash("حساب الإدارة بيتفتح من صفحة إرسال إشعار فقط", "error")
+        flash("حساب خدمة العمال بيتفتح من صفحة إرسال إشعار فقط", "error")
         return redirect(url_for("admin_notify"))
     session["impersonate_id"] = uid
     flash("تم الدخول بحساب: " + (target["full_name"] or ""), "success")
@@ -1512,7 +1512,7 @@ def admin_worker_clear_period():
 # ============================================================
 CHICK_PRICE = 55
 ADMIN_BOT_USERNAME = "__idara__"
-ADMIN_BOT_NAME = "الإدارة"
+ADMIN_BOT_NAME = "خدمة العمال"
 AR_MONTHS_LIST = ["يناير","فبراير","مارس","أبريل","مايو","يونيو",
                   "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
 
@@ -1539,6 +1539,8 @@ def _get_admin_bot_id(cur):
     cur.execute("SELECT id FROM users WHERE username=%s", (ADMIN_BOT_USERNAME,))
     r = cur.fetchone()
     if r:
+        cur.execute("UPDATE users SET full_name=%s WHERE id=%s AND full_name<>%s",
+                    (ADMIN_BOT_NAME, int(r["id"]), ADMIN_BOT_NAME))
         return int(r["id"])
     cur.execute(
         """INSERT INTO users(username, full_name, password_hash, role)
@@ -1703,12 +1705,12 @@ def admin_all_shares_send():
         db.commit()
         cur.close()
         try:
-            _notify_users(sent_ids, "رسالة من الإدارة",
+            _notify_users(sent_ids, "رسالة من خدمة العمال",
                           f"حسابك عن {label} وصلك في الدردشة",
                           url=url_for("chats_list"), type_="general")
         except Exception as _e:
             print("notify shares error:", _e)
-        flash(f"تم إرسال الحساب لـ {len(sent_ids)} شخص من حساب الإدارة ✓", "success")
+        flash(f"تم إرسال الحساب لـ {len(sent_ids)} شخص من حساب خدمة العمال ✓", "success")
     except Exception as ex:
         db.rollback(); cur.close()
         flash("خطأ أثناء الإرسال: " + str(ex), "error")
@@ -1905,12 +1907,12 @@ def admin_close_day():
                             (y, m, half, period_total))
                 db.commit()
                 try:
-                    _notify_users(sent_ids, "رسالة من الإدارة",
+                    _notify_users(sent_ids, "رسالة من خدمة العمال",
                                   f"حسابك عن {label} وصلك في الدردشة",
                                   url=url_for("chats_list"), type_="general")
                 except Exception as _e2:
                     print("notify period error:", _e2)
-                flash(f"آخر {half_lbl}: تم إرسال حساب كل واحد في رسالة خاصة من الإدارة ✓", "success")
+                flash(f"آخر {half_lbl}: تم إرسال حساب كل واحد في رسالة خاصة من خدمة العمال ✓", "success")
         cur.close()
     except Exception as _e:
         print("period summary error:", _e)
@@ -3989,7 +3991,7 @@ def admin_open_idara():
     bot_id = _get_admin_bot_id(cur)
     db.commit(); cur.close()
     session["impersonate_id"] = bot_id
-    flash("تم فتح حساب الإدارة", "success")
+    flash("تم فتح حساب خدمة العمال", "success")
     return redirect(url_for("chats_list"))
 
 
