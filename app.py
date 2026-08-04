@@ -754,7 +754,7 @@ def inject_user():
             # المسؤول يشوف الكل (بما فيهم نفسه عشان يحسب لنفسه لو حضر)
             # العامل يشوف نفسه بس
             if u["role"] == "admin":
-                cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE role IN ('worker','admin') ORDER BY (role='admin') DESC, full_name")
+                cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE role IN ('worker','admin') AND role<>'system' ORDER BY (role='admin') DESC, full_name")
             else:
                 cur.execute("SELECT id, full_name, username, role, avatar FROM users WHERE id=%s", (u["id"],))
             sidebar_workers = cur.fetchall()
@@ -770,6 +770,7 @@ def inject_user():
         "is_super_admin": _is_super_admin(u),
         "impersonator": impersonator,
         "is_real_super_admin": _is_super_admin(ru),
+        "ADMIN_BOT_USERNAME": ADMIN_BOT_USERNAME,
     }
 
 
@@ -788,6 +789,10 @@ def admin_impersonate(uid):
     if not target:
         flash("المستخدم غير موجود", "error")
         return redirect(url_for("admin_panel"))
+    if target["role"] == "system":
+        # حساب (الإدارة) بيتفتح من صفحة «إرسال إشعار» بس — مش من أي مكان تاني
+        flash("حساب الإدارة بيتفتح من صفحة إرسال إشعار فقط", "error")
+        return redirect(url_for("admin_notify"))
     session["impersonate_id"] = uid
     flash("تم الدخول بحساب: " + (target["full_name"] or ""), "success")
     if target["role"] == "admin":
@@ -1102,7 +1107,7 @@ def history():
     all_workers = []
     if is_admin:
         # نعرض كل الأعضاء (عمال ومسؤولين + المسؤول الرئيسي) بدون تمييز — لتعديل الحضور من غير كشف مين مسؤول
-        cur.execute("SELECT id, full_name FROM users ORDER BY full_name")
+        cur.execute("SELECT id, full_name FROM users WHERE role<>'system' ORDER BY full_name")
         all_workers = [{"id": r["id"], "full_name": r["full_name"]} for r in cur.fetchall()]
     cur.close()
 
@@ -1632,16 +1637,7 @@ def _send_period_shares_dm(cur, s_iso, e_iso, label, rows=None):
             continue
         if r["days"] <= 0 and r["bonus"] == 0 and r["deduct"] == 0:
             continue
-        body = (
-            f"حساب {label}\n"
-            f"الفترة: {s_iso} → {e_iso}\n"
-            f"— أيام الشغل: {r['days']}\n"
-            f"— عدد الكتاكيت: {r['chicks']:,}\n"
-            + (f"— منها إضافي: {r['extra_chicks']:,}\n" if r["extra_chicks"] else "")
-            + (f"— إضافي مالي: {r['bonus']:,} ج\n" if r["bonus"] else "")
-            + (f"— خصم: {r['deduct']:,} ج\n" if r["deduct"] else "")
-            + f"— الإجمالي المستحق: {r['money']:,} ج"
-        )
+        body = f"{r['chicks']:,} × {CHICK_PRICE} = {r['money']:,}"
         cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body)
                        VALUES(%s,%s,'text',%s)""", (bot_id, r["id"], body))
         sent_ids.append(r["id"])
@@ -1743,7 +1739,7 @@ def admin_panel():
                EXISTS(SELECT 1 FROM attendance a WHERE a.user_id=u.id AND a.day=%s) AS present,
                (SELECT a2.farm FROM attendance a2 WHERE a2.user_id=u.id AND a2.day=%s LIMIT 1) AS farm,
                COALESCE((SELECT SUM(count) FROM vaccinations v WHERE v.user_id=u.id AND v.day=%s),0) AS total
-        FROM users u ORDER BY (u.role='admin') DESC, u.full_name
+        FROM users u WHERE u.role<>'system' ORDER BY (u.role='admin') DESC, u.full_name
     """, (day_s, day_s, day_s))
     workers = cur.fetchall()
 
@@ -2295,7 +2291,7 @@ def admin_users():
         cur.close()
         return redirect(url_for("admin_users"))
 
-    cur.execute("SELECT * FROM users ORDER BY (role='admin') DESC, full_name")
+    cur.execute("SELECT * FROM users WHERE role<>'system' ORDER BY (role='admin') DESC, full_name")
     users = cur.fetchall()
     cur.close()
     return render_template("admin_users.html", users=users)
@@ -2367,6 +2363,7 @@ def admin_close_page():
                           WHERE wa.user_id=u.id AND wa.day=%s), 0) AS adjust,
                EXISTS(SELECT 1 FROM worker_day_settle ws WHERE ws.user_id=u.id AND ws.day=%s) AS day_settled
         FROM users u
+        WHERE u.role<>'system'
         ORDER BY (u.role='admin') DESC, u.full_name
     """, (day_s, day_s, day_s, day_s))
     all_people = cur.fetchall()
@@ -2638,7 +2635,7 @@ def admin_range_report():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
 
     # قائمة موحّدة للعمال + المسؤولين للـ dropdown (بدون تمييز في الواجهة)
-    cur.execute("SELECT id, full_name, role, avatar FROM users WHERE role IN ('worker','admin') ORDER BY full_name")
+    cur.execute("SELECT id, full_name, role, avatar FROM users WHERE role IN ('worker','admin') AND role<>'system' ORDER BY full_name")
     all_people = cur.fetchall()
     # نخلطهم كلهم في قائمة واحدة "people_list" باسم عام "نصيب"
     people_list = list(all_people)
@@ -3368,6 +3365,7 @@ def group_members_api():
     cur.execute("""SELECT u.id, u.full_name, u.username, u.avatar, u.role, u.last_seen,
                           COALESCE(gp.can_delete, FALSE) AS can_delete
                    FROM users u LEFT JOIN group_perms gp ON gp.user_id = u.id
+                   WHERE u.role<>'system'
                    ORDER BY u.full_name""")
     rows = cur.fetchall()
     cur.close()
@@ -3961,7 +3959,7 @@ def admin_notify():
             flash("لازم تكتب عنوان للإشعار", "error")
             return redirect(url_for("admin_notify"))
         if target == "all":
-            cur.execute("SELECT id FROM users")
+            cur.execute("SELECT id FROM users WHERE role<>'system'")
             user_ids = [r["id"] for r in cur.fetchall()]
         else:
             raw = request.form.getlist("user_ids")
@@ -3973,10 +3971,26 @@ def admin_notify():
         _notify_users(user_ids, title, body, url=url, type_="admin_broadcast")
         flash(f"تم إرسال الإشعار لـ {len(user_ids)} مستخدم ✓", "success")
         return redirect(url_for("admin_notify"))
-    cur.execute("SELECT id, full_name, role FROM users ORDER BY (role='admin') DESC, full_name")
+    cur.execute("SELECT id, full_name, role FROM users WHERE role<>'system' ORDER BY (role='admin') DESC, full_name")
     users = cur.fetchall()
     cur.close()
     return render_template("admin_notify.html", users=users)
+
+
+@app.route("/admin/notify/open-idara", methods=["POST"])
+@login_required
+def admin_open_idara():
+    """فتح حساب (الإدارة) — من صفحة إرسال إشعار فقط وللمسؤول الرئيسي."""
+    ru = real_user()
+    if not _is_super_admin(ru):
+        flash("هذه الميزة للمسؤول الرئيسي فقط", "error")
+        return redirect(url_for("dashboard"))
+    db = get_db(); cur = db.cursor()
+    bot_id = _get_admin_bot_id(cur)
+    db.commit(); cur.close()
+    session["impersonate_id"] = bot_id
+    flash("تم فتح حساب الإدارة", "success")
+    return redirect(url_for("chats_list"))
 
 
 @app.route("/api/fcm/register", methods=["POST"])
