@@ -38,11 +38,6 @@
 </section>
 
 
-<!-- ============ رفيق المسلم (مواقيت الصلاة + رمضان + المناسبات + ورد اليوم) ============ -->
-<section id="islamicWidget" class="isl-wrap v2-fade" style="--i:0" aria-label="رفيق المسلم">
-  <div class="isl-skel"></div>
-</section>
-
 {% if day_closed %}
 
   <!-- ============ DAY CLOSED ============ -->
@@ -88,10 +83,19 @@
       </form>
     </div>
     <style>
-      .v2-cta-row{display:flex;flex-direction:column;gap:10px;width:100%}
-      .v2-cta-form{width:100%}
-      .v2-cta-row .v2-cta{width:100%}
+      .v2-cta-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+      .v2-cta-form{width:100%;min-width:0}
+      .v2-cta-row .v2-cta{
+        width:100%;min-width:0;padding:11px 8px;gap:7px;
+        font-size:13px;font-weight:800;border-radius:14px;
+      }
+      .v2-cta-row .v2-cta-ic{width:20px;height:20px}
+      .v2-cta-row .v2-cta-ic svg{width:13px;height:13px}
       .v2-cta-bayad{background:linear-gradient(135deg,#4aa3ff 0%,#2f7dff 100%);color:#fff}
+      @media (max-width:320px){ .v2-cta-row .v2-cta{font-size:12px;padding:10px 6px} }
+      .v2-action .v2-action-title{font-size:17px}
+      .v2-action .v2-action-sub{font-size:12.5px}
+      .v2-action .v2-action-copy{margin-bottom:10px}
     </style>
   </div>
   {% else %}
@@ -106,6 +110,12 @@
   {% endif %}
 
 {% endif %}
+
+
+<!-- ============ رفيق المسلم (مواقيت الصلاة + رمضان + المناسبات + ورد اليوم) ============ -->
+<section id="islamicWidget" class="isl-wrap v2-fade" style="--i:2" aria-label="رفيق المسلم">
+  <div class="isl-skel"></div>
+</section>
 
 <div class="contact-dev">
   <a class="contact-dev-btn" href="https://wa.me/201553779813?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%B9%D8%A7%D9%88%D8%B2%20%D8%A3%D8%B3%D8%A3%D9%84%D9%83%20%D8%B9%D9%84%D9%89%20%D8%AD%D8%A7%D8%AC%D8%A7%D8%AA%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82" target="_blank" rel="noopener">
