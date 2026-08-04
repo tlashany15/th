@@ -428,7 +428,7 @@
           lastSura = sura;
         }
         buf.push('<span class="isl-aya">' + esc(cleanUthmani(v.text_uthmani)) +
-                 '<span class="isl-aya-n">' + toArabicNum(num) + '</span></span>');
+                 '<span class="isl-aya-n"><b>' + toArabicNum(num) + '</b></span></span>');
       });
       flush();
 

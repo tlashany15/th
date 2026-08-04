@@ -276,15 +276,22 @@ body.isl-lock{ overflow:hidden; }
   font-family:"Amiri Quran","Scheherazade New","Amiri",serif;
 }
 .isl-aya-n{
-  display:inline-flex; align-items:center; justify-content:center;
-  width:26px; height:26px; margin:0 5px; vertical-align:middle;
-  font-size:12.5px; font-weight:800; line-height:1;
-  font-family:inherit;
-  direction:rtl; unicode-bidi:isolate;
+  display:inline-block; position:relative;
+  width:28px; height:28px; margin:0 6px;
+  vertical-align:-6px;
   border-radius:50%;
   border:1.5px solid var(--gold-line,rgba(47,125,255,.45));
   background:var(--gold-soft,rgba(47,125,255,.14));
   color:var(--gold-2,#7fb0ff);
+  direction:rtl; unicode-bidi:isolate;
+}
+.isl-aya-n > b{
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  font-family:"Segoe UI","Tahoma","Noto Sans Arabic",system-ui,sans-serif;
+  font-size:12px; font-weight:800; line-height:1;
+  white-space:nowrap;
+  font-feature-settings:normal;
 }
 .isl-sura{
   display:flex; align-items:center; gap:10px; direction:rtl;
