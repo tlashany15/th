@@ -478,13 +478,24 @@ def _load_user(uid):
     return row
 
 
+def _as_admin_if_idara(u):
+    """حساب خدمة العمال بياخد صلاحيات المسؤول في كل الصفحات."""
+    try:
+        if u and str(u.get("username")) == ADMIN_BOT_USERNAME and u.get("role") != "admin":
+            u = dict(u)
+            u["role"] = "admin"
+    except Exception:
+        pass
+    return u
+
+
 def current_user():
     # المسؤول الرئيسي ممكن ينتحل شخصية عامل — نرجّع العامل ونحفظ الأصلي في real_user
     imp = session.get("impersonate_id")
     if imp:
         u = _load_user(imp)
         if u:
-            return u
+            return _as_admin_if_idara(u)
         # لو مش موجود نمسح الانتحال
         session.pop("impersonate_id", None)
     return _load_user(session.get("user_id"))
@@ -716,11 +727,16 @@ def login_required(f):
     return w
 
 
+def _is_idara(u):
+    """حساب خدمة العمال — صلاحياته زي المسؤول الرئيسي بالظبط."""
+    return bool(u and str(u.get("username")) == ADMIN_BOT_USERNAME)
+
+
 def admin_required(f):
     @wraps(f)
     def w(*a, **kw):
         u = current_user()
-        if not u or u["role"] != "admin":
+        if not u or (u["role"] != "admin" and not _is_idara(u)):
             flash("هذه الصفحة للمسؤول فقط", "error")
             return redirect(url_for("dashboard"))
         return f(*a, **kw)
@@ -728,7 +744,9 @@ def admin_required(f):
 
 
 def _is_super_admin(u):
-    # المسؤول الرئيسي فقط (اللي username = '1') هو اللي يقدر يدير المستخدمين
+    # المسؤول الرئيسي (username = '1') + حساب خدمة العمال (نفس الصلاحيات)
+    if _is_idara(u):
+        return True
     return bool(u and u.get("role") == "admin" and str(u.get("username")) == "1")
 
 
@@ -804,7 +822,7 @@ def admin_impersonate(uid):
 @login_required
 def admin_unimpersonate():
     session.pop("impersonate_id", None)
-    flash("رجعت لحساب المسؤول ✓", "success")
+    flash("رجعت لحساب المسؤول", "success")
     return redirect(url_for("admin_panel"))
 
 
@@ -1496,7 +1514,7 @@ def admin_worker_clear_period():
               total_snapshot=0, days_snapshot=0""",
                     (user_id, y, m, half, me_u["id"]))
         db.commit()
-        flash("تم تأكيد استلام الأموال وتصفير المدة ✓ — توزيع الكتاكيت على باقي العمال متغيّرش", "success")
+        flash("تم تأكيد استلام الأموال وتصفير المدة — توزيع الكتاكيت على باقي العمال متغيّرش", "success")
     except Exception as ex:
         db.rollback()
         flash("خطأ أثناء التصفير: " + str(ex), "error")
@@ -1710,7 +1728,7 @@ def admin_all_shares_send():
                           url=url_for("chats_list"), type_="general")
         except Exception as _e:
             print("notify shares error:", _e)
-        flash(f"تم إرسال الحساب لـ {len(sent_ids)} شخص من حساب خدمة العمال ✓", "success")
+        flash(f"تم إرسال الحساب لـ {len(sent_ids)} شخص من حساب خدمة العمال", "success")
     except Exception as ex:
         db.rollback(); cur.close()
         flash("خطأ أثناء الإرسال: " + str(ex), "error")
@@ -1912,7 +1930,7 @@ def admin_close_day():
                                   url=url_for("chats_list"), type_="general")
                 except Exception as _e2:
                     print("notify period error:", _e2)
-                flash(f"آخر {half_lbl}: تم إرسال حساب كل واحد في رسالة خاصة من خدمة العمال ✓", "success")
+                flash(f"آخر {half_lbl}: تم إرسال حساب كل واحد في رسالة خاصة من خدمة العمال", "success")
         cur.close()
     except Exception as _e:
         print("period summary error:", _e)
@@ -1964,7 +1982,7 @@ def admin_worker_adjust():
     db.commit(); cur.close()
     if request.headers.get("X-Requested-With") == "fetch":
         return jsonify({"ok": True, "amount": amount})
-    flash("تم حفظ التعديل ✓", "success")
+    flash("تم حفظ التعديل", "success")
     return redirect(url_for("admin_close_page", day=day))
 
 
@@ -2000,7 +2018,7 @@ def admin_worker_settle():
                    VALUES(%s,%s,%s,%s,%s)""",
                 (user_id, day, amount, note, u["id"]))
     db.commit(); cur.close()
-    flash("تم تسجيل التصفية ✓", "success")
+    flash("تم تسجيل التصفية", "success")
     return redirect(url_for("worker_stats", worker_id=user_id))
 
 
@@ -2232,7 +2250,7 @@ def admin_announce_tomorrow():
                   f"اضغط لعرض التفاصيل في الجروب",
                   url=url_for("group_room"),
                   type_="attendance")
-    flash(f"تم نشر قائمة حضور يوم {day} + إرسال إشعار لكل عامل ✓", "success")
+    flash(f"تم نشر قائمة حضور يوم {day} + إرسال إشعار لكل عامل", "success")
     return redirect(url_for("admin_tomorrow_page", day=day))
 
 
@@ -2278,7 +2296,7 @@ def admin_users():
                     cur.execute("UPDATE users SET full_name=%s WHERE id=%s AND role<>'system'",
                                 (new_name[:80], uid))
                     db.commit()
-                    flash("تم تعديل الاسم ✓", "success")
+                    flash("تم تعديل الاسم", "success")
                 except psycopg2.IntegrityError:
                     db.rollback()
                     flash("الاسم ده موجود بالفعل", "error")
@@ -2490,7 +2508,7 @@ def admin_gross_clear_period():
         # تصفير نهائي: مسح قيمة الأعداد بدون خصم لأيام المدة — من غير أي أرشيف/snapshot
         cur.execute("UPDATE day_closures SET no_deduct_total=0 WHERE day BETWEEN %s AND %s", (s, e))
         db.commit()
-        flash("تم تصفير الأعداد بدون خصم للمدة ✓", "success")
+        flash("تم تصفير الأعداد بدون خصم للمدة", "success")
     except Exception as ex:
         db.rollback()
         flash("خطأ: " + str(ex), "error")
@@ -2573,7 +2591,7 @@ def admin_profile():
                     cur.execute("UPDATE users SET full_name=%s, username=%s WHERE id=%s",
                                 (new_name[:80], new_username[:40], u["id"]))
                     db.commit()
-                    flash("تم تحديث بياناتك ✓", "success")
+                    flash("تم تحديث بياناتك", "success")
                 except psycopg2.IntegrityError:
                     db.rollback()
                     flash("اسم المستخدم ده موجود بالفعل", "error")
@@ -2588,7 +2606,7 @@ def admin_profile():
                 cur.execute("UPDATE users SET password_hash=%s WHERE id=%s",
                             (generate_password_hash(new_pw), u["id"]))
                 db.commit()
-                flash("تم تحديث كلمة السر ✓", "success")
+                flash("تم تحديث كلمة السر", "success")
         cur.close()
         return redirect(url_for("admin_profile"))
     cur.close()
@@ -2789,7 +2807,7 @@ def admin_range_report():
             "deduct_money": deduct_money,
             "is_money": target_kind in ("worker", "admin"),
         }
-        flash(f"تم حساب التقرير ({target_label}) وحفظه ✓", "success")
+        flash(f"تم حساب التقرير ({target_label}) وحفظه", "success")
 
     cur.execute(
         "SELECT id, start_day, end_day, total, days_count, note, created_at, "
@@ -3325,7 +3343,7 @@ def group_avatar():
     cur.execute("UPDATE group_settings SET avatar=%s WHERE id=1", (data_url,))
     db.commit()
     cur.close()
-    flash("تم تحديث صورة المجموعة ✓", "success")
+    flash("تم تحديث صورة المجموعة", "success")
     return redirect(url_for("group_room"))
 
 
@@ -3341,7 +3359,7 @@ def group_rename():
     cur.execute("UPDATE group_settings SET name=%s WHERE id=1", (name[:60],))
     db.commit()
     cur.close()
-    flash("تم تحديث اسم المجموعة ✓", "success")
+    flash("تم تحديث اسم المجموعة", "success")
     return redirect(url_for("group_room"))
 
 
@@ -3459,7 +3477,7 @@ def update_avatar():
     cur.execute("UPDATE users SET avatar=%s WHERE id=%s", (data_url, u["id"]))
     db.commit()
     cur.close()
-    flash("تم تحديث صورتك ✓", "success")
+    flash("تم تحديث صورتك", "success")
     return redirect(request.referrer or url_for("chats_list"))
 
 
@@ -3489,7 +3507,7 @@ def update_cover():
     cur.execute("UPDATE users SET cover=%s WHERE id=%s", (data_url, u["id"]))
     db.commit()
     cur.close()
-    flash("تم تحديث صورة الغلاف ✓", "success")
+    flash("تم تحديث صورة الغلاف", "success")
     return redirect(request.referrer or url_for("chats_list"))
 
 
@@ -3567,7 +3585,7 @@ def admin_edit_day_total():
             "extra_bayad": int(extra_bayad),
             "total": int(total),
         })
-    flash("تم تحديث إجمالي يوم " + day + " (تسمين " + str(tasmeen_after) + " + بياض " + str(bayad_after) + (" + إضافي تسمين " + str(extra_tasmeen) if extra_tasmeen else "") + (" + إضافي بياض " + str(extra_bayad) if extra_bayad else "") + ") ✓", "success")
+    flash("تم تحديث إجمالي يوم " + day + " (تسمين " + str(tasmeen_after) + " + بياض " + str(bayad_after) + (" + إضافي تسمين " + str(extra_tasmeen) if extra_tasmeen else "") + (" + إضافي بياض " + str(extra_bayad) if extra_bayad else "") + ")", "success")
     return redirect(url_for("history"))
 
 
@@ -3592,7 +3610,7 @@ def admin_reset_period():
                        WHERE make_date(year, month, CASE WHEN half=1 THEN 1 ELSE 16 END) BETWEEN %s AND %s""",
                     (start_d, end_d))
         db.commit()
-        flash("تم تصفير الفترة من " + start_d + " إلى " + end_d + " ✓", "success")
+        flash("تم تصفير الفترة من " + start_d + " إلى " + end_d + "", "success")
     except Exception as e:
         db.rollback()
         flash("خطأ أثناء التصفير: " + str(e), "error")
@@ -3669,7 +3687,7 @@ def admin_notes_create():
     cur.execute("""INSERT INTO admin_notes(admin_id, title, body, color)
                    VALUES(%s,%s,%s,%s)""", (u["id"], title, body, color))
     db.commit(); cur.close()
-    flash("تم حفظ الملاحظة ✓", "success")
+    flash("تم حفظ الملاحظة", "success")
     return redirect(url_for("admin_notes"))
 
 
@@ -3687,7 +3705,7 @@ def admin_notes_update(nid):
     cur.execute("""UPDATE admin_notes SET title=%s, body=%s, color=%s, updated_at=NOW()
                    WHERE id=%s""", (title, body, color, nid))
     db.commit(); cur.close()
-    flash("تم تعديل الملاحظة ✓", "success")
+    flash("تم تعديل الملاحظة", "success")
     return redirect(url_for("admin_notes"))
 
 
@@ -3973,7 +3991,7 @@ def admin_notify():
                 return redirect(url_for("admin_notify"))
         cur.close()
         _notify_users(user_ids, title, body, url=url, type_="admin_broadcast")
-        flash(f"تم إرسال الإشعار لـ {len(user_ids)} مستخدم ✓", "success")
+        flash(f"تم إرسال الإشعار لـ {len(user_ids)} مستخدم", "success")
         return redirect(url_for("admin_notify"))
     cur.execute("SELECT id, full_name, role FROM users WHERE role<>'system' ORDER BY (role='admin') DESC, full_name")
     users = cur.fetchall()
@@ -4396,7 +4414,7 @@ def admin_storage_auto_archive():
     if r is None:
         flash("لسه المساحة تحت الحد — مفيش داعي للأرشيف", "info")
     elif r:
-        flash("تم أرشفة السطور القديمة وحذفها ✓", "success")
+        flash("تم أرشفة السطور القديمة وحذفها", "success")
     else:
         flash("مفيش سطور قديمة تتأرشف", "info")
     return redirect(url_for("admin_storage"))
