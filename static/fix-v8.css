@@ -38,14 +38,35 @@
 .avatar > img{
   border-radius:50% !important;
   object-fit:cover !important;
-  width:100% !important;
-  height:100% !important;
+  object-position:center !important;
   display:block;
+  max-width:100%;
+  max-height:100%;
+  aspect-ratio:1 / 1;
+}
+
+/* لو الغلاف عنده مقاس محدد، الصورة تملاه بالظبط من غير ما تكبر */
+.sidebar-avatar,.hero-admin .sidebar-avatar,.wavatar,.tg-av,.tg-av-wrap,
+.av-wrap-rel,.wa-head-avatar,.tg-me-av,.tg-mem-av,.wa-av,.wmp-av,
+.profile-avatar-pick,.u-av,.avatar{
+  overflow:hidden !important;
+  flex:0 0 auto;
+}
+
+.sidebar-avatar > img,.hero-admin .sidebar-avatar > img,.wavatar > img,
+.tg-av > img,.tg-av-wrap > img,.av-wrap-rel > img,.wa-head-avatar > img,
+.tg-me-av > img,.profile-avatar-pick > img,.u-av > img,.avatar > img{
+  width:100%;
+  height:100%;
 }
 
 /* أي صورة جوه عنصر بيحمل شارة توثيق/مبرمج */
 .av-wrap-rel img,
-.sidebar-me img{ border-radius:50% !important; object-fit:cover !important; }
+.sidebar-me img{ border-radius:50% !important; object-fit:cover !important; aspect-ratio:1 / 1; max-width:100%; max-height:100%; }
+
+/* الشارة تفضل ظاهرة فوق الصورة من غير ما تتقص */
+.av-wrap-rel{ overflow:visible !important; }
+.av-wrap-rel > img{ border-radius:50% !important; }
 
 /* ---------- 2) إلغاء ستاجر الـ CSS (بقى JS) ---------- */
 body.pg-enter .container > *,
