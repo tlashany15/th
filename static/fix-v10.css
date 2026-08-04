@@ -1,0 +1,279 @@
+/* ==========================================================================
+   fix-v10.css — نظام موحّد للصور الشخصية (زي تلجرام بالظبط)
+   يعالج:
+   1) الصور اللي كانت بتطلع مربّعة (اللوجو + صور المجموعات + الردود)
+   2) أول حرف من الاسم (لما مفيش صورة) ما كانش متوسّط في النص
+   3) الصورة اللي كانت بتطلع بيضاوية/مفرودة جوّه الدردشة
+   الملف ده لازم يتحمّل آخر واحد بعد كل ملفات الـ CSS.
+   ========================================================================== */
+
+/* ---------- 1) القاعدة العامة: كل حاوية أفاتار دايرة ومتوسّطة ---------- */
+.tg-av,
+.tg-av-wrap,
+.tg-av-fb,
+.tg-av-group,
+.tg-me-av,
+.tg-me-av-fb,
+.tg-mem-av,
+.tg-mem-av-wrap,
+.tg-mem-av-fb,
+.wa-head-avatar,
+.wa-head-avatar-group,
+.wa-msg-av,
+.wa-av,
+.wa-av-fb,
+.idara-av,
+.wavatar,
+.wmp-av,
+.wmp-av-fb,
+.att-av,
+.ps-ava,
+.u-av,
+.rr2-avatar,
+.sidebar-avatar,
+.hero-admin .sidebar-avatar,
+.profile-avatar-pick,
+.av-wrap-rel,
+.avatar {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center;
+  line-height: 1 !important;
+  font-weight: 800;
+  letter-spacing: 0;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  padding: 0 !important;
+  box-sizing: border-box;
+  overflow: visible;            /* عشان شارة التوثيق تفضل بارزة */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* أي صورة جوّه حاوية أفاتار = تملا الحاوية بالظبط وتفضل دايرة */
+.tg-av-wrap img,
+.tg-av-group img,
+.tg-me-av img,
+.tg-mem-av img,
+.tg-mem-av-wrap img,
+.wa-head-avatar img,
+.wa-head-avatar-group img,
+.wa-msg-av img,
+.wavatar img,
+.wmp-av img,
+.att-av img,
+.ps-ava img,
+.u-av img,
+.rr2-avatar img,
+.sidebar-avatar img,
+.hero-admin .sidebar-avatar img,
+.profile-avatar-pick img,
+.av-wrap-rel img,
+.avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: 1 / 1;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  display: block !important;
+  flex: 0 0 auto !important;
+  padding: 0 !important;
+  border: 0;
+}
+
+/* الصور اللي هي نفسها الأفاتار (مش جوّه حاوية) */
+img.tg-av,
+img.wa-av,
+img.tg-mem-av,
+img.wmp-av,
+img.u-av {
+  object-fit: cover !important;
+  object-position: center center !important;
+  border-radius: 50% !important;
+  display: block !important;
+}
+
+/* SVG جوّه أي أفاتار (اللوجو / أيقونة الإدارة) يتوسّط ويفضل صغير */
+.tg-av-wrap svg,
+.wa-head-avatar svg,
+.wa-msg-av svg,
+.idara-av svg,
+.sidebar-avatar svg,
+.wavatar svg {
+  width: 55% !important;
+  height: 55% !important;
+  display: block;
+  margin: auto;
+}
+/* شارات التوثيق مستثناة من قاعدة الـ SVG اللي فوق */
+.verified-badge svg,
+.dev-badge svg { margin: 0 !important; }
+
+/* ---------- 2) المقاسات — نفس أرقام تلجرام ---------- */
+
+/* قائمة الدردشات */
+.tg-av,
+.tg-av-wrap,
+.tg-av-fb,
+.tg-av-group {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  min-height: 54px !important;
+  max-width: 54px !important;
+  max-height: 54px !important;
+  font-size: 21px !important;
+}
+.tg-row { align-items: center; gap: 12px; }
+.tg-mid { min-width: 0; flex: 1 1 auto; }
+.tg-name, .tg-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* صورة صاحب الحساب */
+.tg-me-av,
+.tg-me-av-fb {
+  width: 74px !important;
+  height: 74px !important;
+  min-width: 74px !important;
+  min-height: 74px !important;
+  max-width: 74px !important;
+  max-height: 74px !important;
+  font-size: 28px !important;
+}
+
+/* رأس الدردشة / المجموعة */
+.wa-head-avatar,
+.wa-head-avatar-group {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  font-size: 16px !important;
+}
+
+/* أفاتار الرسائل جوّه الدردشة (كان بيطلع بيضاوي) */
+.wa-msg-av {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+.wa-av,
+.wa-av-fb,
+.idara-av {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  font-size: 14px !important;
+}
+.wa-av-hidden { visibility: hidden; }
+
+/* أعضاء المجموعة */
+.tg-mem-av,
+.tg-mem-av-wrap,
+.tg-mem-av-fb {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  max-width: 46px !important;
+  max-height: 46px !important;
+  font-size: 18px !important;
+}
+
+/* باقي الشاشات */
+.sidebar-avatar,
+.hero-admin .sidebar-avatar {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  max-width: 56px !important;
+  max-height: 56px !important;
+  border-radius: 50% !important;
+  font-size: 22px !important;
+}
+.wavatar,
+.wmp-av,
+.wmp-av-fb,
+.att-av,
+.ps-ava,
+.rr2-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  font-size: 17px !important;
+}
+.u-av {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  font-size: 15px !important;
+}
+.profile-avatar-pick {
+  width: 96px !important;
+  height: 96px !important;
+  min-width: 96px !important;
+  min-height: 96px !important;
+  max-width: 96px !important;
+  max-height: 96px !important;
+  font-size: 36px !important;
+  cursor: pointer;
+}
+
+/* ---------- 3) الشارات (توثيق / مبرمج / أونلاين) ---------- */
+.verified-badge.on-av,
+.dev-badge.on-av {
+  position: absolute;
+  width: 18px !important;
+  height: 18px !important;
+  inset-inline-end: -2px !important;
+  bottom: -2px !important;
+  display: inline-grid !important;
+  place-items: center;
+  z-index: 5;
+  pointer-events: none;
+}
+.verified-badge.on-av svg,
+.dev-badge.on-av svg { width: 18px !important; height: 18px !important; }
+
+.tg-name .verified-badge,
+.tg-name .dev-badge {
+  width: 16px !important;
+  height: 16px !important;
+  display: inline-grid;
+  vertical-align: -3px;
+  margin-inline-start: 4px;
+}
+.tg-name .verified-badge svg,
+.tg-name .dev-badge svg { width: 16px !important; height: 16px !important; }
+
+.tg-online-dot {
+  width: 13px !important;
+  height: 13px !important;
+  border-radius: 50% !important;
+  position: absolute;
+  z-index: 4;
+}
