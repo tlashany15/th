@@ -347,3 +347,15 @@
   background:var(--q-paper);
   border:1px solid var(--q-line);
 }
+
+/* ==========================================================================
+   إصلاحات v20 — تأكيد فوق أي تنسيق عام
+   ========================================================================== */
+/* القارئ فوق شريط التنقل السفلي عشان الكلام ما يختفيش وراه */
+.mus-reader{ z-index:120 !important; }
+/* لو الشريط السفلي ظهر لأي سبب، سيبنا مساحة أمان تحت آخر سطر */
+.mus-reader .qr-body{
+  padding-bottom:calc(28px + env(safe-area-inset-bottom)) !important;
+  scrollbar-width:thin;
+}
+.mus-reader .qr-sheet{ overflow:visible; }
