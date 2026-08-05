@@ -307,7 +307,7 @@
     });
 
     var readBtn = document.getElementById('islRead');
-    if (readBtn) readBtn.addEventListener('click', function(){ openMushaf(page); });
+    if (readBtn) readBtn.addEventListener('click', function(){ location.href = '/muslim/mushaf?page=' + page; });
 
     startTick();
   }
