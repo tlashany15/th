@@ -112,10 +112,18 @@
 {% endif %}
 
 
-<!-- ============ رفيق المسلم (مواقيت الصلاة + رمضان + المناسبات + ورد اليوم) ============ -->
-<section id="islamicWidget" class="isl-wrap v2-fade" style="--i:2" aria-label="رفيق المسلم">
-  <div class="isl-skel"></div>
-</section>
+<!-- رفيق المسلم اتنقل لصفحة مستقلة: قسم «مسلم» في الشريط السفلي -->
+<a class="v2-muslim-link v2-fade" style="--i:2" href="{{ url_for('muslim_page') }}">
+  <span class="v2-muslim-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
+  </span>
+  <span class="v2-muslim-txt">
+    <b>مسلم</b>
+    <small>مواقيت الصلاة والمناسبات وورد اليوم</small>
+  </span>
+  <svg class="v2-muslim-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+</a>
+
 
 <div class="contact-dev">
   <a class="contact-dev-btn" href="https://wa.me/201553779813?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%B9%D8%A7%D9%88%D8%B2%20%D8%A3%D8%B3%D8%A3%D9%84%D9%83%20%D8%B9%D9%84%D9%89%20%D8%AD%D8%A7%D8%AC%D8%A7%D8%AA%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82" target="_blank" rel="noopener">

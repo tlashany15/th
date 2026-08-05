@@ -77,8 +77,20 @@
 
   <nav class="sidebar-nav">
     {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('admin_panel') }}" class="snav-admin-btn">
+      <span class="snav-ico">{{ snav_icon('dashboard') }}</span>
+      <span class="snav-admin-txt">
+        <b>لوحة التحكم</b>
+        <small>إدارة الفريق والأعداد</small>
+      </span>
+      <svg class="snav-admin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+
     <div class="snav-group">اليومي</div>
+    <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية (الحضور)</span></a>
     <a href="{{ url_for('admin_panel') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>اللوحة الرئيسية</span></a>
+
+
     <a href="{{ url_for('admin_close_page', day=nav_day) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
 
     <div class="snav-group">السجلات والتقارير</div>
@@ -105,6 +117,8 @@
     <a href="{{ url_for('worker_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي وكلمة السر</span></a>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
     {% endif %}
+    <a href="{{ url_for('muslim_page') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg></span><span>مسلم</span></a>
+
     <a href="#" id="sidebarThemeLink"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.7 0 2-1.4 1-2.4-.8-.8-.3-2.6 1-2.6h2a5 5 0 005-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/></svg></span><span>مظهر الدردشة</span></a>
     <a href="{{ url_for('logout') }}" class="sidebar-danger"><span class="snav-ico">{{ snav_icon('logout') }}</span><span>تسجيل الخروج</span></a>
   </nav>
@@ -172,38 +186,38 @@
 
 <!-- BOTTOM NAV -->
 {% if current_user %}
-<nav class="bottom-nav">
+<nav class="bottom-nav bottom-nav-5">
+
+  <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint in ['dashboard','check_in'] %}active{% endif %}">
+    {{ snav_icon('dashboard') }}
+    الحضور
+  </a>
+  <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">
+    {{ snav_icon('history') }}
+    السجل
+  </a>
+  <a href="{{ url_for('muslim_page') }}" class="bn-muslim {% if request.endpoint == 'muslim_page' %}active{% endif %}">
+    <span class="bn-muslim-orb" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
+    </span>
+    مسلم
+  </a>
+  <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
+    {{ snav_icon('chat') }}
+    دردشة
+  </a>
   {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('admin_panel') }}" class="{% if request.endpoint in ['admin_panel','admin_add_for_worker','admin_mark_attendance'] %}active{% endif %}">
-      {{ snav_icon('dashboard') }}
-      اللوحة
-    </a>
-    <a href="{{ url_for('admin_close_page', day=nav_day) }}" class="{% if request.endpoint in ['admin_close_page','admin_close_day','admin_reopen_day'] %}active{% endif %}">
-      {{ snav_icon('close') }}
-      إغلاق
-    </a>
-    <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
-      {{ snav_icon('chat') }}
-      دردشة
-    </a>
+  <a href="{{ url_for('admin_profile') }}" class="{% if request.endpoint == 'admin_profile' %}active{% endif %}">
+    {{ snav_icon('profile') }}
+    حسابي
+  </a>
   {% else %}
-    <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
-      {{ snav_icon('dashboard') }}
-      الرئيسية
-    </a>
-    <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">
-      {{ snav_icon('history') }}
-      السجل
-    </a>
-    <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
-      {{ snav_icon('chat') }}
-      دردشة
-    </a>
-    <a href="{{ url_for('logout') }}">
-      {{ snav_icon('logout') }}
-      خروج
-    </a>
+  <a href="{{ url_for('worker_profile') }}" class="{% if request.endpoint == 'worker_profile' %}active{% endif %}">
+    {{ snav_icon('profile') }}
+    حسابي
+  </a>
   {% endif %}
+
 </nav>
 {% endif %}
 
