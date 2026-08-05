@@ -1,134 +1,144 @@
 /* ==========================================================================
-   muslim-v17.css — قسم «مسلم» (طابع إسلامي + زخرفة عربية)
-   بيستخدم نفس توكنز ألوان التطبيق من palette-v5.css — مفيش ألوان جديدة برّه النظام.
+   muslim-v17.css — قسم «مسلم»
+   تصميم مستقل بسيط بطابع إسلامي (زي تطبيقات الأذان) + عناصر الشريط السفلي
    ========================================================================== */
 
-/* ---------- الهيدر بالقوس الإسلامي ---------- */
-.mus-hero{
-  position:relative; overflow:hidden;
-  margin-bottom:14px; padding:18px 16px 16px;
-  border-radius:var(--r-2xl, 22px);
-  background:var(--grad-surface, linear-gradient(180deg,#14161d 0%,#0b0d12 100%));
-  border:1px solid var(--line, rgba(255,255,255,.07));
-  box-shadow:var(--sh-gold, 0 10px 26px -14px rgba(47,125,255,.55));
-  text-align:center;
-}
-.mus-hero > *{ position:relative; z-index:2; }
-
-.mus-hero-glow{
-  position:absolute; inset:-35%; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(360px 260px at 50% 0%, var(--accent-soft, rgba(47,125,255,.14)), transparent 62%),
-    radial-gradient(320px 240px at 0% 100%, rgba(0,214,143,.10), transparent 62%);
-  filter:blur(22px);
-  animation:musGlow 18s ease-in-out infinite alternate;
-}
-@keyframes musGlow{ to{ transform:translate(14px,-10px) rotate(-4deg); } }
-
-/* زخرفة هندسية إسلامية (نجمة ثمانية متكررة) */
-.mus-hero-pattern{
-  position:absolute; inset:0; z-index:1; pointer-events:none;
-  opacity:.20; mix-blend-mode:screen;
-  background-image:
-    repeating-conic-gradient(from 22.5deg at 50% 50%,
-      var(--accent-line, rgba(47,125,255,.32)) 0deg 3deg, transparent 3deg 45deg);
-  background-size:44px 44px;
-  -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.85), transparent 88%);
-          mask-image:linear-gradient(180deg, rgba(0,0,0,.85), transparent 88%);
-}
-
-/* القوس (المحراب) */
-.mus-arch{
-  width:min(230px, 76%); margin:2px auto 10px; padding:2px;
-  border-radius:120px 120px 18px 18px;
-  background:var(--grad-accent, linear-gradient(140deg,#7fb0ff,#2f7dff 55%,#1f5fe0));
-  box-shadow:var(--sh-gold, 0 10px 26px -14px rgba(47,125,255,.55));
-}
-.mus-arch-in{
-  border-radius:118px 118px 16px 16px;
-  background:var(--surface, #14161d);
-  padding:16px 12px 14px;
-}
-.mus-crescent{
-  display:inline-flex; align-items:center; justify-content:center;
-  width:44px; height:44px; border-radius:50%;
-  color:var(--accent-2, #7fb0ff);
-  background:var(--accent-soft, rgba(47,125,255,.14));
-  border:1px solid var(--accent-line, rgba(47,125,255,.32));
-}
-.mus-crescent svg{ width:24px; height:24px; }
-
-.mus-title{
-  margin:9px 0 2px; font-size:24px; font-weight:900; letter-spacing:.5px;
-  background:var(--grad-accent, linear-gradient(140deg,#7fb0ff,#2f7dff));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-}
-.mus-sub{ margin:0; font-size:12.5px; font-weight:700; color:var(--text-2, #a1a4b2); }
-
-.mus-basmala{
-  font-size:34px; line-height:1.5; color:var(--accent-2, #7fb0ff);
-  text-shadow:0 6px 22px rgba(47,125,255,.35);
-}
-
-.mus-divider{ display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px; }
-.mus-divider span{
-  flex:0 1 130px; height:1px;
-  background:linear-gradient(90deg, transparent, var(--accent-line, rgba(47,125,255,.32)), transparent);
-}
-.mus-divider i{
-  width:8px; height:8px; transform:rotate(45deg);
-  background:var(--accent, #2f7dff); border-radius:2px; opacity:.85;
-}
-
-/* ---------- بطاقات المواقيت داخل القسم ---------- */
-.mus-widget .isl-card{
-  border-color:var(--accent-line, rgba(47,125,255,.32));
-}
-.mus-widget .isl-card::before{
-  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
-  opacity:.10;
-  background-image:
-    repeating-conic-gradient(from 22.5deg at 50% 50%,
-      var(--accent-2, #7fb0ff) 0deg 2deg, transparent 2deg 45deg);
-  background-size:38px 38px;
-  -webkit-mask-image:radial-gradient(120% 90% at 100% 0%, #000, transparent 70%);
-          mask-image:radial-gradient(120% 90% at 100% 0%, #000, transparent 70%);
-}
-.mus-widget .isl-p{
-  border-radius:16px 16px 16px 16px;
+/* ---------- خلفية الصفحة ---------- */
+.mus-page{
+  --m-bg:#07211d;
+  --m-bg2:#0d2f28;
+  --m-card:rgba(255,255,255,.055);
+  --m-line:rgba(232,216,166,.20);
+  --m-gold:#e8d8a6;
+  --m-gold-2:#c9ab63;
+  --m-txt:#f3f1e8;
+  --m-txt-2:rgba(243,241,232,.62);
   position:relative;
+  color:var(--m-txt);
+  font-family:"Amiri","Scheherazade New",inherit;
+  padding-bottom:8px;
 }
-.mus-widget .isl-p.is-now{
-  box-shadow:0 0 0 1px var(--accent-line, rgba(47,125,255,.32)) inset,
-             0 10px 24px -16px rgba(47,125,255,.7);
+.mus-bg{
+  position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(700px 420px at 50% -8%, rgba(232,216,166,.10), transparent 65%),
+    linear-gradient(180deg, var(--m-bg2) 0%, var(--m-bg) 55%, #051714 100%);
+}
+.mus-bg::after{
+  content:""; position:absolute; inset:0; opacity:.10;
+  background-image:
+    repeating-conic-gradient(from 22.5deg at 50% 50%, var(--m-gold) 0deg 1.2deg, transparent 1.2deg 45deg);
+  background-size:52px 52px;
+  -webkit-mask-image:linear-gradient(180deg, #000, transparent 60%);
+          mask-image:linear-gradient(180deg, #000, transparent 60%);
 }
 
-/* ---------- بطاقة الدعاء بإطار مزخرف ---------- */
+/* ---------- البسملة ---------- */
+.mus-basmala-card{
+  margin:6px 0 12px; padding:22px 16px 20px;
+  text-align:center;
+  border-radius:24px;
+  background:var(--m-card);
+  border:1px solid var(--m-line);
+}
+.mus-basmala{
+  font-size:40px; line-height:1.45;
+  color:var(--m-gold);
+  text-shadow:0 8px 26px rgba(232,216,166,.22);
+}
+
+/* ---------- الدعاء (تحت البسملة مباشرة) ---------- */
 .mus-dua{
-  position:relative; margin-top:14px; padding:20px 18px;
-  border-radius:var(--r-2xl, 22px); text-align:center;
-  background:var(--surface, #14161d);
-  border:1px solid var(--line, rgba(255,255,255,.07));
+  margin:0 0 14px; padding:18px 16px;
+  text-align:center;
+  border-radius:22px;
+  background:linear-gradient(180deg, rgba(232,216,166,.10), rgba(232,216,166,.03));
+  border:1px solid var(--m-line);
 }
 .mus-dua-txt{
-  margin:0; font-size:16px; font-weight:800; line-height:1.9;
-  color:var(--text-1, #f4f4f6);
+  margin:0; font-size:17px; font-weight:700; line-height:2;
+  color:var(--m-txt);
 }
 .mus-dua-tag{
-  display:inline-block; margin-top:10px; padding:4px 12px; border-radius:999px;
-  font-size:11.5px; font-weight:800;
-  color:var(--accent-2, #7fb0ff);
-  background:var(--accent-soft, rgba(47,125,255,.14));
-  border:1px solid var(--accent-line, rgba(47,125,255,.32));
+  display:inline-block; margin-top:10px; padding:4px 14px; border-radius:999px;
+  font-size:11.5px; font-weight:700;
+  color:var(--m-gold);
+  background:rgba(232,216,166,.10);
+  border:1px solid var(--m-line);
 }
-.mus-dua-corner{
-  position:absolute; width:22px; height:22px; pointer-events:none;
-  border:2px solid var(--accent-line, rgba(47,125,255,.32));
+
+/* ---------- بطاقات المواقيت والمناسبات داخل القسم ---------- */
+.mus-page .isl-card{
+  background:var(--m-card) !important;
+  border:1px solid var(--m-line) !important;
+  border-radius:22px !important;
+  box-shadow:none !important;
+  color:var(--m-txt);
+  margin-bottom:14px;
 }
-.mus-dua-corner.tl{ top:9px; inset-inline-start:9px; border-inline-end:0; border-bottom:0; border-start-start-radius:10px; }
-.mus-dua-corner.tr{ top:9px; inset-inline-end:9px; border-inline-start:0; border-bottom:0; border-start-end-radius:10px; }
-.mus-dua-corner.bl{ bottom:9px; inset-inline-start:9px; border-inline-end:0; border-top:0; border-end-start-radius:10px; }
-.mus-dua-corner.br{ bottom:9px; inset-inline-end:9px; border-inline-start:0; border-top:0; border-end-end-radius:10px; }
+.mus-page .isl-glow{ display:none !important; }
+.mus-page .isl-title,
+.mus-page .isl-next-name,
+.mus-page .isl-ram-num,
+.mus-page .isl-q-t,
+.mus-page .isl-ev-n{ color:var(--m-txt) !important; -webkit-text-fill-color:var(--m-txt); }
+.mus-page .isl-title svg{ color:var(--m-gold); }
+.mus-page .isl-chip,
+.mus-page .isl-next-lbl,
+.mus-page .isl-ev-d,
+.mus-page .isl-q-s,
+.mus-page .isl-ram-sub,
+.mus-page .isl-ram-date,
+.mus-page .isl-loc{ color:var(--m-txt-2) !important; }
+.mus-page .isl-chip{
+  background:rgba(232,216,166,.10) !important;
+  border:1px solid var(--m-line) !important;
+}
+.mus-page .isl-next{
+  background:linear-gradient(180deg, rgba(232,216,166,.10), transparent) !important;
+  border:1px solid var(--m-line) !important;
+  border-radius:18px;
+}
+.mus-page .isl-next-time,
+.mus-page .isl-next-cd{ color:var(--m-gold) !important; -webkit-text-fill-color:var(--m-gold); }
+
+.mus-page .isl-p{
+  background:rgba(255,255,255,.04) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:16px !important;
+  color:var(--m-txt) !important;
+}
+.mus-page .isl-p-n{ color:var(--m-txt-2) !important; }
+.mus-page .isl-p-t{ color:var(--m-txt) !important; font-variant-numeric:tabular-nums; }
+.mus-page .isl-p.is-now,
+.mus-page .isl-p.is-next{
+  background:linear-gradient(180deg, rgba(232,216,166,.18), rgba(232,216,166,.05)) !important;
+  border-color:var(--m-gold-2) !important;
+}
+.mus-page .isl-p.is-now .isl-p-t,
+.mus-page .isl-p.is-next .isl-p-t{ color:var(--m-gold) !important; }
+
+.mus-page .isl-bar{ background:rgba(255,255,255,.08) !important; }
+.mus-page .isl-bar i{ background:linear-gradient(90deg, var(--m-gold-2), var(--m-gold)) !important; }
+.mus-page .isl-ev,
+.mus-page .isl-quran,
+.mus-page .isl-page{
+  background:rgba(255,255,255,.035) !important;
+  border-color:rgba(255,255,255,.07) !important;
+  color:var(--m-txt);
+}
+.mus-page .isl-ev-ic,
+.mus-page .isl-ev-c{ color:var(--m-gold) !important; }
+.mus-page .isl-q-link{
+  background:linear-gradient(140deg, var(--m-gold), var(--m-gold-2)) !important;
+  color:#0a231f !important; border:0 !important;
+}
+.mus-page .isl-skel{
+  border-radius:22px;
+  background:var(--m-card);
+  border:1px solid var(--m-line);
+  min-height:180px;
+}
 
 /* ==========================================================================
    الشريط السفلي الموحّد (5 أقسام) + زر «مسلم» في النص
