@@ -287,3 +287,63 @@
   background:rgba(232,216,166,.12); border:1px solid rgba(232,216,166,.22);
 }
 .mus-mushaf-ar{ margin-inline-start:auto; width:18px; height:18px; color:var(--m-txt-2,#8d8f86); flex:0 0 auto; }
+
+/* ==========================================================================
+   إصلاحات v19
+   ========================================================================== */
+
+/* 1) التمرير جوّه المصحف — كان مقفول بسبب قاعدة عامة على أي <main> */
+.mus-reader .qr-body{
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  height:auto !important;
+  max-height:none !important;
+  min-height:0 !important;
+  flex:1 1 auto;
+  touch-action:pan-y !important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.mus-reader{ overflow:hidden !important; }
+/* مساحة أمان تحت آخر سطر عشان الكلام ميختفيش ورا الفوتر */
+.mus-reader .qr-body{ padding-bottom:26px; }
+
+/* 2) تمييز بداية السورة اللي اخترتها من الفهرس */
+.qr-surah{ scroll-margin-top:14px; }
+.qr-surah.is-target{
+  animation:qrTarget 2.2s ease both;
+}
+@keyframes qrTarget{
+  0%,70%{
+    background:linear-gradient(180deg, color-mix(in srgb, var(--q-gold) 42%, transparent), color-mix(in srgb, var(--q-gold) 12%, transparent));
+    box-shadow:0 0 0 2px color-mix(in srgb, var(--q-gold) 55%, transparent);
+  }
+  100%{ }
+}
+
+/* 3) شريط الرجوع لعلامتك */
+.qr-markbar{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:6px;
+  padding:8px 12px 0;
+  font-family:"Cairo","IBM Plex Sans Arabic",sans-serif;
+}
+.qr-markgo{
+  flex:1 1 auto; min-width:0;
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px; border-radius:14px;
+  font-size:12.5px; font-weight:800; text-align:start;
+  color:var(--q-txt);
+  background:color-mix(in srgb, var(--q-gold) 16%, transparent);
+  border:1px solid var(--q-line);
+}
+.qr-markgo svg{ width:16px; height:16px; flex:0 0 auto; color:var(--q-gold); }
+.qr-markgo span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qr-markgo:active{ transform:scale(.98); }
+.qr-markx{
+  flex:0 0 auto; width:34px; height:34px; border-radius:12px;
+  font-size:13px; font-weight:900;
+  color:var(--q-txt-2);
+  background:var(--q-paper);
+  border:1px solid var(--q-line);
+}

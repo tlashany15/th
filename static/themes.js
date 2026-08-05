@@ -241,16 +241,11 @@
       if (h.querySelector('.th-theme-btn')) return;
       h.appendChild(makeBtn());
     });
-    // Chats list header — button on the visual RIGHT (RTL => insetInlineStart)
+    // Chats list header — الزر في آخر الهيدر (الناحية التانية) مش فوق الصورة
     document.querySelectorAll('.tg-chats-head').forEach(function(h){
       if (h.querySelector('.th-theme-btn')) return;
       var b = makeBtn();
-      b.style.position = 'absolute';
-      b.style.top = '10px';
-      b.style.insetInlineStart = '10px';
-      b.style.zIndex = '3';
-      b.style.background = 'rgba(0,0,0,.35)';
-      b.style.color = '#fff';
+      b.classList.add('th-theme-btn-head');
       h.appendChild(b);
     });
   }

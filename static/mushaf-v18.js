@@ -113,7 +113,7 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
   }
 
   function surahHeadHTML(si){
-    return '<div class="qr-surah"><span>سورة ' + esc(SURAH_NAMES[si]) + '</span>' +
+    return '<div class="qr-surah" id="qrS' + (si + 1) + '" data-si="' + si + '"><span>سورة ' + esc(SURAH_NAMES[si]) + '</span>' +
            '<i>' + esc(SURAH_PLACE[si]) + ' · ' + SURAH_AYAS[si] + ' آية</i></div>';
   }
 
@@ -147,9 +147,22 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
     prevBtn.disabled = (p <= 1);
     nextBtn.disabled = (p >= MAX_PAGE);
     jumpBtn.textContent = 'صفحة ' + p;
+    syncMarkBar(p);
   }
 
-  function show(p, silent){
+  /* شريط «ارجع لعلامتك» — يظهر بس لما تكون حاطط علامة على صفحة تانية */
+  function syncMarkBar(p){
+    var bar = document.getElementById('qrMarkBar');
+    if (!bar) return;
+    var mark = parseInt(lsGet(LS.mark, '0'), 10) || 0;
+    if (!mark || mark === p){ bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.querySelector('#qrMarkGo').innerHTML =
+      IC.markOn + '<span>ارجع لعلامتك · صفحة ' + mark + ' (سورة ' + esc(SURAH_NAMES[surahOfPage(mark)]) + ')</span>';
+  }
+
+  function show(p, opts){
+    opts = opts || {};
     p = clampPage(p);
     cur = p;
     lsSet(LS.last, p);
@@ -166,6 +179,7 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
       sheet.innerHTML = pageHTML(p, ayahs);
       sheet.classList.remove('qr-anim'); void sheet.offsetWidth; sheet.classList.add('qr-anim');
       bodyEl.scrollTop = 0;
+      focusTarget(opts);
       // تحميل مسبق للصفحة اللي بعدها
       if (p < MAX_PAGE) setTimeout(function(){ fetchPage(p + 1).catch(function(){}); }, 400);
     }).catch(function(){
@@ -174,9 +188,23 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
         '<span>اتأكد من الاتصال بالإنترنت وحاول تاني. الصفحات اللي فتحتها قبل كده بتشتغل من غير نت.</span>' +
         '<div><button type="button" class="qr-retry" id="qrRetry">إعادة المحاولة</button></div></div>';
       var r = document.getElementById('qrRetry');
-      if (r) r.addEventListener('click', function(){ show(p); });
+      if (r) r.addEventListener('click', function(){ show(p, opts); });
     });
-    if (!silent) {} 
+  }
+
+  /* ينزّل الشاشة على بداية السورة اللي المستخدم اختارها ويعلّمها لثانيتين */
+  function focusTarget(opts){
+    var el = null;
+    if (opts.surah != null) el = document.getElementById('qrS' + (opts.surah + 1));
+    if (!el && opts.mark) el = document.querySelector('.qr-aya.is-mark');
+    if (!el) return;
+    setTimeout(function(){
+      var top = el.offsetTop - 12;
+      try { bodyEl.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
+      catch(e){ bodyEl.scrollTop = Math.max(0, top); }
+      el.classList.add('is-target');
+      setTimeout(function(){ el.classList.remove('is-target'); }, 2400);
+    }, 60);
   }
 
   function toast(msg){
@@ -223,7 +251,7 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
       var html = '';
       var mark = parseInt(lsGet(LS.mark, '0'), 10);
       if (mark && !q){
-        html += '<button type="button" class="qr-item" data-p="' + mark + '">' +
+        html += '<button type="button" class="qr-item" data-p="' + mark + '" data-mark="1">' +
                 '<span class="qr-item-n">' + IC.markOn + '</span>' +
                 '<span class="qr-item-b"><b>علامتك المحفوظة</b><small>سورة ' + esc(SURAH_NAMES[surahOfPage(mark)]) + '</small></span>' +
                 '<span class="qr-item-p">صفحة ' + mark + '</span></button>';
@@ -231,7 +259,7 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
       SURAH_NAMES.forEach(function(n, i){
         if (q && n.indexOf(q) === -1) return;
         var p = SURAH_PAGES[i];
-        html += '<button type="button" class="qr-item' + (surahOfPage(cur) === i ? ' is-cur' : '') + '" data-p="' + p + '">' +
+        html += '<button type="button" class="qr-item' + (surahOfPage(cur) === i ? ' is-cur' : '') + '" data-p="' + p + '" data-s="' + i + '">' +
                 '<span class="qr-item-n">' + arNum(i + 1) + '</span>' +
                 '<span class="qr-item-b"><b>سورة ' + esc(n) + '</b><small>' + esc(SURAH_PLACE[i]) + ' · ' + SURAH_AYAS[i] + ' آية</small></span>' +
                 '<span class="qr-item-p">صفحة ' + p + '</span></button>';
@@ -282,7 +310,9 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
     body.addEventListener('click', function(e){
       var b = e.target.closest && e.target.closest('.qr-item');
       if (!b || !b.getAttribute('data-p')) return;
-      show(b.getAttribute('data-p'));
+      var si = b.getAttribute('data-s');
+      var isMark = b.getAttribute('data-mark') === '1';
+      show(b.getAttribute('data-p'), si != null ? { surah: parseInt(si, 10) } : (isMark ? { mark: true } : {}));
       close();
     });
 
@@ -307,6 +337,10 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
         '<button type="button" class="qr-ico" id="qrFont" aria-label="حجم الخط">' + IC.aa + '</button>' +
         '<button type="button" class="qr-ico" id="qrTheme" aria-label="الوضع">' + (paper ? IC.moon : IC.sun) + '</button>' +
       '</header>' +
+      '<div class="qr-markbar" id="qrMarkBar" hidden>' +
+        '<button type="button" class="qr-markgo" id="qrMarkGo"></button>' +
+        '<button type="button" class="qr-markx" id="qrMarkX" aria-label="إخفاء">✕</button>' +
+      '</div>' +
       '<main class="qr-body" id="qrBody">' +
         '<section class="qr-sheet"><div class="qr-sheet-in" id="qrSheet">' +
           '<div class="qr-load"><i></i><i></i><i></i></div>' +
@@ -334,6 +368,14 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
     prevBtn.addEventListener('click', function(){ if (cur > 1) show(cur - 1); });
     nextBtn.addEventListener('click', function(){ if (cur < MAX_PAGE) show(cur + 1); });
     jumpBtn.addEventListener('click', openIndex);
+
+    document.getElementById('qrMarkGo').addEventListener('click', function(){
+      var mark = parseInt(lsGet(LS.mark, '0'), 10) || 0;
+      if (mark) show(mark, { mark: true });
+    });
+    document.getElementById('qrMarkX').addEventListener('click', function(){
+      document.getElementById('qrMarkBar').hidden = true;
+    });
 
     markBtn.addEventListener('click', function(){
       var mark = parseInt(lsGet(LS.mark, '0'), 10);

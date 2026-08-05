@@ -201,3 +201,21 @@
 .v2-muslim-txt b{ font-size:14.5px; font-weight:900; }
 .v2-muslim-txt small{ font-size:11.5px; font-weight:700; color:var(--text-2, #a1a4b2); }
 .v2-muslim-arrow{ width:18px; height:18px; margin-inline-start:auto; color:var(--text-3, #63667a); }
+
+/* ==========================================================================
+   إصلاحات v19 — البسملة كانت بتتقص من اليمين والشمال على الشاشات الصغيرة
+   ========================================================================== */
+.mus-basmala-card{
+  overflow:hidden;
+  padding-inline:10px;
+}
+.mus-basmala{
+  display:block;
+  max-width:100%;
+  font-size:min(40px, 8.4vw);
+  line-height:1.9;
+  white-space:nowrap;
+  overflow:visible;
+}
+.mus-page{ overflow-x:clip; }
+.mus-page > *{ max-width:100%; }
