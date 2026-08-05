@@ -2,11 +2,11 @@
 {% block title %}القراءة بالصوت — المصحف المرتّل{% endblock %}
 {% block body %}
 
-<!-- ============ قسم القراءة بالصوت (تلاوة كاملة تكمّل والشاشة مقفولة) ============ -->
+<!-- ============ قسم القراءة بالصوت ============ -->
 <div class="rc" id="rcRoot" data-back="{{ url_for('muslim_page') }}" dir="rtl">
 
   <header class="rc-head">
-    <button type="button" class="rc-ico" id="rcBack" aria-label="رجوع">
+    <button type="button" class="rc-ico" id="rcBack" data-app-back="{{ url_for('muslim_page') }}" aria-label="رجوع">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 19.5L8 12l7.5-7.5"/></svg>
     </button>
     <div class="rc-head-t"><b>القراءة بالصوت</b><small id="rcHeadSub">اختار القارئ والسورة</small></div>
@@ -15,35 +15,35 @@
     </a>
   </header>
 
-  <!-- قسم القارئ -->
+  <!-- القارئ -->
   <section class="rc-sec">
     <div class="rc-sec-h"><b>القارئ</b><button type="button" class="rc-more" id="rcAllRec">كل القرّاء</button></div>
     <div class="rc-recs" id="rcRecs"></div>
   </section>
 
-  <!-- قسم الخيارات -->
+  <!-- طريقة التشغيل -->
   <section class="rc-sec">
-    <div class="rc-sec-h"><b>طريقة التشغيل</b></div>
+    <div class="rc-sec-h"><b>التشغيل</b></div>
     <div class="rc-opts" id="rcOpts">
-      <button type="button" class="rc-opt" data-mode="one">السورة مرة واحدة</button>
-      <button type="button" class="rc-opt" data-mode="repeat">تكرار السورة</button>
-      <button type="button" class="rc-opt is-on" data-mode="all">المصحف كامل بالتتابع</button>
+      <button type="button" class="rc-opt" data-mode="one">مرة واحدة</button>
+      <button type="button" class="rc-opt" data-mode="repeat">تكرار</button>
+      <button type="button" class="rc-opt is-on" data-mode="all">المصحف كامل</button>
     </div>
     <div class="rc-quick">
       <button type="button" class="rc-quick-b" id="rcPlayAll">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
-        اقرأ المصحف كامل من الفاتحة
+        من الفاتحة
       </button>
-      <button type="button" class="rc-quick-b is-ghost" id="rcResume">كمّل من آخر مكان وقفت فيه</button>
+      <button type="button" class="rc-quick-b is-ghost" id="rcResume">كمّل من آخر مكان</button>
     </div>
   </section>
 
-  <!-- قسم السور -->
+  <!-- السور -->
   <section class="rc-sec rc-sec-list">
-    <div class="rc-sec-h"><b>السور</b><span id="rcCount">114 سورة</span></div>
+    <div class="rc-sec-h"><b>السور</b><span id="rcCount">114</span></div>
     <div class="rc-search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg>
-      <input type="search" id="rcSearch" placeholder="دوّر على اسم السورة…">
+      <input type="search" id="rcSearch" placeholder="ابحث عن سورة">
     </div>
     <div class="rc-list" id="rcList"></div>
   </section>
@@ -72,8 +72,7 @@
       </button>
     </div>
     <div class="rc-pl-foot">
-      <span id="rcModeTxt">المصحف كامل بالتتابع</span>
-      <span class="rc-bg">الصوت يكمّل والشاشة مقفولة</span>
+      <span id="rcModeTxt">المصحف كامل</span>
     </div>
   </div>
 

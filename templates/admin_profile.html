@@ -8,8 +8,10 @@
   <div class="ac19-id-row">
     <form id="avatarForm" method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:contents">
       <label class="ac19-av" title="غيّر صورتك">
-        {% if me.avatar %}<img src="{{ me.avatar }}" alt="">
-        {% else %}{{ (me.full_name or '?')[:1] }}{% endif %}
+        <span class="ac19-av-img">
+          {% if me.avatar %}<img src="{{ me.avatar }}" alt="">
+          {% else %}{{ (me.full_name or '?')[:1] }}{% endif %}
+        </span>
         <span class="ac19-av-edit" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
         </span>
@@ -29,7 +31,7 @@
       </span>
       {% endif %}
       <div class="ac19-name">{{ me.full_name }}</div>
-      <div class="ac19-user">@{{ me.username }}</div>
+      <div class="ac19-user"><span class="ac19-user-k">ID:</span> {{ me.username }}</div>
     </div>
   </div>
 
@@ -64,13 +66,11 @@
     </span>
     <div>
       <b>صورتك الشخصية</b>
-      <small>هتظهر بدل الحرف في كل مكان — بتتضغط تلقائيًا</small>
     </div>
   </div>
   <button type="button" class="ac19-save" onclick="document.getElementById('avatarFile').click()">
     اختار صورة جديدة
   </button>
-  <div class="ac19-hint">اضغط على صورتك فوق برضو لاختيار صورة</div>
 </section>
 
 {% if me.role == 'admin' %}
@@ -81,8 +81,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4 20.5c1.2-4 4.4-6 8-6s6.8 2 8 6"/></svg>
     </span>
     <div>
-      <b>الاسم واسم المستخدم</b>
-      <small>هيظهر لباقي الفريق في الدردشة والتقارير</small>
+      <b>الاسم والـ ID</b>
     </div>
   </div>
   <form method="post">
@@ -92,7 +91,7 @@
       <input name="full_name" required value="{{ me.full_name }}">
     </div>
     <div class="ac19-field">
-      <label>اسم المستخدم</label>
+      <label>ID</label>
       <input name="username" required value="{{ me.username }}">
     </div>
     <button class="ac19-save">حفظ التعديلات</button>
@@ -108,7 +107,6 @@
     </span>
     <div>
       <b>تغيير كلمة السر</b>
-      <small>اكتب الحالية والجديدة — 4 حروف على الأقل</small>
     </div>
   </div>
   <form method="post">
@@ -123,9 +121,6 @@
     </div>
     <button class="ac19-save is-gold">حفظ كلمة السر</button>
   </form>
-  {% if me.role != 'admin' %}
-  <div class="ac19-hint">تقدر تغيّر صورتك وكلمة السر بس — الاسم بيغيّره المسؤول.</div>
-  {% endif %}
 </section>
 
 <script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
