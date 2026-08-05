@@ -26,8 +26,32 @@ app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 # كاش طويل للملفات الثابتة (CSS/JS) — بيخلي التنقل بين الصفحات أسرع بكتير
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 60 * 60 * 24 * 365
-# رقم إصدار للملفات الثابتة — غيّره لو عدّلت CSS/JS عشان الكاش يتجدد
-ASSET_VER = os.environ.get("ASSET_VER", "20260805b")
+# رقم إصدار للملفات الثابتة — بيتحسب أوتوماتيك من محتوى مجلد static،
+# فأي تعديل في CSS/JS بيكسر الكاش لوحده بدون ما تغيّر أي حاجة باليد.
+def _compute_asset_ver():
+    import hashlib
+    h = hashlib.md5()
+    base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+    try:
+        for root, dirs, files in os.walk(base):
+            for name in sorted(files):
+                if not name.lower().endswith((".css", ".js")):
+                    continue
+                p = os.path.join(root, name)
+                try:
+                    st = os.stat(p)
+                    h.update(name.encode("utf-8"))
+                    h.update(str(int(st.st_mtime)).encode("ascii"))
+                    h.update(str(st.st_size).encode("ascii"))
+                except OSError:
+                    continue
+    except OSError:
+        return "dev"
+    return h.hexdigest()[:12]
+
+
+ASSET_VER = _compute_asset_ver()
+
 
 
 @app.context_processor
