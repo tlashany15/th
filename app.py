@@ -1065,6 +1065,13 @@ def mushaf_page():
     return render_template("mushaf.html")
 
 
+# ---------- قسم القراءة بالصوت (تلاوة كاملة تكمّل والشاشة مقفولة) ----------
+@app.route("/muslim/recite")
+@login_required
+def recite_page():
+    return render_template("recite.html")
+
+
 
 @app.route("/check-in", methods=["POST"])
 @login_required
