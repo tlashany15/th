@@ -27,7 +27,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 # كاش طويل للملفات الثابتة (CSS/JS) — بيخلي التنقل بين الصفحات أسرع بكتير
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 60 * 60 * 24 * 365
 # رقم إصدار للملفات الثابتة — غيّره لو عدّلت CSS/JS عشان الكاش يتجدد
-ASSET_VER = os.environ.get("ASSET_VER", "20260804e")
+ASSET_VER = os.environ.get("ASSET_VER", "20260805a")
 
 
 @app.context_processor
@@ -967,8 +967,9 @@ def register():
 @login_required
 def dashboard():
     u = current_user()
-    if u["role"] == "admin":
-        return redirect(url_for("admin_panel"))
+    # الصفحة الرئيسية موحّدة: المسؤول والعامل بيشوفوا نفس صفحة الحضور.
+    # المسؤول بس بيلاقي زر «لوحة التحكم» في شريط الهمبرجر.
+
 
     db = get_db()
     cur = db.cursor()
@@ -1025,6 +1026,14 @@ def dashboard():
         present_list=present_list,
         my_farm_label=_farm_label(my_farm),
     )
+
+
+# ---------- قسم «مسلم» — مواقيت الصلاة والمناسبات وورد اليوم ----------
+@app.route("/muslim")
+@login_required
+def muslim_page():
+    return render_template("muslim.html")
+
 
 
 @app.route("/check-in", methods=["POST"])
