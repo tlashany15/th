@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}فهرس الصور — {{ title }}{% endblock %}
+{% block body %}
+
+<!-- ================= فهرس الصور (v19) ================= -->
+<div class="mgx" data-scope="{{ scope }}">
+
+  <header class="mgx-head">
+    <a class="mgx-back" href="{{ back_url }}" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+    <div class="mgx-head-av">
+      {% if avatar %}<img src="{{ avatar }}" alt="">
+      {% else %}<div class="mgx-head-fb">{{ (title or '?')[:1] }}</div>{% endif %}
+    </div>
+    <div class="mgx-head-info">
+      <div class="mgx-head-t">{{ subtitle }}</div>
+      <div class="mgx-head-s">{{ title }} · {{ items|length }} صورة</div>
+    </div>
+    <div class="mgx-head-count">{{ items|length }}</div>
+  </header>
+
+  {% if items %}
+  <div class="mgx-tools">
+    <div class="mgx-segs" role="tablist">
+      <button type="button" class="mgx-seg is-on" data-filter="all">الكل</button>
+      <button type="button" class="mgx-seg" data-filter="mine">صوري</button>
+      <button type="button" class="mgx-seg" data-filter="theirs">المُستلمة</button>
+    </div>
+    <button type="button" class="mgx-zoom" id="mgxZoom" aria-label="حجم العرض">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
+    </button>
+  </div>
+
+  <div class="mgx-grid" id="mgxGrid">
+    {% for it in items %}
+    <button type="button" class="mgx-cell" data-id="{{ it.id }}" data-mine="{{ '1' if it.mine else '0' }}"
+            data-sender="{{ it.sender }}" data-time="{{ it.created_at or '' }}" data-idx="{{ loop.index0 }}">
+      <img loading="lazy" decoding="async" src="{{ url_for('media_msg', scope=scope, msg_id=it.id) }}" alt="صورة">
+      <span class="mgx-cell-veil"></span>
+      {% if it.mine %}<span class="mgx-cell-tag">أنا</span>{% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="mgx-empty">
+    <div class="mgx-empty-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.8" cy="9.6" r="1.8"/><path d="M3.6 17.4l4.9-4.6 3.6 3.3 3-2.6 5.3 4.5"/></svg>
+    </div>
+    <b>مفيش صور لحد دلوقتي</b>
+    <span>أي صورة تتبعت في المحادثة هتظهر هنا تلقائيًا.</span>
+  </div>
+  {% endif %}
+
+  <!-- عارض الصور -->
+  <div class="mgx-lb" id="mgxLb" hidden>
+    <div class="mgx-lb-bar">
+      <button type="button" class="mgx-lb-x" id="mgxClose" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <div class="mgx-lb-meta">
+        <b id="mgxLbName">—</b>
+        <span id="mgxLbTime"></span>
+      </div>
+      <a class="mgx-lb-dl" id="mgxLbDl" href="#" download aria-label="تنزيل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
+      </a>
+    </div>
+    <div class="mgx-lb-stage" id="mgxLbStage"><img id="mgxLbImg" src="" alt=""></div>
+    <div class="mgx-lb-nav">
+      <button type="button" id="mgxPrev" aria-label="السابق"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span id="mgxLbPos">1 / 1</span>
+      <button type="button" id="mgxNext" aria-label="التالي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='media-index-v19.js') }}?v={{ ASSET_VER }}"></script>
+{% endblock %}
