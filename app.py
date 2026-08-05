@@ -3646,6 +3646,15 @@ def init_db_route():
         return f"خطأ: {e}", 500
 
 
+
+# ====================== إضافات v19: فهرس الصور ======================
+try:
+    import extras_v19
+    extras_v19.register(app, get_db=get_db, current_user=current_user,
+                        login_required=login_required)
+except Exception as _e19:
+    print("[extras_v19] not loaded:", _e19)
+
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5000, debug=True)
