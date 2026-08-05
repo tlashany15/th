@@ -1,40 +1,23 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<!-- ============ قسم «مسلم» — طابع إسلامي وزخرفة عربية ============ -->
-<section class="mus-hero v2-fade" style="--i:0" aria-label="مسلم">
-  <div class="mus-hero-glow" aria-hidden="true"></div>
-  <div class="mus-hero-pattern" aria-hidden="true"></div>
+<!-- ============ قسم «مسلم» — تصميم بسيط بطابع إسلامي ============ -->
+<div class="mus-page">
+  <div class="mus-bg" aria-hidden="true"></div>
 
-  <div class="mus-arch">
-    <div class="mus-arch-in">
-      <span class="mus-crescent" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.6 15.5A7.2 7.2 0 1 1 12.4 4.2a5.9 5.9 0 0 0 6.2 11.3z"/>
-          <path d="M19.6 4.4l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9L17 7l1.9-.7z"/>
-        </svg>
-      </span>
-      <h1 class="mus-title">مسلم</h1>
-      <p class="mus-sub">مواقيت الصلاة · المناسبات · ورد اليوم</p>
-    </div>
+  <section class="mus-basmala-card" aria-label="بسم الله الرحمن الرحيم">
+    <div class="mus-basmala">﷽</div>
+  </section>
+
+  <div class="mus-dua">
+    <p class="mus-dua-txt">اللَّهُمَّ أعِنّي على ذِكرِكَ وشُكرِكَ وحُسنِ عبادتِك</p>
+    <span class="mus-dua-tag">دعاء اليوم</span>
   </div>
 
-  <div class="mus-basmala" aria-label="بسم الله الرحمن الرحيم">﷽</div>
-  <div class="mus-divider" aria-hidden="true"><i></i><span></span><i></i></div>
-</section>
-
-<!-- بطاقات رفيق المسلم (مواقيت الصلاة + رمضان + المناسبات + ورد اليوم) -->
-<section id="islamicWidget" class="isl-wrap mus-widget v2-fade" style="--i:1" aria-label="رفيق المسلم">
-  <div class="isl-skel"></div>
-</section>
-
-<div class="mus-dua v2-fade" style="--i:2">
-  <div class="mus-dua-corner tl" aria-hidden="true"></div>
-  <div class="mus-dua-corner tr" aria-hidden="true"></div>
-  <div class="mus-dua-corner bl" aria-hidden="true"></div>
-  <div class="mus-dua-corner br" aria-hidden="true"></div>
-  <p class="mus-dua-txt">اللَّهُمَّ أعِنّي على ذِكرِكَ وشُكرِكَ وحُسنِ عبادتِك</p>
-  <span class="mus-dua-tag">دعاء اليوم</span>
+  <!-- مواقيت الصلاة + المناسبات + ورد اليوم -->
+  <section id="islamicWidget" class="isl-wrap" aria-label="مواقيت الصلاة">
+    <div class="isl-skel"></div>
+  </section>
 </div>
 
 {% endblock %}
