@@ -1035,6 +1035,12 @@ def muslim_page():
     return render_template("muslim.html")
 
 
+@app.route("/muslim/mushaf")
+@login_required
+def mushaf_page():
+    return render_template("mushaf.html")
+
+
 
 @app.route("/check-in", methods=["POST"])
 @login_required
@@ -3487,36 +3493,6 @@ def update_avatar():
     db.commit()
     cur.close()
     flash("تم تحديث صورتك", "success")
-    return redirect(request.referrer or url_for("chats_list"))
-
-
-@app.route("/me/cover", methods=["POST"])
-@login_required
-def update_cover():
-    u = current_user()
-    action = request.form.get("action", "")
-    db = get_db()
-    cur = db.cursor()
-    if action == "remove":
-        cur.execute("UPDATE users SET cover=NULL WHERE id=%s", (u["id"],))
-        db.commit()
-        cur.close()
-        flash("تم إزالة صورة الغلاف", "info")
-        return redirect(request.referrer or url_for("chats_list"))
-    f = request.files.get("file")
-    if not f:
-        flash("اختر صورة", "error")
-        return redirect(request.referrer or url_for("chats_list"))
-    data = f.read()
-    if len(data) > 5 * 1024 * 1024:
-        flash("الصورة كبيرة (الحد 5 ميجا)", "error")
-        return redirect(request.referrer or url_for("chats_list"))
-    mime = f.mimetype or "image/jpeg"
-    data_url = "data:" + mime + ";base64," + base64.b64encode(data).decode("ascii")
-    cur.execute("UPDATE users SET cover=%s WHERE id=%s", (data_url, u["id"]))
-    db.commit()
-    cur.close()
-    flash("تم تحديث صورة الغلاف", "success")
     return redirect(request.referrer or url_for("chats_list"))
 
 
