@@ -14,10 +14,43 @@
     <span class="mus-dua-tag">دعاء اليوم</span>
   </div>
 
+
+  <!-- المصحف الشريف -->
+  <a class="mus-mushaf" href="{{ url_for('mushaf_page') }}" id="musMushafLink">
+    <span class="mus-mushaf-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H11v17H5.5A2.5 2.5 0 0 0 3 22.5z"/><path d="M21 5.5A2.5 2.5 0 0 0 18.5 3H13v17h5.5a2.5 2.5 0 0 1 2.5 2.5z"/><path d="M12 3v17"/></svg>
+    </span>
+    <span class="mus-mushaf-b">
+      <b>المصحف الشريف</b>
+      <small>اقرأ من أول المصحف وقلّب الصفحات براحتك</small>
+      <span class="mus-mushaf-resume" id="musResume" hidden></span>
+    </span>
+    <svg class="mus-mushaf-ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+  </a>
+
   <!-- مواقيت الصلاة + المناسبات + ورد اليوم -->
   <section id="islamicWidget" class="isl-wrap" aria-label="مواقيت الصلاة">
     <div class="isl-skel"></div>
   </section>
 </div>
+
+<script>
+(function(){
+  var el = document.getElementById('musResume');
+  var link = document.getElementById('musMushafLink');
+  if (!el) return;
+  var last = 0, mark = 0;
+  try {
+    last = parseInt(localStorage.getItem('mushaf.lastPage') || '0', 10) || 0;
+    mark = parseInt(localStorage.getItem('mushaf.bookmark') || '0', 10) || 0;
+  } catch(e){}
+  var p = mark || last;
+  if (p > 1){
+    el.hidden = false;
+    el.textContent = (mark ? 'علامتك عند صفحة ' : 'آخر صفحة وقفت فيها: ') + p;
+    if (link) link.href = link.href.split('?')[0] + '?page=' + p;
+  }
+})();
+</script>
 
 {% endblock %}
