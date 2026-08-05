@@ -6,15 +6,6 @@
 (function () {
   'use strict';
 
-  var TASBIH = [
-    { t: 'سُبْحَانَ اللهِ', g: 33 },
-    { t: 'الحَمْدُ لِلَّهِ', g: 33 },
-    { t: 'اللهُ أَكْبَرُ', g: 34 },
-    { t: 'لَا إِلَهَ إِلَّا اللهُ', g: 100 },
-    { t: 'أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ', g: 100 },
-    { t: 'سُبْحَانَ اللهِ وَبِحَمْدِهِ', g: 100 },
-    { t: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّد', g: 100 }
-  ];
 
   var AZKAR_M = [
     { t: 'أَصْبَحْنَا وَأَصْبَحَ المُلْكُ لِلَّهِ، وَالحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ', c: 1 },
@@ -84,71 +75,21 @@
       '</div>';
     document.body.appendChild(ov);
     requestAnimationFrame(function () { ov.classList.add('is-open'); });
+    var untrap = null;
+    var closed = false;
     function close() {
+      if (closed) return;
+      closed = true;
+      untrap && untrap();
       ov.classList.remove('is-open');
       setTimeout(function () { ov.parentNode && ov.remove(); }, 260);
     }
+    if (window.AppBack) untrap = AppBack.trap(close, ov);
     ov.addEventListener('click', function (e) {
       if (e.target === ov || (e.target.closest && e.target.closest('.ms20-sh-x'))) close();
     });
     ready && ready(ov, close);
     return close;
-  }
-
-  /* ================= السبحة ================= */
-  function openTasbih() {
-    var html =
-      '<div class="ms20-zikr" id="ms20Zikr"></div>' +
-      '<button type="button" class="ms20-count" id="ms20Count">' +
-        '<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"></circle><circle class="arc" cx="60" cy="60" r="52" id="ms20Arc"></circle></svg>' +
-        '<span class="ms20-count-n" id="ms20N">0</span>' +
-        '<span class="ms20-count-g" id="ms20G">/ 33</span>' +
-      '</button>' +
-      '<div class="ms20-row">' +
-        '<button type="button" class="ms20-btn" id="ms20Prev">السابق</button>' +
-        '<span id="ms20Total">إجمالي اليوم: 0</span>' +
-        '<button type="button" class="ms20-btn" id="ms20Next">التالي</button>' +
-      '</div>' +
-      '<div class="ms20-row"><button type="button" class="ms20-btn" id="ms20Reset">تصفير العدّاد</button></div>';
-
-    sheet('السبحة', html, function (ov) {
-      var idx = parseInt(lsGet('tas.idx', '0'), 10) || 0;
-      var zEl = ov.querySelector('#ms20Zikr');
-      var nEl = ov.querySelector('#ms20N');
-      var gEl = ov.querySelector('#ms20G');
-      var arc = ov.querySelector('#ms20Arc');
-      var tEl = ov.querySelector('#ms20Total');
-      var CIRC = 2 * Math.PI * 52;
-      arc.style.strokeDasharray = CIRC;
-
-      function key() { return 'tas.n.' + idx; }
-      function totalKey() { return 'tas.total.' + todayKey(); }
-      function n() { return parseInt(lsGet(key(), '0'), 10) || 0; }
-      function total() { return parseInt(lsGet(totalKey(), '0'), 10) || 0; }
-
-      function paint() {
-        var z = TASBIH[idx];
-        zEl.textContent = z.t;
-        var v = n();
-        nEl.textContent = v;
-        gEl.textContent = '/ ' + z.g;
-        arc.style.strokeDashoffset = CIRC * (1 - Math.min(1, v / z.g));
-        arc.classList.toggle('is-done', v >= z.g);
-        tEl.textContent = 'إجمالي اليوم: ' + total();
-        lsSet('tas.idx', idx);
-      }
-      ov.querySelector('#ms20Count').addEventListener('click', function () {
-        var z = TASBIH[idx];
-        var v = n() + 1;
-        lsSet(key(), v); lsSet(totalKey(), total() + 1);
-        buzz(v % z.g === 0 ? [18, 40, 18] : 8);
-        paint();
-      });
-      ov.querySelector('#ms20Reset').addEventListener('click', function () { lsSet(key(), 0); buzz(14); paint(); });
-      ov.querySelector('#ms20Next').addEventListener('click', function () { idx = (idx + 1) % TASBIH.length; paint(); });
-      ov.querySelector('#ms20Prev').addEventListener('click', function () { idx = (idx - 1 + TASBIH.length) % TASBIH.length; paint(); });
-      paint();
-    });
   }
 
   /* ================= الأذكار ================= */
@@ -198,28 +139,6 @@
     sheet(title, html);
   }
 
-  /* ================= ختمتي ================= */
-  function openKhatma() {
-    var read = [];
-    try { read = JSON.parse(lsGet('mushaf.readPages', '[]')) || []; } catch (e) {}
-    var last = parseInt(lsGet('mushaf.lastPage', '0'), 10) || 0;
-    var mark = parseInt(lsGet('mushaf.bookmark', '0'), 10) || 0;
-    var pct = Math.min(100, Math.round((read.length / 604) * 100));
-    var target = mark || last;
-    var html =
-      '<div class="ms20-kh">' +
-        '<div class="ms20-ring" style="--p:' + pct + '"><b>' + pct + '٪</b></div>' +
-        '<div class="ms20-kh-b"><b>' + read.length + ' صفحة من 604</b>' +
-        '<small>' + (target ? 'آخر وقفة عند صفحة ' + target : 'ابدأ أول صفحة النهاردة') + '</small></div>' +
-      '</div>' +
-      '<a class="ms20-go" href="/muslim/mushaf' + (target ? '?page=' + target : '') + '">' +
-        (target ? 'كمّل قراءتك' : 'ابدأ القراءة') +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>' +
-      '</a>' +
-      '<div class="ms20-note">صفحة واحدة كل يوم = ختمة كاملة بإذن الله.</div>';
-    sheet('ختمتي', html);
-  }
-
   /* ================= التشغيل ================= */
   function boot() {
     var page = document.querySelector('.mus-page');
@@ -237,26 +156,15 @@
       if (link) link.href = link.href.split('?')[0] + '?page=' + p;
     }
 
-    /* شارة نسبة الختمة */
-    var kh = document.getElementById('ms20KhPct');
-    if (kh) {
-      var read = [];
-      try { read = JSON.parse(lsGet('mushaf.readPages', '[]')) || []; } catch (e) {}
-      var pct = Math.min(100, Math.round((read.length / 604) * 100));
-      if (pct > 0) { kh.hidden = false; kh.textContent = pct + '٪'; }
-    }
-
     page.addEventListener('click', function (e) {
       var b = e.target.closest('[data-sheet]');
       if (!b) return;
       buzz(6);
       var k = b.getAttribute('data-sheet');
-      if (k === 'tasbih') openTasbih();
-      else if (k === 'azkar-m') openAzkar('m');
+      if (k === 'azkar-m') openAzkar('m');
       else if (k === 'azkar-e') openAzkar('e');
       else if (k === 'duas') openTextList('أدعية مختارة', DUAS);
       else if (k === 'ruqya') openTextList('الرقية الشرعية', RUQYA, 'اقرأها على نفسك صباحًا ومساءً.');
-      else if (k === 'khatma') openKhatma();
     });
   }
 

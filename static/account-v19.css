@@ -13,22 +13,23 @@
   border:1px solid color-mix(in oklab,#fff 10%, transparent);
   box-shadow:0 26px 54px -34px #000;
 }
-.ac19-id::after{
-  content:''; position:absolute; inset-inline-end:-40px; top:-40px; width:170px; height:170px;
-  border-radius:50%; border:1px dashed color-mix(in oklab,#fff 12%, transparent); pointer-events:none;
-}
 .ac19-id-row{ display:flex; align-items:center; gap:14px; }
 .ac19-av{
-  position:relative; width:74px; height:74px; flex:none; border-radius:24px; overflow:hidden;
+  position:relative; width:74px; height:74px; flex:none; overflow:visible;
+  display:block; padding:0; margin:0 0 4px;
+}
+.ac19-av-img{
+  display:grid; place-items:center; width:100%; height:100%; border-radius:24px; overflow:hidden;
   background:linear-gradient(180deg,#8fc0ff,#2f7dff);
-  display:grid; place-items:center; color:#08131f; font-size:30px; font-weight:900;
+  color:#08131f; font-size:30px; font-weight:900;
   box-shadow:0 16px 32px -18px #2f7dff;
 }
-.ac19-av img{ width:100%; height:100%; object-fit:cover; }
+.ac19-av img{ width:100%; height:100%; object-fit:cover; display:block; }
 .ac19-av-edit{
-  position:absolute; inset-inline-end:-2px; bottom:-2px; width:26px; height:26px; border-radius:9px;
+  position:absolute; inset-inline-end:-4px; bottom:-4px; width:26px; height:26px; border-radius:50%;
   display:grid; place-items:center; color:#08131f; background:#f0d59a;
   border:2px solid color-mix(in oklab,#0d1219 85%, transparent);
+  box-shadow:0 6px 14px -8px #000;
 }
 .ac19-av-edit svg{ width:13px; height:13px; }
 .ac19-id-b{ min-width:0; flex:1; }
@@ -134,3 +135,7 @@ body .acc-item{
   color:#dbe4f1; background:color-mix(in oklab,#fff 8%, transparent);
 }
 .wl19-chip b{ color:#f7e2b3; }
+
+/* ID بدل @username */
+.ac19-user{ display:flex; align-items:center; gap:5px; direction:ltr; }
+.ac19-user-k{ font-weight:800; color:color-mix(in oklab,#f0d59a 80%, transparent); }

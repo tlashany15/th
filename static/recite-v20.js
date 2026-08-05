@@ -209,7 +209,7 @@
 
     document.getElementById('rcBack').addEventListener('click', function () {
       var back = root.getAttribute('data-back') || '/muslim';
-      if (history.length > 1) history.back(); else location.href = back;
+      if (window.AppBack) AppBack.go(back); else location.replace(back);
     });
 
     document.getElementById('rcRecs').addEventListener('click', function (e) {

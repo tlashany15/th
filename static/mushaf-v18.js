@@ -362,7 +362,7 @@ var JUZ_PAGES = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262,
 
     document.getElementById('qrBack').addEventListener('click', function(){
       var back = root.getAttribute('data-back') || '/muslim';
-      if (history.length > 1) history.back(); else location.href = back;
+      if (window.AppBack) AppBack.go(back); else location.replace(back);
     });
 
     prevBtn.addEventListener('click', function(){ if (cur > 1) show(cur - 1); });
