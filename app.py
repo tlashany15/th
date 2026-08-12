@@ -238,6 +238,7 @@ def init_db(url=None):
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE;
         ALTER TABLE attendance ADD COLUMN IF NOT EXISTS farm TEXT NOT NULL DEFAULT 'tasmeen';
         ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE attendance ADD COLUMN IF NOT EXISTS manual_share NUMERIC;
         CREATE INDEX IF NOT EXISTS idx_attendance_day_farm ON attendance(day, farm);
 
         -- ملاحظات المسؤول (سلف / تنويهات)
@@ -1344,13 +1345,18 @@ def worker_stats(worker_id):
                    (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='bayad') AS att_bayad,
                    (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='tasmeen' AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_tasmeen,
                    (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='bayad' AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_bayad,
+                   (SELECT COALESCE(SUM(a.manual_share),0) FROM attendance a WHERE a.day = c.day AND a.farm='tasmeen' AND a.manual_share IS NOT NULL) AS man_sum_tasmeen,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='tasmeen' AND a.manual_share IS NOT NULL) AS man_cnt_tasmeen,
+                   (SELECT COALESCE(SUM(a.manual_share),0) FROM attendance a WHERE a.day = c.day AND a.farm='bayad' AND a.manual_share IS NOT NULL) AS man_sum_bayad,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day = c.day AND a.farm='bayad' AND a.manual_share IS NOT NULL) AS man_cnt_bayad,
                    EXISTS(SELECT 1 FROM attendance a2 WHERE a2.day = c.day AND a2.user_id = %s) AS he_attended,
                    (SELECT a3.farm FROM attendance a3 WHERE a3.day = c.day AND a3.user_id = %s LIMIT 1) AS my_farm,
-                   COALESCE((SELECT a4.extra FROM attendance a4 WHERE a4.day = c.day AND a4.user_id = %s LIMIT 1), FALSE) AS my_extra
+                   COALESCE((SELECT a4.extra FROM attendance a4 WHERE a4.day = c.day AND a4.user_id = %s LIMIT 1), FALSE) AS my_extra,
+                   (SELECT a5.manual_share FROM attendance a5 WHERE a5.day = c.day AND a5.user_id = %s LIMIT 1) AS my_manual
             FROM day_closures c
             WHERE c.day BETWEEN %s AND %s
             ORDER BY c.day ASC
-        """, (worker_id, worker_id, worker_id, s_iso, e_iso))
+        """, (worker_id, worker_id, worker_id, worker_id, s_iso, e_iso))
         rows = cur.fetchall()
 
         cur.execute("""SELECT day, amount, reason FROM worker_adjustments
@@ -1401,7 +1407,11 @@ def worker_stats(worker_id):
                 extra_att  = int(r["att_extra_bayad"] or 0)
             # إجمالي المدة للعامل = إجمالي القسم اللي حضر فيه فقط (بدون جمع القسم التاني)
             total_period += farm_total
-            base_share = (farm_total / farm_att) if farm_att > 0 else 0.0
+            if my_farm == "tasmeen":
+                man_sum = float(r["man_sum_tasmeen"] or 0); man_cnt = int(r["man_cnt_tasmeen"] or 0)
+            else:
+                man_sum = float(r["man_sum_bayad"] or 0); man_cnt = int(r["man_cnt_bayad"] or 0)
+            base_share = _share_with_manual(farm_total, farm_att, man_sum, man_cnt, r["my_manual"])
             extra_share = (extra_pool / extra_att) if (bool(r["my_extra"]) and extra_att > 0) else 0.0
             share = base_share + extra_share
             total_share += share; days_attended += 1
@@ -1616,6 +1626,24 @@ def _get_admin_bot_id(cur):
     return int(cur.fetchone()["id"])
 
 
+def _share_with_manual(farm_total, farm_att, man_sum, man_cnt, my_manual):
+    """
+    نصيب الأساس لليوم مع دعم (النصيب اليدوي):
+    - لو العامل متحدد له نصيب يدوي → بياخد الرقم ده زي ما هو.
+    - غير كده: (إجمالي القسم − مجموع الأنصبة اليدوية) ÷ باقي الحاضرين.
+    """
+    if my_manual is not None:
+        try:
+            return float(my_manual)
+        except (TypeError, ValueError):
+            return 0.0
+    rest_att = int(farm_att or 0) - int(man_cnt or 0)
+    pool = float(farm_total or 0) - float(man_sum or 0)
+    if pool < 0:
+        pool = 0.0
+    return (pool / rest_att) if rest_att > 0 else 0.0
+
+
 def _compute_shares_range(cur, s_iso, e_iso):
     """
     يحسب نصيب كل الناس (عمال + مسؤولين) في مدة معيّنة — بنفس طريقة صفحة
@@ -1641,13 +1669,18 @@ def _compute_shares_range(cur, s_iso, e_iso):
                       AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_tasmeen,
                    (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad'
                       AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_bayad,
+                   (SELECT COALESCE(SUM(a.manual_share),0) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen' AND a.manual_share IS NOT NULL) AS man_sum_tasmeen,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen' AND a.manual_share IS NOT NULL) AS man_cnt_tasmeen,
+                   (SELECT COALESCE(SUM(a.manual_share),0) FROM attendance a WHERE a.day=c.day AND a.farm='bayad' AND a.manual_share IS NOT NULL) AS man_sum_bayad,
+                   (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad' AND a.manual_share IS NOT NULL) AS man_cnt_bayad,
                    (SELECT a3.farm FROM attendance a3 WHERE a3.day=c.day AND a3.user_id=%s LIMIT 1) AS my_farm,
                    COALESCE((SELECT a4.extra FROM attendance a4
-                     WHERE a4.day=c.day AND a4.user_id=%s LIMIT 1), FALSE) AS my_extra
+                     WHERE a4.day=c.day AND a4.user_id=%s LIMIT 1), FALSE) AS my_extra,
+                   (SELECT a5.manual_share FROM attendance a5 WHERE a5.day=c.day AND a5.user_id=%s LIMIT 1) AS my_manual
             FROM day_closures c
             WHERE c.day BETWEEN %s AND %s
             ORDER BY c.day ASC
-        """, (pid, pid, s_iso, e_iso))
+        """, (pid, pid, pid, s_iso, e_iso))
         share_sum = 0.0
         extra_sum = 0.0
         att_days = 0
@@ -1661,7 +1694,11 @@ def _compute_shares_range(cur, s_iso, e_iso):
             else:
                 farm_total = int(dr["bayad_after"] or 0);   farm_att = int(dr["att_bayad"] or 0)
                 extra_pool = int(dr["extra_bayad"] or 0);   extra_att = int(dr["att_extra_bayad"] or 0)
-            base_share  = (farm_total / farm_att) if farm_att > 0 else 0.0
+            if my_farm == "tasmeen":
+                man_sum = float(dr["man_sum_tasmeen"] or 0); man_cnt = int(dr["man_cnt_tasmeen"] or 0)
+            else:
+                man_sum = float(dr["man_sum_bayad"] or 0); man_cnt = int(dr["man_cnt_bayad"] or 0)
+            base_share  = _share_with_manual(farm_total, farm_att, man_sum, man_cnt, dr["my_manual"])
             extra_share = (extra_pool / extra_att) if (bool(dr["my_extra"]) and extra_att > 0) else 0.0
             share_sum += base_share + extra_share
             extra_sum += extra_share
@@ -2254,6 +2291,48 @@ def admin_mark_extra():
 
 
 
+@app.route("/admin/set-manual-share", methods=["POST"])
+@admin_required
+def admin_set_manual_share():
+    """يحدّد (نصيب يدوي) لعامل في يوم معيّن — أو يمسحه لو الحقل فاضي."""
+    day = _parse_day(request.form.get("day")).isoformat()
+    user_id = int(request.form.get("user_id"))
+    raw = (request.form.get("manual_share") or "").strip()
+    is_fetch = request.headers.get("X-Requested-With") == "fetch"
+    val = None
+    if raw != "":
+        try:
+            val = float(raw.replace(",", "."))
+        except ValueError:
+            if is_fetch:
+                return jsonify({"ok": False, "error": "bad_value"}), 400
+            flash("اكتب رقم صحيح للنصيب اليدوي", "error")
+            return redirect(url_for("admin_close_page", day=day))
+        if val < 0:
+            if is_fetch:
+                return jsonify({"ok": False, "error": "negative"}), 400
+            flash("النصيب اليدوي لازم يكون صفر أو أكتر", "error")
+            return redirect(url_for("admin_close_page", day=day))
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS manual_share NUMERIC")
+    cur.execute("SELECT id FROM attendance WHERE user_id=%s AND day=%s", (user_id, day))
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        if is_fetch:
+            return jsonify({"ok": False, "error": "not_attending"}), 400
+        flash("لازم تحضر العامل الأول قبل تحديد نصيب يدوي", "error")
+        return redirect(url_for("admin_close_page", day=day))
+    cur.execute("UPDATE attendance SET manual_share=%s WHERE id=%s", (val, row["id"]))
+    db.commit()
+    cur.close()
+    if is_fetch:
+        return jsonify({"ok": True, "manual_share": val})
+    flash("تم حفظ النصيب اليدوي" if val is not None else "تم إلغاء النصيب اليدوي", "success")
+    return redirect(url_for("admin_close_page", day=day))
+
+
 @app.route("/admin/delete-entry/<int:entry_id>", methods=["POST"])
 @admin_required
 def admin_delete_entry(entry_id):
@@ -2382,6 +2461,7 @@ def admin_close_page():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS farm TEXT NOT NULL DEFAULT 'tasmeen'")
     cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE")
+    cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS manual_share NUMERIC")
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
     day_total = cur.fetchone()["s"]
     cur.execute("SELECT total_count, tasmeen_after, bayad_after, COALESCE(extra_tasmeen,0) AS extra_tasmeen, COALESCE(extra_bayad,0) AS extra_bayad, no_deduct_total, reopened FROM day_closures WHERE day=%s", (day_s,))
@@ -2425,13 +2505,14 @@ def admin_close_page():
         SELECT u.id, u.full_name, u.role, u.avatar,
                (SELECT a.farm FROM attendance a WHERE a.user_id=u.id AND a.day=%s LIMIT 1) AS att_farm,
                COALESCE((SELECT a.extra FROM attendance a WHERE a.user_id=u.id AND a.day=%s LIMIT 1), FALSE) AS att_extra,
+               (SELECT a.manual_share FROM attendance a WHERE a.user_id=u.id AND a.day=%s LIMIT 1) AS att_manual,
                COALESCE((SELECT amount FROM worker_adjustments wa
                           WHERE wa.user_id=u.id AND wa.day=%s), 0) AS adjust,
                EXISTS(SELECT 1 FROM worker_day_settle ws WHERE ws.user_id=u.id AND ws.day=%s) AS day_settled
         FROM users u
         WHERE u.role<>'system'
         ORDER BY (u.role='admin') DESC, u.full_name
-    """, (day_s, day_s, day_s, day_s))
+    """, (day_s, day_s, day_s, day_s, day_s))
     all_people = cur.fetchall()
     cur.close()
     return render_template("admin_close_day.html",
@@ -2783,14 +2864,19 @@ def admin_range_report():
                                   AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_tasmeen,
                                (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad'
                                   AND COALESCE(a.extra,FALSE)=TRUE) AS att_extra_bayad,
+                               (SELECT COALESCE(SUM(a.manual_share),0) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen' AND a.manual_share IS NOT NULL) AS man_sum_tasmeen,
+                               (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='tasmeen' AND a.manual_share IS NOT NULL) AS man_cnt_tasmeen,
+                               (SELECT COALESCE(SUM(a.manual_share),0) FROM attendance a WHERE a.day=c.day AND a.farm='bayad' AND a.manual_share IS NOT NULL) AS man_sum_bayad,
+                               (SELECT COUNT(*) FROM attendance a WHERE a.day=c.day AND a.farm='bayad' AND a.manual_share IS NOT NULL) AS man_cnt_bayad,
                                (SELECT a3.farm FROM attendance a3
                                  WHERE a3.day=c.day AND a3.user_id=%s LIMIT 1) AS my_farm,
                                COALESCE((SELECT a4.extra FROM attendance a4
-                                 WHERE a4.day=c.day AND a4.user_id=%s LIMIT 1), FALSE) AS my_extra
+                                 WHERE a4.day=c.day AND a4.user_id=%s LIMIT 1), FALSE) AS my_extra,
+                               (SELECT a5.manual_share FROM attendance a5 WHERE a5.day=c.day AND a5.user_id=%s LIMIT 1) AS my_manual
                         FROM day_closures c
                         WHERE c.day BETWEEN %s AND %s
                         ORDER BY c.day ASC
-                    """, (pid, pid, s_iso, e_iso))
+                    """, (pid, pid, pid, s_iso, e_iso))
                     drows = cur.fetchall()
                     share_sum = 0.0
                     att_days = 0
@@ -2809,7 +2895,11 @@ def admin_range_report():
                             farm_att   = int(dr["att_bayad"] or 0)
                             extra_pool = int(dr["extra_bayad"] or 0)
                             extra_att  = int(dr["att_extra_bayad"] or 0)
-                        base_share  = (farm_total / farm_att) if farm_att > 0 else 0.0
+                        if my_farm == "tasmeen":
+                            man_sum = float(dr["man_sum_tasmeen"] or 0); man_cnt = int(dr["man_cnt_tasmeen"] or 0)
+                        else:
+                            man_sum = float(dr["man_sum_bayad"] or 0); man_cnt = int(dr["man_cnt_bayad"] or 0)
+                        base_share  = _share_with_manual(farm_total, farm_att, man_sum, man_cnt, dr["my_manual"])
                         extra_share = (extra_pool / extra_att) if (bool(dr["my_extra"]) and extra_att > 0) else 0.0
                         share_sum  += base_share + extra_share
                         extra_sum  += extra_share
