@@ -1,0 +1,60 @@
+/* ==========================================================================
+   chats-v18.css — تنضيف هيدر صفحة الدردشات (شكل تليجرام الطبيعي)
+   • اتشال: صورة الغلاف + تعديل الصورة من هنا (التعديل مكانه صفحة حسابي)
+   ========================================================================== */
+
+.tg-chats-head .tg-head-cover,
+.tg-chats-head .tg-head-cover-actions,
+.tg-me-av-edit,
+.tg-cover-btn,
+.tg-cover-remove-form{ display:none; }
+
+.tg-chats-head{
+  flex-direction:row;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  text-align:start;
+  overflow:visible;
+}
+
+.tg-chats-head .tg-me-av{
+  width:46px; height:46px;
+  margin-top:0;
+  border-width:1px;
+  box-shadow:none;
+  cursor:pointer;
+}
+.tg-chats-head .tg-me-av:hover{ transform:none; }
+.tg-chats-head .tg-me-av-fb{ font-size:18px; }
+
+.tg-chats-head .tg-head-title{
+  width:auto;
+  flex:1 1 auto; min-width:0;
+  align-items:flex-start;
+  gap:1px;
+}
+.tg-chats-head .tg-head-name{
+  font-size:18px; font-weight:900;
+  color:var(--text-1, #f4f4f6); text-shadow:none;
+}
+.tg-chats-head .tg-head-sub{
+  font-size:12px; font-weight:700;
+  color:var(--text-2, #a1a4b2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+
+/* زر «مظهر الدردشة» — بعيد عن صورة الحساب، في آخر الهيدر */
+.tg-chats-head .th-theme-btn.th-theme-btn-head{
+  position:static;
+  margin-inline-start:auto;
+  flex:0 0 auto;
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:14px;
+  color:var(--text-1, #f4f4f6);
+  background:var(--surface-2, rgba(255,255,255,.06));
+  border:1px solid var(--line, rgba(255,255,255,.08));
+}
+.tg-chats-head .th-theme-btn.th-theme-btn-head svg{ width:20px; height:20px; }
+.tg-chats-head .th-theme-btn.th-theme-btn-head:active{ transform:scale(.94); }

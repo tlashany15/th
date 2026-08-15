@@ -1,0 +1,83 @@
+/* ============================================================
+   App Polish Layer — يتحمّل بعد كل ملفات الـ CSS التانية عشان
+   يظبط الخط، المسافات بين الكروت، ترتيب الأزرار، وإحساس تطبيق
+   أندرويد حقيقي (مش صفحة ويب).
+   ============================================================ */
+
+/* ---------- 1) خط أوضح وأقرب لتطبيقات الموبايل ---------- */
+html, body, input, textarea, select, button,
+.container, .card, .kpi, .kpi-v, .tl, .tl-num, .tl-tnum,
+.hero-h1, .settle-v, .adj-amt, .adj-day, .mini-chip{
+  font-family:'ForceLatinDigits','Cairo','Alexandria','IBM Plex Sans Arabic',
+    system-ui,-apple-system,Segoe UI,Roboto,sans-serif !important;
+}
+body{ letter-spacing:0; font-feature-settings:"tnum" 1; }
+.hero-h1, .sec-h-t, .kpi-v, .btn, h1, h2, h3{ font-weight:800; letter-spacing:-.01em; }
+/* أرقام دايمًا متراصة وواضحة (مش بتقفز شكلها) */
+.kpi-v, .stat-cell .v, .tl-num, .tl-tnum, .acc-summary-figure .n, .n, .v, .money-box .v{
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- 2) إحساس تطبيق أندرويد حقيقي ---------- */
+html{
+  overscroll-behavior-y:contain;
+  scrollbar-width:none;
+}
+body{
+  overscroll-behavior:contain;
+  -webkit-tap-highlight-color:transparent;
+}
+::-webkit-scrollbar{ display:none; }
+a, button, .btn, .card, [role="button"]{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+/* ألغِ أي تأثير hover بتاع الويب على الموبايل، خلّي التفاعل بس عند الضغط */
+@media (hover:none){
+  .btn:hover, .btn-primary:hover, .btn-ghost:hover, .btn-danger:hover{
+    filter:none !important; background:inherit;
+  }
+}
+/* حالة الضغط (زي ripple بسيط) على أي عنصر قابل للنقر */
+.btn, .card.att-shortcut, .absent-row, .icon-btn{
+  transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+}
+.btn:active, .card.att-shortcut:active, .absent-row:active, .icon-btn:active{
+  transform:scale(.96);
+  opacity:.9;
+}
+
+/* ---------- 3) ترتيب الكروت والحاويات (مفيش تلاصق) ---------- */
+.container{ gap:16px; }
+.card{ margin:0; }
+.card + .card{ margin-top:0; }
+section.hero-admin, section.v2-hero{ margin-bottom:2px; }
+.sec-head{ margin-bottom:14px; }
+.sec-h-s{ line-height:1.5; }
+
+/* منع أي عناصر تتراكب في الشاشات الصغيرة */
+.acc-summary-main{ min-width:0; }
+.acc-summary-title{ line-height:1.4; }
+.acc-summary-figure{ white-space:nowrap; }
+.kpi-grid{ align-items:stretch; }
+.kpi{ min-width:0; overflow:hidden; }
+.kpi-v{ word-break:break-word; }
+.stat-row{ align-items:stretch; }
+
+/* ---------- 4) الأزرار: تنظيم وتناسق ---------- */
+.btn{ gap:8px; white-space:nowrap; }
+.btn-row{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.btn-row > .btn{ flex:1 1 140px; width:auto; }
+.tbl-form{ flex-wrap:wrap; gap:8px; }
+.bk-actions{ gap:8px; }
+form.js-cleanup-form .tbl-select{ flex:1 1 auto; min-width:120px; }
+
+/* شورت-كت التحضير في لوحة المسؤول */
+.att-shortcut{
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px;
+}
+.att-shortcut-t{ flex:1; min-width:0; }
+.att-shortcut-arr{ width:18px; height:18px; color:var(--text-3); flex-shrink:0; }

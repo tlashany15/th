@@ -1,0 +1,170 @@
+/* ============================================================
+   tokens.css — المصدر الوحيد لكل قيم التصميم (Design Tokens)
+   يُحمَّل بعد كل ملفات CSS القديمة عشان يكسب أي تعريف متضارب.
+   ممنوع تعريف ألوان/مقاسات ثابتة في أي ملف تاني بعد كده.
+   ============================================================ */
+
+:root{
+  /* ---------- الألوان الأساسية ---------- */
+  --primary:#2f7dff;
+  --primary-2:#7fb0ff;
+  --primary-fg:#ffffff;
+  --accent:#2f7dff;
+  --accent-2:#7fb0ff;
+  --accent-fg:#ffffff;
+  --accent-soft:rgba(47,125,255,.14);
+  --accent-line:rgba(47,125,255,.32);
+
+  /* أسماء قديمة (aliases) — نفس القيمة الموحّدة */
+  --gold:var(--primary);
+  --gold-2:var(--primary-2);
+  --gold-soft:var(--accent-soft);
+  --gold-line:var(--accent-line);
+  --blue:var(--primary);
+  --blue-2:var(--primary-2);
+  --blue-soft:var(--accent-soft);
+  --violet:var(--primary);
+  --amber:var(--primary);
+  --uf-gold:var(--primary);
+  --uf-gold-soft:rgba(47,125,255,.12);
+  --uf-gold-line:rgba(47,125,255,.28);
+  --ap-gold:var(--primary);
+  --ap-gold2:var(--primary-2);
+  --ap-blue:var(--primary);
+  --ap-blue2:#8ab6ff;
+
+  /* ---------- الأسطح والنص ---------- */
+  --bg:#0b0d12;
+  --bg-0:#0b0d12;
+  --bg-1:#0b0d12;
+  --bg-2:#14161d;
+  --surface:#14161d;
+  --surface-2:#1b1e28;
+  --surface-3:#242833;
+  --card:#14161d;
+  --text:#f4f4f6;
+  --text-1:#f4f4f6;
+  --text-2:#a1a4b2;
+  --text-3:#63667a;
+  --muted:#a1a4b2;
+  --text-mute:#63667a;
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.14);
+  --border:var(--line);
+  --uf-line:var(--line);
+  --uf-surface:rgba(255,255,255,.035);
+
+  /* ---------- ألوان الحالة ---------- */
+  --green:#00d68f;
+  --green-2:#7ff3cd;
+  --green-soft:rgba(0,214,143,.14);
+  --success:var(--green);
+  --ap-green:var(--green);
+  --red:#ff8a8f;
+  --red-2:#ffc2c4;
+  --red-soft:rgba(255,90,95,.13);
+  --coral:var(--red);
+  --danger:var(--red);
+  --warn:var(--red);
+
+  /* ---------- التدرّجات ---------- */
+  --grad-accent:linear-gradient(140deg,#7fb0ff 0%,#2f7dff 55%,#1f5fe0 100%);
+  --grad-gold:var(--grad-accent);
+  --grad-blue:var(--grad-accent);
+  --grad-green:linear-gradient(135deg,#4ade80 0%,#00d68f 55%,#0ea371 100%);
+  --grad-surface:linear-gradient(180deg,#14161d 0%,#0b0d12 100%);
+
+  /* ---------- مقاس الأيقونات (موحّد) ---------- */
+  --icon-size:40px;      /* المقاس الرسمي لكل أزرار الأيقونات */
+  --icon-size-sm:32px;
+  --icon-size-lg:46px;
+  --icon-glyph:18px;     /* مقاس الـ svg جوّه الزر */
+  --icon-glyph-lg:21px;
+  /* أسماء قديمة */
+  --icon-btn:var(--icon-size);
+  --uf-ico:var(--icon-size);
+  --uf-ico-sm:var(--icon-size-sm);
+  --tap:44px;
+
+  /* ---------- ارتفاعات العناصر (مقياس واحد) ---------- */
+  --control-h-sm:40px;
+  --control-h-md:48px;
+  --control-h-lg:54px;
+  /* أسماء قديمة */
+  --ctl-h:var(--control-h-md);
+  --ctl-h-sm:var(--control-h-sm);
+  --ctl-h-lg:var(--control-h-lg);
+  --u-h:var(--control-h-md);
+  --u-h-sm:var(--control-h-sm);
+  --u-h-lg:var(--control-h-lg);
+  --top-h:58px;
+  --nav-h:64px;
+
+  /* ---------- زوايا الحواف ---------- */
+  --radius-xs:8px;
+  --radius-sm:12px;
+  --radius-md:16px;
+  --radius-lg:20px;
+  --radius-xl:26px;
+  --radius-2xl:32px;
+  --radius-pill:999px;
+  /* أسماء قديمة */
+  --r-xs:var(--radius-xs);
+  --r-sm:var(--radius-sm);
+  --r-md:var(--radius-md);
+  --r-lg:var(--radius-lg);
+  --r-xl:var(--radius-xl);
+  --r-2xl:var(--radius-2xl);
+  --r-pill:var(--radius-pill);
+  --u-r:var(--radius-md);
+  --u-r-sm:var(--radius-sm);
+  --u-r-lg:var(--radius-lg);
+  --uf-r:var(--radius-md);
+  --uf-r-sm:var(--radius-sm);
+  --uf-r-lg:var(--radius-lg);
+
+  /* ---------- المسافات ---------- */
+  --sp-1:4px;
+  --sp-2:8px;
+  --sp-3:12px;
+  --sp-4:16px;
+  --sp-5:20px;
+  --sp-6:24px;
+  --u-gap:var(--sp-3);
+  --u-pad:var(--sp-4);
+
+  /* ---------- الخطوط ---------- */
+  --u-fs:15px;
+  --u-fs-sm:13.5px;
+  --u-fs-lg:16.5px;
+
+  /* ---------- الظلال ---------- */
+  --shadow-sm:0 2px 8px rgba(0,0,0,.25);
+  --shadow-md:0 12px 30px -14px rgba(0,0,0,.55);
+  --shadow-lg:0 24px 60px -24px rgba(0,0,0,.7);
+  --shadow-accent:0 12px 30px -12px rgba(47,125,255,.45);
+  --shadow-gold:var(--shadow-accent);
+  --sh-gold:var(--shadow-accent);
+  --sh-1:0 1px 2px rgba(0,0,0,.35);
+  --sh-2:0 4px 12px -4px rgba(0,0,0,.45);
+  --sh-3:0 12px 28px -12px rgba(0,0,0,.60);
+  --sh-4:0 24px 56px -22px rgba(0,0,0,.72);
+
+  /* ---------- الحركة والمساحات الآمنة ---------- */
+  --ease:cubic-bezier(.2,.8,.25,1);
+  --ease-in:cubic-bezier(.4,0,.2,1);
+  --u-ease:cubic-bezier(.2,.7,.3,1);
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+/* شاشات صغيرة — نفس السلّم بمقاسات أصغر */
+@media (max-width:420px){
+  :root{
+    --icon-size:36px;
+    --icon-size-sm:30px;
+    --control-h-sm:38px;
+    --control-h-md:46px;
+    --control-h-lg:52px;
+  }
+}
