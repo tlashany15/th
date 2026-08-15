@@ -58,3 +58,71 @@
 }
 .tg-chats-head .th-theme-btn.th-theme-btn-head svg{ width:20px; height:20px; }
 .tg-chats-head .th-theme-btn.th-theme-btn-head:active{ transform:scale(.94); }
+
+/* تثبيت صور قائمة الدردشات: ما تتمدّش مع الصف وتفضل دايرية */
+.tg-list .tg-av-wrap,
+.tg-list .av-wrap-rel{
+  width:54px !important;
+  height:54px !important;
+  min-width:54px !important;
+  min-height:54px !important;
+  max-width:54px !important;
+  max-height:54px !important;
+  flex:0 0 54px !important;
+  aspect-ratio:1 / 1;
+  position:relative;
+}
+
+.tg-list img.tg-av,
+.tg-list .tg-av-wrap > img,
+.tg-list .av-wrap-rel > img{
+  display:block !important;
+  width:54px !important;
+  height:54px !important;
+  min-width:54px !important;
+  min-height:54px !important;
+  max-width:54px !important;
+  max-height:54px !important;
+  aspect-ratio:1 / 1 !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  flex:0 0 54px !important;
+}
+
+.tg-list .tg-av-fb,
+.tg-list .tg-av-group,
+.tg-list .idara-av{
+  width:54px !important;
+  height:54px !important;
+  min-width:54px !important;
+  min-height:54px !important;
+  max-width:54px !important;
+  max-height:54px !important;
+  border-radius:50% !important;
+  overflow:hidden;
+  flex:0 0 54px !important;
+}
+
+.tg-list .tg-row{
+  min-width:0;
+  align-items:center;
+}
+
+.tg-list .tg-mid{
+  min-width:0;
+  overflow:hidden;
+}
+
+/* صورة الحساب في هيدر صفحة الدردشات تتبع مقاس الهيدر الصغير */
+.tg-chats-head .tg-me-av > img,
+.tg-chats-head .tg-me-av-fb{
+  width:46px !important;
+  height:46px !important;
+  min-width:46px !important;
+  min-height:46px !important;
+  max-width:46px !important;
+  max-height:46px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+}
