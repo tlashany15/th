@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="wa-wrap" data-other-id="{{ other.id }}" data-me-id="{{ current_user.id }}">
+
+  <!-- HEADER -->
+  <header class="wa-head">
+    <a class="wa-back" href="{{ url_for('chats_list') }}" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+    <div class="wa-head-avatar av-wrap-rel">
+      {% if other.username == ADMIN_BOT_USERNAME %}
+        <div class="wa-head-fb idara-av">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg>
+        </div>
+      {% elif other.avatar %}<img src="{{ other.avatar }}" alt="">
+      {% else %}<div class="wa-head-fb">{{ other.full_name[0] }}</div>{% endif %}
+    </div>
+    <div class="wa-head-info">
+      <div class="wa-head-name">{{ other.full_name }}{% if other.username == ADMIN_BOT_USERNAME %}<span class="verified-badge js-official-badge" data-kind="idara" role="button" tabindex="0" title="حساب رسمي موثّق"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}{% if other.role == 'admin' and other.username != '1' %}<span class="admin-badge js-official-badge" data-kind="admin" role="button" tabindex="0" title="مسؤول معتمد"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#0d121b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}{% if other.role == 'admin' and other.username == '1' %}<span class="dev-badge" title="مبرمج التطبيق" aria-label="مبرمج التطبيق"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M10.2 9.4L7.6 12l2.6 2.6M13.8 9.4L16.4 12l-2.6 2.6" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}</div>
+      <div class="wa-head-status {% if other.online %}is-online{% endif %}" id="otherStatus">
+        {% if other.online %}متصل الآن{% else %}غير متصل{% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- MESSAGES -->
+  <main class="wa-msgs" id="msgs">
+    <div class="wa-empty-state" id="waEmpty">
+      <div class="wa-empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>
+      </div>
+      <b>ابدأ المحادثة</b>
+      <span>مفيش رسائل لحد دلوقتي — اكتب أول رسالة.</span>
+    </div>
+  </main>
+
+  <!-- AUDIO RECORDING UI -->
+  <div class="wa-rec-bar" id="recBar" hidden>
+    <button class="wa-rec-cancel" id="recCancel" aria-label="إلغاء">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="wa-rec-mid">
+      <span class="wa-rec-dot"></span>
+      <span id="recTime">0:00</span>
+      <span class="wa-rec-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <button class="wa-rec-send" id="recSend" aria-label="إرسال">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+  <!-- COMPOSER (Telegram-style) -->
+  <form class="wa-composer" id="composer" autocomplete="off">
+    <label class="wa-attach" aria-label="إرفاق صورة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/></svg>
+      <input id="imgInput" type="file" accept="image/*" hidden>
+    </label>
+    <textarea id="textInput" rows="1" placeholder="اكتب رسالة" autocomplete="off"></textarea>
+    <button type="button" class="wa-mic" id="micBtn" aria-label="رسالة صوتية">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
+    </button>
+    <button type="submit" class="wa-send" id="sendBtn" aria-label="إرسال">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </form>
+</div>
+
+<script src="{{ url_for('static', filename='js/chat-helpers.js') }}"></script>
+<script>
+(function(){
+  var wrap = document.querySelector('.wa-wrap');
+  var OTHER_ID = parseInt(wrap.dataset.otherId, 10);
+  var ME_ID = parseInt(wrap.dataset.meId, 10);
+  var msgsEl = document.getElementById('msgs');
+  var textInput = document.getElementById('textInput');
+  var imgInput = document.getElementById('imgInput');
+  var micBtn = document.getElementById('micBtn');
+  var sendBtn = document.getElementById('sendBtn');
+  var composer = document.getElementById('composer');
+  var statusEl = document.getElementById('otherStatus');
+
+  var lastId = 0;
+  var lastDayKey = '';
+  var pollTimer = null;
+
+  // ===== Presence text (Telegram style) =====
+  function fmtLastSeen(iso){
+    if (!iso) return 'غير متصل';
+    var d = new Date(iso);
+    if (isNaN(d)) return 'غير متصل';
+    var diff = Math.floor((Date.now() - d.getTime())/1000);
+    if (diff < 60)         return 'آخر ظهور منذ لحظات';
+    if (diff < 3600)       return 'آخر ظهور منذ ' + Math.floor(diff/60) + ' د';
+    if (diff < 86400)      return 'آخر ظهور منذ ' + Math.floor(diff/3600) + ' س';
+    if (diff < 86400*2)    return 'آخر ظهور أمس';
+    if (diff < 86400*7)    return 'آخر ظهور منذ ' + Math.floor(diff/86400) + ' أيام';
+    return 'آخر ظهور ' + d.toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  }
+
+  function updateStatus(online, lastSeen){
+    statusEl.classList.remove('is-online','is-typing');
+    if (online){
+      statusEl.classList.add('is-online');
+      statusEl.textContent = 'متصل الآن';
+    } else {
+      statusEl.textContent = fmtLastSeen(lastSeen);
+    }
+  }
+
+  // ===== Message rendering =====
+  function ticksHTML(read){
+    return '<svg class="wa-ticks '+(read?'read':'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">'+
+             '<path stroke-linecap="round" stroke-linejoin="round" d="M2 13l4 4L14 7M10 13l4 4L22 7"/>'+
+           '</svg>';
+  }
+
+  var OTHER_AVATAR = {{ (other.avatar or '')|tojson }};
+  var OTHER_INITIAL = {{ (other.full_name[0] if other.full_name else '?')|tojson }};
+
+  var OTHER_IS_BOT = {{ (other.username == ADMIN_BOT_USERNAME)|tojson }};
+
+  function avatarHTML(){
+    if (OTHER_IS_BOT) return '<div class="wa-av idara-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg></div>';
+    if (OTHER_AVATAR) return '<img class="wa-av" src="'+OTHER_AVATAR+'" alt="">';
+    return '<div class="wa-av wa-av-fb">'+ChatHelpers.escape(OTHER_INITIAL)+'</div>';
+  }
+
+  function bubbleHTML(m, showAvatar, tail){
+    var side = m.mine ? 'me' : 'them';
+    var inner = '';
+    if (m.kind === 'image') {
+      inner = '<img class="wa-img wa-img-tap" data-msg-id="'+m.id+'" src="'+m.body+'" alt="">';
+
+    } else if (m.kind === 'audio') {
+      inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
+    } else {
+      inner = '<div class="wa-text">'+ChatHelpers.linkify(m.body||'')+'</div>';
+    }
+    var quoted = '';
+    if (m.reply_to) {
+      quoted = '<div class="wa-quoted" data-reply-target="'+m.reply_to.id+'">'+
+                 '<span class="wq-name">'+(m.reply_to.mine ? 'أنت' : 'ردّ')+'</span>'+
+                 '<span class="wq-snip">'+ChatHelpers.escape(m.reply_to.snippet||'')+'</span>'+
+               '</div>';
+    }
+    var av = (!m.mine && showAvatar) ? '<div class="wa-msg-av">'+avatarHTML()+'</div>' : (!m.mine ? '<div class="wa-msg-av wa-av-hidden"></div>' : '');
+    var tailCls = tail ? ' wa-tail' : '';
+    var editedMark = m.edited ? '<span class="wa-edited">معدَّلة</span>' : '';
+    var editBtn = (m.mine && m.kind === 'text') ? '<button type="button" class="wa-edit-btn" data-edit-id="'+m.id+'" aria-label="تعديل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg></button>' : '';
+    return '<div class="wa-msg wa-'+side+(tail?' wa-last':'')+'" data-id="'+m.id+'" data-mine="'+(m.mine?1:0)+'">'+
+             av +
+             '<div class="wa-bubble'+tailCls+'">'+quoted+inner+
+               '<div class="wa-meta">'+editedMark+'<span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span>'+
+                 (m.mine ? ticksHTML(m.read) : '')+
+               '</div>'+
+             '</div>'+
+             editBtn +
+           '</div>';
+  }
+
+  var emptyEl = document.getElementById('waEmpty');
+  function toggleEmpty(){
+    if (!emptyEl) return;
+    emptyEl.hidden = !!msgsEl.querySelector('.wa-msg');
+  }
+
+  function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
+
+  function appendMessages(list){
+    if (!list.length) { toggleEmpty(); return; }
+    var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 100;
+    // Remove tail/avatar from previous last-them bubble if new message continues same sender
+    list.forEach(function(m, i){
+      if (m.id <= lastId) return;
+      if (msgsEl.querySelector('.wa-msg[data-id="'+m.id+'"]')) { lastId = Math.max(lastId, m.id); return; }
+      var dk = ChatHelpers.dayKey(m.created_at);
+      if (dk !== lastDayKey){
+        msgsEl.insertAdjacentHTML('beforeend',
+          '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>');
+        lastDayKey = dk;
+      }
+      var next = list[i+1];
+      var isLastOfGroup = !next || (!!next.mine !== !!m.mine) ||
+                          (ChatHelpers.dayKey(next.created_at) !== dk);
+      // if previous rendered bubble was them and this one is also them, strip its tail+avatar
+      var prevEl = msgsEl.lastElementChild;
+      if (prevEl && prevEl.classList && prevEl.classList.contains('wa-them') && !m.mine){
+        prevEl.classList.remove('wa-last');
+        var pb = prevEl.querySelector('.wa-bubble'); if (pb) pb.classList.remove('wa-tail');
+        var pa = prevEl.querySelector('.wa-msg-av'); if (pa){ pa.classList.add('wa-av-hidden'); pa.innerHTML=''; }
+      }
+      msgsEl.insertAdjacentHTML('beforeend', bubbleHTML(m, isLastOfGroup, isLastOfGroup));
+      lastId = Math.max(lastId, m.id);
+    });
+    ChatHelpers.bindAudio(msgsEl);
+    ChatHelpers.bindCopy(msgsEl);
+    toggleEmpty();
+    if (atBottom) scrollBottom();
+  }
+
+  // Update read state on existing mine bubbles based on server data
+  function refreshReadTicks(readIds){
+    if (!readIds || !readIds.length) return;
+    var set = {};
+    readIds.forEach(function(id){ set[id]=1; });
+    msgsEl.querySelectorAll('.wa-me[data-id]').forEach(function(el){
+      var id = parseInt(el.dataset.id,10);
+      if (set[id]){
+        var t = el.querySelector('.wa-ticks');
+        if (t) t.classList.add('read');
+      }
+    });
+  }
+
+  var pollBusy = false;
+  function poll(){
+    if (pollBusy) return;
+    pollBusy = true;
+    fetch('/chat/' + OTHER_ID + '/messages?after=' + lastId, {headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        appendMessages(d.messages || []);
+        refreshReadTicks(d.read_ids || []);
+        updateStatus(!!d.other_online, d.other_last_seen);
+        // ارسم التفاعلات للرسائل الجديدة
+        (d.messages || []).forEach(function(m){
+          if (m.reactions && m.reactions.length && window.__renderReactions)
+            window.__renderReactions(m.id, m.reactions);
+        });
+        // حدّث التفاعلات على الرسائل الظاهرة
+        if (window.__applyReactionsUpdates) window.__applyReactionsUpdates(d.reactions_updates);
+      }).catch(function(){})
+      .finally(function(){ pollBusy = false; });
+  }
+  // نطاق التفاعلات للـ msg-actions.js
+  window.__MsgReactionsScope = { type:'chat', otherId: OTHER_ID };
+  poll();
+  pollTimer = setInterval(poll, 2500);
+
+
+  // Faster refresh + presence ping on visibility change
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) {
+      poll();
+      try { fetch('/me/ping', {method:'POST'}); } catch(e){}
+    }
+  });
+
+  // Composer behaviour (telegram-style: textarea auto-grow, Enter to send)
+  function autoGrow(){
+    textInput.style.height = 'auto';
+    var max = 132; // ~5 lines
+    textInput.style.height = Math.min(textInput.scrollHeight, max) + 'px';
+    var hasText = textInput.value.trim().length > 0;
+    composer.classList.toggle('has-text', hasText);
+  }
+  textInput.addEventListener('input', autoGrow);
+  textInput.addEventListener('focus', function(){
+    setTimeout(scrollBottom, 200);
+  });
+  textInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      composer.requestSubmit ? composer.requestSubmit() : composer.dispatchEvent(new Event('submit', {cancelable:true}));
+    }
+  });
+
+  var sending = false;
+  composer.addEventListener('submit', function(e){
+    e.preventDefault();
+    if (sending) return;
+    var v = textInput.value.trim();
+    if (!v) return;
+    sending = true;
+    var fd = new FormData();
+    fd.append('kind','text'); fd.append('body', v);
+    textInput.value = ''; autoGrow();
+    fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd})
+      .then(function(){ poll(); })
+      .finally(function(){ sending = false; });
+  });
+
+  imgInput.addEventListener('change', function(){
+    var f = imgInput.files[0]; if (!f) return;
+    ChatHelpers.compressImage(f, {maxDim:1280, quality:0.72}).then(function(nf){
+      var fd = new FormData();
+      fd.append('kind','image'); fd.append('file', nf);
+      fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd}).then(poll);
+      imgInput.value = '';
+    });
+  });
+
+  // تسجيل صوتي
+  ChatHelpers.attachRecorder({
+    micBtn: micBtn, composer: composer,
+    onSend: function(blob, mime){
+      var fd = new FormData();
+      fd.append('kind','audio');
+      var ext = mime.indexOf('mp4') !== -1 ? 'm4a' : 'webm';
+      fd.append('file', blob, 'voice.'+ext);
+      fetch('/chat/'+OTHER_ID+'/send', {method:'POST', body:fd})
+        .then(function(r){ return r.json(); })
+        .then(function(){ poll(); })
+        .catch(function(){ (window.appAlert||alert)('فشل إرسال الرسالة الصوتية','error'); });
+    }
+  });
+
+  // ===== Image lightbox (with proper download) =====
+  var lb = document.createElement('div');
+  lb.className = 'wa-lightbox'; lb.hidden = true;
+  lb.innerHTML = '<div class="wa-lb-back"></div>'+
+                 '<img class="wa-lb-img" alt="">'+
+                 '<div class="wa-lb-bar">'+
+                   '<a class="wa-lb-btn wa-lb-dl" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>تنزيل</span></a>'+
+                   '<button class="wa-lb-btn wa-lb-close" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg><span>إغلاق</span></button>'+
+                 '</div>';
+  document.body.appendChild(lb);
+  var lbImg = lb.querySelector('.wa-lb-img');
+  var lbDl  = lb.querySelector('.wa-lb-dl');
+  function openLB(src, msgId){
+    lbImg.src = src;
+    if (msgId){
+      lbDl.href = '/media/chat/' + msgId + '?dl=1';
+      lbDl.setAttribute('download', 'صور تطبيق التحصين_' + msgId + '.jpg');
+    } else {
+      lbDl.href = src;
+      try { lbDl.download = 'صور تطبيق التحصين_' + Date.now() + '.jpg'; } catch(e){}
+    }
+    lb.hidden = false; document.body.style.overflow = 'hidden';
+  }
+  function closeLB(){ lb.hidden = true; lbImg.src=''; document.body.style.overflow = ''; }
+  lb.querySelector('.wa-lb-close').addEventListener('click', closeLB);
+  lb.querySelector('.wa-lb-back').addEventListener('click', closeLB);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !lb.hidden) closeLB(); });
+  msgsEl.addEventListener('click', function(ev){
+    var img = ev.target.closest && ev.target.closest('.wa-img-tap');
+    if (img) { ev.preventDefault(); openLB(img.src, img.dataset.msgId); }
+    var eb = ev.target.closest && ev.target.closest('.wa-edit-btn');
+    if (eb){
+      ev.preventDefault();
+      var mid = eb.dataset.editId;
+      var msgEl = msgsEl.querySelector('.wa-msg[data-id="'+mid+'"]');
+      var txtEl = msgEl && msgEl.querySelector('.wa-text');
+      var current = txtEl ? txtEl.innerText : '';
+      var val = window.prompt('عدّل الرسالة:', current);
+      if (val == null) return;
+      val = val.trim();
+      if (!val || val === current) return;
+      var fd = new FormData(); fd.append('body', val);
+      fetch('/chat/edit/'+mid, {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.ok){
+            if (txtEl) txtEl.innerHTML = ChatHelpers.linkify(d.body);
+            var meta = msgEl.querySelector('.wa-meta');
+            if (meta && !meta.querySelector('.wa-edited')){
+              meta.insertAdjacentHTML('afterbegin','<span class="wa-edited">معدَّلة</span>');
+            }
+            ChatHelpers.toast('تم التعديل');
+          } else {
+            (window.appAlert||alert)('تعذّر التعديل','error');
+          }
+        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); });
+    }
+  });
+})();
+</script>
+<style>
+.wa-img-tap{cursor:zoom-in}
+.wa-lightbox{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px}
+.wa-lb-back{position:absolute;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(6px)}
+.wa-lb-img{position:relative;max-width:100%;max-height:calc(100vh - 90px);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);object-fit:contain;z-index:1}
+.wa-lb-bar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:2}
+.wa-lb-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:99px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);text-decoration:none;font-weight:700;font-size:13px;backdrop-filter:blur(10px);cursor:pointer}
+.wa-lb-btn:hover{background:rgba(255,255,255,.22)}
+.wa-lb-btn svg{width:16px;height:16px}
+</style>
+
+
+
+{% endblock %}

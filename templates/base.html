@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#070b10">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>{% block title %}فريق تحصين الكتاكيت{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
+        href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800;900&family=Cairo:wght@400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Amiri+Quran&family=Scheherazade+New:wght@400;700&display=swap">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;600;800&family=Amiri+Quran&display=swap"></noscript>
+
+  <style>
+    /* خلفية مبدئية قبل تحميل أي CSS — تمنع الشاشة البيضاء */
+    html { background:#070b10; color:#eef3f6; }
+  </style>
+
+  {# ===== أوراق التصميم: أساس ← ترقيعات قديمة ← وحدات الصفحات ← نظام التصميم ===== #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.bundle.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/legacy-patches.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/modules.css') }}?v={{ ASSET_VER }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}?v={{ ASSET_VER }}">
+
+  <style id="uf-scroll-guard">
+    /* حارس التمرير — يضمن حركة الصفحة لأعلى وأسفل داخل WebView */
+    html, body{
+      height:auto !important; min-height:100%;
+      overflow-y:auto !important; overflow-x:hidden !important;
+      overscroll-behavior-y:auto !important; touch-action:auto !important;
+      -webkit-overflow-scrolling:touch; position:static !important;
+    }
+    body{ min-height:100dvh; }
+    /* أرقام لاتينية موحّدة في كل الصفحات */
+    @font-face{
+      font-family:'ForceLatinDigits';
+      src: local('Arial'), local('Helvetica Neue'), local('Segoe UI'), local('Roboto');
+      unicode-range: U+0030-0039, U+002E, U+002C, U+003A, U+002F, U+002D, U+0025;
+    }
+    html, body, input, textarea, select, button, .container, .card, .kpi, .kpi-v, .tl, .tl-num,
+    .tl-tnum, .hero-h1, .settle-v, .adj-amt, .adj-day, .mini-chip{
+      font-family:'ForceLatinDigits', 'Alexandria', 'Cairo', 'IBM Plex Sans Arabic', system-ui,
+                  -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+    }
+  </style>
+
+  <script>window.CURRENT_USER_ID = {{ (current_user.id if current_user else 'guest')|tojson }};</script>
+
+  {# ===== السكربتات الأساسية ===== #}
+  <script src="{{ url_for('static', filename='js/app-core.js') }}?v={{ ASSET_VER }}"></script>
+  <script src="{{ url_for('static', filename='js/nav-back.js') }}?v={{ ASSET_VER }}"></script>
+  <script src="{{ url_for('static', filename='js/polish-global.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/badge.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/islamic.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/instant-nav.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/motion.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/reveal.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/themes.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/reply-swipe.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/msg-actions.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/media-index.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/muslim.js') }}?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/account.js') }}?v={{ ASSET_VER }}" defer></script>
+
+{% block head_extra %}{% endblock %}
+</head>
+<body class="no-copy">
+{% block body %}{% endblock %}
+
+<!-- ===== التنبيهات والحوارات العامة ===== -->
+<div class="app-toast-wrap" id="appToastWrap" aria-live="polite"></div>
+<div class="app-modal-root" id="appModalRoot" aria-hidden="true">
+  <div class="app-modal-back" data-app-close></div>
+  <div class="app-modal-card" role="dialog" aria-modal="true">
+    <div class="app-modal-ic" id="appModalIc"></div>
+    <div class="app-modal-title" id="appModalTitle">تأكيد</div>
+    <div class="app-modal-sub" id="appModalSub">هل أنت متأكد؟</div>
+    <div class="app-modal-actions">
+      <button class="btn btn-ghost" data-app-close id="appModalCancel">إلغاء</button>
+      <button class="btn btn-primary" id="appModalOk">تأكيد</button>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app-ui.js') }}?v={{ ASSET_VER }}"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+{% extends "app_base.html" %}
+{% block content %}
+{% with tab = 'gross' %}{% include '_tabs_counts.html' %}{% endwith %}
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
+        سجل مرجعي
+      </span>
+      <h1 class="hero-h1">أعداد بدون خصم</h1>
+      <p class="hero-sub">للمراجعة فقط — مش داخلة في التوزيع.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==== المدة الحالية ==== -->
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">المدة الحالية — بدون خصم</div>
+        <div class="sec-h-s">{{ current_period.label }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-grid kpi-grid-2">
+    <div class="kpi kpi-gold">
+      <div class="kpi-v">{{ '{:,}'.format(current_period.total) }}</div>
+      <div class="kpi-l">إجمالي بدون خصم (المدة الحالية)</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-v">{{ current_period.days }}</div>
+      <div class="kpi-l">عدد الأيام</div>
+    </div>
+  </div>
+  {% if current_period.total > 0 %}
+  <form method="post" action="{{ url_for('admin_gross_clear_period') }}" class="gl-clear-form"
+        onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير عمود (بدون خصم) لأيام هذه المدة نهائيًا بدون أرشيف.',{title:'تصفير أعداد بدون خصم للمدة الحالية؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير أعداد بدون خصم للمدة الحالية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+    <input type="hidden" name="year"  value="{{ current_period.year }}">
+    <input type="hidden" name="month" value="{{ current_period.month }}">
+    <input type="hidden" name="half"  value="{{ current_period.half }}">
+    <button type="submit" class="btn btn-danger btn-sm gl-clear-btn">
+      <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تصفير المدة الحالية
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
+{% if past_periods %}
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">مدد سابقة (لم تُصفَّر)</div>
+        <div class="sec-h-s">إجمالي كل مدة بدون خصم</div>
+      </div>
+    </div>
+  </div>
+  <div class="gl-list">
+    {% for p in past_periods %}
+    <div class="gl-row" style="flex-wrap:wrap;">
+      <div class="gl-body" style="flex:1 1 60%;">
+        <div class="gl-nd">{{ '{:,}'.format(p.total) }} <span>بدون خصم</span></div>
+        <div class="gl-tot">{{ p.label }} · {{ p.days }} يوم</div>
+      </div>
+      <form method="post" action="{{ url_for('admin_gross_clear_period') }}"
+            onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة نهائيًا.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير هذه المدة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+        <input type="hidden" name="year"  value="{{ p.year }}">
+        <input type="hidden" name="month" value="{{ p.month }}">
+        <input type="hidden" name="half"  value="{{ p.half }}">
+        <button type="submit" class="btn btn-danger" style="padding:6px 12px;font-size:12px;"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تصفير</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico sec-h-ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">سجل الأيام</div>
+        <div class="sec-h-s">أحدث 365 يوم</div>
+      </div>
+    </div>
+  </div>
+
+  {% if rows %}
+    <div class="gl-list">
+      {% for r in rows %}
+      <div class="gl-row">
+        <div class="gl-day">
+          <div class="gl-day-d">{{ r.day.isoformat()[8:] if r.day.__class__.__name__ != 'str' else r.day[8:] }}</div>
+          <div class="gl-day-m">{{ (r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day)[:7] }}</div>
+        </div>
+        <div class="gl-body">
+          <div class="gl-nd">{{ '{:,}'.format(r.no_deduct_total or 0) }} <span>بدون خصم</span></div>
+          <div class="gl-tot">إجمالي اليوم: <strong>{{ '{:,}'.format(r.total_count or 0) }}</strong></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">لا توجد أعداد بدون خصم مسجلة بعد.</div>
+  {% endif %}
+</div>
+
+<style>
+.gl-list{display:flex;flex-direction:column;gap:8px}
+.gl-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(47,125,255,.06),rgba(255,255,255,.02));border:1px solid rgba(47,125,255,.2)}
+.gl-day{width:54px;flex-shrink:0;text-align:center;padding:8px 4px;border-radius:10px;background:rgba(0,0,0,.25)}
+.gl-day-d{font-weight:800;font-size:18px;color:#fff}
+.gl-day-m{font-size:10px;color:var(--text-3);margin-top:2px}
+.gl-body{flex:1;min-width:0}
+.gl-nd{font-size:20px;font-weight:800;color:#8ec2ff}
+.gl-nd span{font-size:11px;color:var(--text-3);font-weight:600;margin-inline-start:4px}
+.gl-tot{font-size:12px;color:var(--text-3);margin-top:2px}
+.gl-tot strong{color:var(--text-1)}
+</style>
+{% endblock %}

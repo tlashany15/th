@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">مفيش اتصال بالإنترنت</h1>
+    <p class="auth-sub">أول ما النت يرجع هنكمّل على طول.</p>
+    <button class="btn btn-primary" type="button" onclick="location.reload()">إعادة المحاولة</button>
+  </div>
+</div>
+<script>
+  window.addEventListener('online', function(){
+    var last = '/dashboard';
+    location.replace(last);
+  });
+</script>
+{% endblock %}

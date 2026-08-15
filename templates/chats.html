@@ -1,0 +1,126 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<div class="tg-chats">
+
+  <!-- Telegram-style top header -->
+  <div class="tg-chats-head">
+    <a class="tg-me-av" href="{% if current_user.role == 'admin' %}{{ url_for('admin_profile') }}{% else %}{{ url_for('worker_profile') }}{% endif %}" aria-label="حسابي">
+      {% if current_user.avatar %}
+        <img src="{{ current_user.avatar }}" alt="">
+      {% else %}
+        <div class="tg-me-av-fb">{{ current_user.full_name[0] }}</div>
+      {% endif %}
+    </a>
+    <div class="tg-head-title">
+      <div class="tg-head-name">الدردشات</div>
+      <div class="tg-head-sub">{{ current_user.full_name }}</div>
+    </div>
+  </div>
+
+  <!-- Search bar -->
+  <div class="tg-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    <input id="chatsSearch" type="search" placeholder="اكتب اسم العامل لفتح دردشة خاصة…">
+  </div>
+
+
+  <ul class="tg-list">
+    <!-- Group -->
+    <li>
+      <a class="tg-row" href="{{ url_for('group_room') }}" data-name="{{ group.name|lower }} مجموعة">
+        <div class="tg-av-wrap">
+          {% if group.avatar %}<img class="tg-av" src="{{ group.avatar }}" alt="">
+          {% else %}<div class="tg-av tg-av-group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg></div>{% endif %}
+        </div>
+        <div class="tg-mid">
+          <div class="tg-top">
+            <span class="tg-name">{{ group.name }}<span class="verified-badge js-official-badge" data-kind="group" role="button" tabindex="0" title="مجموعة رسمية موثّقة"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
+            {% if group.last_time %}<span class="tg-time" data-time="{{ group.last_time }}"></span>{% endif %}
+          </div>
+          <div class="tg-bot">
+            <span class="tg-preview">{{ group.last_text }}</span>
+            {% if group.unread %}<span class="tg-badge">{{ group.unread }}</span>{% endif %}
+          </div>
+        </div>
+      </a>
+    </li>
+
+    {% for c in contacts %}
+    <li class="tg-contact-item {% if not c.last_time %}tg-contact-hidden{% endif %}" {% if not c.last_time %}hidden{% endif %}>
+      <a class="tg-row" href="{{ url_for('chat_room', other_id=c.id) }}" data-name="{{ c.full_name|lower }}">
+        <div class="tg-av-wrap av-wrap-rel">
+          {% if c.username == ADMIN_BOT_USERNAME %}
+            <div class="tg-av idara-av">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4.5" height="7" rx="2"/><rect x="17" y="13" width="4.5" height="7" rx="2"/><path d="M19 20v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></svg>
+            </div>
+          {% elif c.avatar %}<img class="tg-av" src="{{ c.avatar }}" alt="">
+          {% else %}<div class="tg-av tg-av-fb" style="background:hsl({{ (c.id * 47) % 360 }},60%,45%)">{{ c.full_name[0] }}</div>{% endif %}
+          {% if c.online %}<span class="tg-online-dot"></span>{% endif %}
+        </div>
+        <div class="tg-mid">
+          <div class="tg-top">
+            <span class="tg-name">{{ c.full_name }}{% if c.username == ADMIN_BOT_USERNAME %}<span class="verified-badge js-official-badge" data-kind="idara" role="button" tabindex="0" title="حساب رسمي موثّق"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}{% if c.role == 'admin' and c.username != '1' %}<span class="admin-badge js-official-badge" data-kind="admin" role="button" tabindex="0" title="مسؤول معتمد"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#0d121b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}{% if c.role == 'admin' and c.username == '1' %}<span class="dev-badge" title="مبرمج التطبيق" aria-label="مبرمج التطبيق"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M10.2 9.4L7.6 12l2.6 2.6M13.8 9.4L16.4 12l-2.6 2.6" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% endif %}</span>
+            {% if c.last_time %}
+              <span class="tg-time" data-time="{{ c.last_time }}"></span>
+            {% endif %}
+          </div>
+          <div class="tg-bot">
+            <span class="tg-preview">{{ c.last_text }}</span>
+            {% if c.unread %}<span class="tg-badge">{{ c.unread }}</span>{% endif %}
+          </div>
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+    <li class="tg-empty" id="chatsSearchEmpty" hidden>مفيش نتائج مطابقة</li>
+
+
+
+  </ul>
+</div>
+
+<script src="{{ url_for('static', filename='js/chat-helpers.js') }}"></script>
+<script>
+(function(){
+  var s = document.getElementById('chatsSearch');
+  var emptyEl = document.getElementById('chatsSearchEmpty');
+  var contactItems = document.querySelectorAll('.tg-contact-item');
+  function applyFilter(){
+    var q = (s.value || '').trim().toLowerCase();
+    var anyVisible = false;
+    contactItems.forEach(function(li){
+      var row = li.querySelector('.tg-row');
+      var name = (row && row.dataset.name) || '';
+      var isDefaultHidden = li.classList.contains('tg-contact-hidden');
+      if (!q){
+        // بدون بحث: أظهر فقط الدردشات ال ليها سجل
+        li.hidden = isDefaultHidden;
+        return;
+      }
+      var match = name.indexOf(q) !== -1;
+      li.hidden = !match;
+      if (match) anyVisible = true;
+    });
+    if (emptyEl) emptyEl.hidden = !q || anyVisible;
+  }
+  s && s.addEventListener('input', applyFilter);
+  applyFilter();
+
+
+  function relTime(iso){
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var diff = (Date.now() - d.getTime())/1000;
+    if (diff < 60) return 'الآن';
+    if (diff < 3600) return Math.floor(diff/60) + ' د';
+    if (diff < 86400) return d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+    if (diff < 86400*7) return Math.floor(diff/86400) + ' ي';
+    return d.toLocaleDateString('ar-EG');
+  }
+  document.querySelectorAll('.tg-time[data-time]').forEach(function(el){
+    el.textContent = relTime(el.dataset.time);
+  });
+})();
+</script>
+
+{% endblock %}

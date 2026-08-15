@@ -1,0 +1,161 @@
+{% extends "app_base.html" %}
+{% block content %}
+
+<!-- ============ HERO ============ -->
+<section class="v2-hero">
+  <div class="v2-hero-aurora" aria-hidden="true"></div>
+  <div class="v2-hero-grain" aria-hidden="true"></div>
+
+  <div class="v2-hero-top">
+    <span class="v2-eyebrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25"/></svg>
+      <span>{{ today }}</span>
+    </span>
+    {% if checked_in %}
+      <span class="v2-pill v2-pill-on"><i></i>حاضر</span>
+    {% else %}
+      <span class="v2-pill v2-pill-off"><i></i>لم تسجّل</span>
+    {% endif %}
+  </div>
+
+  <h1 class="v2-hello">
+    مرحباً،
+    <span class="v2-name">{{ current_user.full_name }}</span>
+  </h1>
+  <p class="v2-hello-sub">ابدأ يومك بذكر الله وصلِّ على النبي محمد ﷺ</p>
+
+  <div class="v2-hero-stats">
+    <div class="v2-hstat">
+      <div class="v2-hstat-num" data-countup="{{ present_count }}">0</div>
+      <div class="v2-hstat-lbl">الحاضرون</div>
+    </div>
+    <div class="v2-hstat-sep"></div>
+    <div class="v2-hstat">
+      <div class="v2-hstat-num v2-gold" data-countup="{{ team_total }}">0</div>
+      <div class="v2-hstat-lbl">{% if day_closed and my_farm_label %}إجمالي {{ my_farm_label }}{% else %}إجمالي اليوم{% endif %}</div>
+    </div>
+  </div>
+</section>
+
+
+{% if day_closed %}
+
+  <!-- ============ DAY CLOSED ============ -->
+  <div class="v2-closed v2-fade" style="--i:0">
+    <span class="v2-closed-tag">
+      <!-- syringe -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
+      تم إغلاق اليوم
+    </span>
+    <p class="v2-closed-note">ده ملخص شغل النهارده بعد ما المسؤول أقفل اليوم.</p>
+  </div>
+
+  {# قائمة الحاضرين اتشالت من اللوحة — بتظهر في صفحة إغلاق اليوم عند المسؤول #}
+
+{% else %}
+
+  {% if not checked_in %}
+  <!-- ============ CHECK-IN CTA ============ -->
+  <div class="v2-action v2-fade" style="--i:1">
+    <div class="v2-action-copy">
+      <div class="v2-action-eyebrow">ابدأ يومك</div>
+      <h2 class="v2-action-title">سجّل حضورك</h2>
+      <p class="v2-action-sub">بضغطة واحدة، خلّي الفريق يعرف إنك جاهز.</p>
+    </div>
+    <div class="v2-cta-row">
+      <form method="post" action="{{ url_for('check_in') }}" class="v2-cta-form">
+        <input type="hidden" name="farm" value="tasmeen">
+        <button class="v2-cta v2-cta-tasmeen" type="submit">
+          <span class="v2-cta-ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          </span>
+          <span>حضور تسمين</span>
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('check_in') }}" class="v2-cta-form">
+        <input type="hidden" name="farm" value="bayad">
+        <button class="v2-cta v2-cta-bayad" type="submit">
+          <span class="v2-cta-ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          </span>
+          <span>حضور بياض</span>
+        </button>
+      </form>
+    </div>
+    <style>
+      .v2-cta-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+      .v2-cta-form{width:100%;min-width:0}
+      .v2-cta-row .v2-cta{
+        width:100%;min-width:0;padding:11px 8px;gap:7px;
+        font-size:13px;font-weight:800;border-radius:14px;
+      }
+      .v2-cta-row .v2-cta-ic{width:20px;height:20px}
+      .v2-cta-row .v2-cta-ic svg{width:13px;height:13px}
+      .v2-cta-bayad{background:linear-gradient(135deg,#4aa3ff 0%,#2f7dff 100%);color:#fff}
+      @media (max-width:320px){ .v2-cta-row .v2-cta{font-size:12px;padding:10px 6px} }
+      .v2-action .v2-action-title{font-size:17px}
+      .v2-action .v2-action-sub{font-size:12.5px}
+      .v2-action .v2-action-copy{margin-bottom:10px}
+    </style>
+  </div>
+  {% else %}
+  <div class="v2-action v2-action-done v2-fade" style="--i:1">
+    <div class="v2-done-ring">
+      <!-- syringe -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
+    </div>
+    <h2 class="v2-action-title">تم تسجيل حضورك</h2>
+    <p class="v2-action-sub">تابع سجل التحصين من تبويب «السجل» بالأسفل.</p>
+  </div>
+  {% endif %}
+
+{% endif %}
+
+
+<!-- رفيق المسلم اتنقل لصفحة مستقلة: قسم «مسلم» في الشريط السفلي -->
+<a class="v2-muslim-link v2-fade" style="--i:2" href="{{ url_for('muslim_page') }}">
+  <span class="v2-muslim-ic" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
+  </span>
+  <span class="v2-muslim-txt">
+    <b>مسلم</b>
+    <small>مواقيت الصلاة والمناسبات وورد اليوم</small>
+  </span>
+  <svg class="v2-muslim-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+</a>
+
+
+<div class="contact-dev">
+  <a class="contact-dev-btn" href="https://wa.me/201553779813?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%B9%D8%A7%D9%88%D8%B2%20%D8%A3%D8%B3%D8%A3%D9%84%D9%83%20%D8%B9%D9%84%D9%89%20%D8%AD%D8%A7%D8%AC%D8%A7%D8%AA%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 2C6.495 2 2 6.495 2 12.05c0 1.77.462 3.505 1.34 5.033L2 22l5.05-1.32a10.02 10.02 0 004.995 1.315h.005c5.555 0 10.05-4.495 10.05-10.05C22.1 6.495 17.605 2 12.05 2z"/></svg>
+    تواصل مع المطور
+  </a>
+</div>
+
+
+
+<script>
+  (function(){
+    function ease(t){ return 1 - Math.pow(1 - t, 3); }
+    function run(el){
+      var target = parseInt(el.getAttribute('data-countup')||'0', 10);
+      if (!target || target < 1) { el.textContent = target; return; }
+      var dur = Math.min(1200, 400 + target * 25);
+      var start = performance.now();
+      function tick(now){
+        var p = Math.min(1, (now - start) / dur);
+        el.textContent = Math.round(ease(p) * target).toLocaleString('ar-EG');
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ run(e.target); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.4 });
+    document.querySelectorAll('[data-countup]').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+
+{% endblock %}
