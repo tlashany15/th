@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}القراءة بالصوت — المصحف المرتّل{% endblock %}
+{% block body %}
+
+<!-- ============ قسم القراءة بالصوت ============ -->
+<div class="rc" id="rcRoot" data-back="{{ url_for('muslim_page') }}" dir="rtl">
+
+  <header class="rc-head">
+    <button type="button" class="rc-ico" id="rcBack" data-app-back="{{ url_for('muslim_page') }}" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 19.5L8 12l7.5-7.5"/></svg>
+    </button>
+    <div class="rc-head-t"><b>القراءة بالصوت</b><small id="rcHeadSub">اختار القارئ والسورة</small></div>
+    <a class="rc-ico" href="{{ url_for('mushaf_page') }}" aria-label="المصحف">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H11v17H5.5A2.5 2.5 0 0 0 3 22.5z"/><path d="M21 5.5A2.5 2.5 0 0 0 18.5 3H13v17h5.5a2.5 2.5 0 0 1 2.5 2.5z"/><path d="M12 3v17"/></svg>
+    </a>
+  </header>
+
+  <!-- القارئ -->
+  <section class="rc-sec">
+    <div class="rc-sec-h"><b>القارئ</b><button type="button" class="rc-more" id="rcAllRec">كل القرّاء</button></div>
+    <div class="rc-recs" id="rcRecs"></div>
+  </section>
+
+  <!-- طريقة التشغيل -->
+  <section class="rc-sec">
+    <div class="rc-sec-h"><b>التشغيل</b></div>
+    <div class="rc-opts" id="rcOpts">
+      <button type="button" class="rc-opt" data-mode="one">مرة واحدة</button>
+      <button type="button" class="rc-opt" data-mode="repeat">تكرار</button>
+      <button type="button" class="rc-opt is-on" data-mode="all">المصحف كامل</button>
+    </div>
+    <div class="rc-quick">
+      <button type="button" class="rc-quick-b" id="rcPlayAll">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
+        من الفاتحة
+      </button>
+      <button type="button" class="rc-quick-b is-ghost" id="rcResume">كمّل من آخر مكان</button>
+    </div>
+  </section>
+
+  <!-- السور -->
+  <section class="rc-sec rc-sec-list">
+    <div class="rc-sec-h"><b>السور</b><span id="rcCount">114</span></div>
+    <div class="rc-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.2-4.2"/></svg>
+      <input type="search" id="rcSearch" placeholder="ابحث عن سورة">
+    </div>
+    <div class="rc-list" id="rcList"></div>
+  </section>
+
+  <!-- المشغّل الثابت -->
+  <div class="rc-player" id="rcPlayer" hidden>
+    <div class="rc-pl-top">
+      <div class="rc-pl-b"><b id="rcNowT">—</b><small id="rcNowS">—</small></div>
+      <button type="button" class="rc-pl-x" id="rcStop" aria-label="إيقاف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <input type="range" class="rc-seek" id="rcSeek" min="0" max="1000" value="0" aria-label="موضع التلاوة">
+    <div class="rc-times"><span id="rcCur">0:00</span><span id="rcDur">0:00</span></div>
+    <div class="rc-ctrls">
+      <button type="button" class="rc-c" id="rcPrev" aria-label="السورة السابقة">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.5h2.4v13H6zM19 5.5v13l-9-6.5z"/></svg>
+      </button>
+      <button type="button" class="rc-c" id="rcBack15" aria-label="ارجع 15 ثانية">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v5h5"/><path d="M4.5 10a8 8 0 1 1 1.6 6.4"/></svg>
+      </button>
+      <button type="button" class="rc-play" id="rcPlay" aria-label="تشغيل"></button>
+      <button type="button" class="rc-c" id="rcFwd15" aria-label="قدّم 15 ثانية">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v5h-5"/><path d="M19.5 10a8 8 0 1 0-1.6 6.4"/></svg>
+      </button>
+      <button type="button" class="rc-c" id="rcNext" aria-label="السورة التالية">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 5.5h-2.4v13H18zM5 5.5v13l9-6.5z"/></svg>
+      </button>
+    </div>
+    <div class="rc-pl-foot">
+      <span id="rcModeTxt">المصحف كامل</span>
+    </div>
+  </div>
+
+  <audio id="rcAudio" preload="none" playsinline></audio>
+</div>
+
+<script src="{{ url_for('static', filename='recite-v20.js') }}?v={{ ASSET_VER }}"></script>
+{% endblock %}

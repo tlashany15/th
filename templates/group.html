@@ -1,0 +1,656 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="wa-wrap wa-group" data-me-id="{{ current_user.id }}" data-is-admin="{{ '1' if is_admin else '0' }}" data-can-delete="{{ '1' if my_can_delete else '0' }}" data-locked="{{ '1' if group.is_locked else '0' }}">
+
+  <!-- HEADER -->
+  <header class="wa-head">
+    <a class="wa-back" href="{{ url_for('chats_list') }}" aria-label="رجوع">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+    </a>
+    <label class="wa-head-avatar wa-head-avatar-group av-wrap-rel {% if is_admin %}is-clickable{% endif %}" title="{% if is_admin %}تغيير صورة المجموعة{% endif %}">
+      {% if group.avatar %}<img src="{{ group.avatar }}" alt="">
+      {% else %}<div class="wa-head-fb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg></div>{% endif %}
+      {% if is_admin %}
+        <form id="grpAvatarForm" method="post" action="{{ url_for('group_avatar') }}" enctype="multipart/form-data" style="display:none">
+          <input type="file" name="file" id="grpAvatarFile" accept="image/*">
+        </form>
+        <span class="wa-head-edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z"/></svg>
+        </span>
+      {% endif %}
+    </label>
+    <button type="button" class="wa-head-info wa-head-info-btn" id="openMembers" aria-label="عرض الأعضاء">
+      <div class="wa-head-name">{{ group.name }}<span class="verified-badge js-official-badge" data-kind="group" role="button" tabindex="0" title="حساب رسمي موثّق"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" transform="rotate(45 12 12)"/></g><path d="M8.1 12.4l2.6 2.6 5.2-5.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{% if group.is_locked %} <span class="wa-lock-badge" title="مقفولة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px;vertical-align:-2px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg></span>{% endif %}</div>
+      <div class="wa-head-status" id="grpStatus">{{ group.members }} عضو</div>
+    </button>
+    {% if is_admin %}
+    <button type="button" class="wa-head-action" id="lockBtn" aria-label="قفل/فتح الدردشة" title="قفل/فتح الدردشة">
+      <svg id="lockIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{% if group.is_locked %}M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z{% else %}M13.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3 10.5h15v10.5H3zM18 10.5h3{% endif %}"/></svg>
+    </button>
+    <button type="button" class="wa-head-action" id="renameBtn" aria-label="تعديل الاسم">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487zM19.5 18.75h-15"/></svg>
+    </button>
+    {% endif %}
+  </header>
+
+  <!-- Locked notice -->
+  <div class="wa-locked-bar" id="lockedBar" {% if not group.is_locked %}hidden{% endif %}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/></svg>
+    <span>الدردشة مقفولة من المسؤول — لا يمكن الكتابة</span>
+  </div>
+
+  <!-- MESSAGES -->
+  <main class="wa-msgs" id="msgs"></main>
+
+
+  <!-- AUDIO REC -->
+  <div class="wa-rec-bar" id="recBar" hidden>
+    <button class="wa-rec-cancel" id="recCancel" aria-label="إلغاء">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="wa-rec-mid">
+      <span class="wa-rec-dot"></span>
+      <span id="recTime">0:00</span>
+      <span class="wa-rec-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <button class="wa-rec-send" id="recSend" aria-label="إرسال">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+  <!-- COMPOSER -->
+  <form class="wa-composer" id="composer" autocomplete="off">
+    <label class="wa-attach" aria-label="صورة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+      <input id="imgInput" type="file" accept="image/*" hidden>
+    </label>
+    <textarea id="textInput" rows="1" placeholder="اكتب رسالة" autocomplete="off"></textarea>
+    <button type="button" class="wa-mic" id="micBtn" aria-label="رسالة صوتية">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.92V21h2v-3.08A7 7 0 0019 11h-2z"/></svg>
+    </button>
+    <button type="submit" class="wa-send" id="sendBtn" aria-label="إرسال">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21l20.99-9L2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </form>
+</div>
+
+<!-- modal rename -->
+{% if is_admin %}
+<div class="modal-root" id="renameModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-title">تغيير اسم المجموعة</div>
+    <form method="post" action="{{ url_for('group_rename') }}" style="margin-top:10px;">
+      <input class="modal-input" type="text" name="name" maxlength="60" value="{{ group.name }}" required>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- Members modal -->
+<div class="modal-root tg-members-modal" id="membersModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-members></div>
+  <div class="modal-card tg-members-card" role="dialog" aria-modal="true">
+    <div class="tg-members-head">
+      <div>
+        <div class="modal-title">{{ group.name }}</div>
+        <div class="tg-members-sub" id="membersSub">جاري التحميل…</div>
+      </div>
+      <button type="button" class="wa-head-action" data-close-members aria-label="إغلاق">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <ul class="tg-members-list" id="membersList"></ul>
+  </div>
+</div>
+
+<!-- Member action sheet (admin only) -->
+<div class="modal-root" id="memberSheet" aria-hidden="true">
+  <div class="modal-backdrop" data-close-sheet></div>
+  <div class="modal-card" role="dialog" aria-modal="true" style="max-width:360px;">
+    <div class="modal-title" id="memberSheetName">عضو</div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+      <button type="button" class="btn btn-primary" id="memberSheetOpenChat">فتح المحادثة الخاصة</button>
+      <button type="button" class="btn btn-ghost" id="memberSheetTogglePerm">منح صلاحية حذف الرسائل</button>
+      <button type="button" class="btn btn-ghost" data-close-sheet>إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='chat-helpers.js') }}"></script>
+<script>
+(function(){
+  var wrap = document.querySelector('.wa-wrap');
+  var ME_ID = parseInt(wrap.dataset.meId, 10);
+  var IS_ADMIN = wrap.dataset.isAdmin === '1';
+  var MY_CAN_DELETE = wrap.dataset.canDelete === '1';
+  var msgsEl = document.getElementById('msgs');
+  var textInput = document.getElementById('textInput');
+  var imgInput = document.getElementById('imgInput');
+  var micBtn = document.getElementById('micBtn');
+  var sendBtn = document.getElementById('sendBtn');
+  var composer = document.getElementById('composer');
+  var grpStatusEl = document.getElementById('grpStatus');
+
+  var lastId = 0;
+  var lastDayKey = '';
+
+  function avatarHTML(m){
+    if (m.sender_avatar) return '<img class="wa-av" src="'+m.sender_avatar+'" alt="">';
+    var ch = m.sender_name ? m.sender_name.charAt(0) : '?';
+    return '<div class="wa-av wa-av-fb" style="background:hsl('+((m.sender_id||0)*47%360)+',60%,45%)">'+ChatHelpers.escape(ch)+'</div>';
+  }
+
+  function sysDelBtn(id){
+    if (!IS_ADMIN && !MY_CAN_DELETE) return '';
+    return '<button class="wa-del wa-del-sys" data-id="'+id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>';
+  }
+  function renderSysBody(txt){
+    // Replace [ICON:name] markers with inline SVGs
+    var ICONS = {
+      'check':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>',
+      'clipboard':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h4m2-9h2a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-3h2a1 1 0 011 1v2H9V4a1 1 0 011-1z"/></svg>',
+      'coins':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path stroke-linecap="round" d="M12 8v8M9 10.5c0-1 1.3-1.5 3-1.5s3 .5 3 1.75-1.5 1.75-3 1.75-3 .5-3 1.75S10.3 15 12 15s3-.5 3-1.5"/></svg>',
+      'users':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M13 8a4 4 0 11-8 0 4 4 0 018 0zM21 20v-2a4 4 0 00-3-3.87M17 4.13A4 4 0 0117 12"/></svg>',
+      'calendar':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 2v3M16 2v3M3 9h18M5 5h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/></svg>',
+      'bell':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>'
+    };
+    var esc = ChatHelpers.escape(txt || '');
+    return esc.replace(/\[ICON:([a-z_]+)\]/gi, function(_, n){
+      return '<span class="wa-sys-i">' + (ICONS[n.toLowerCase()] || ICONS.bell) + '</span>';
+    });
+  }
+  function bubbleHTML(m){
+    if (m.deleted) { return ''; }
+    if (m.kind === 'attendance') {
+      return '<div class="wa-sys wa-sys-tap" data-id="'+m.id+'">'+
+               '<div class="wa-sys-card">'+
+                 '<div class="wa-sys-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h4m2-9h2a2 2 0 012 2v11a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2h2m2-3h2a1 1 0 011 1v2H9V4a1 1 0 011-1z"/></svg></div>'+
+                 '<pre class="wa-sys-body">'+renderSysBody(m.body||'')+'</pre>'+
+                 sysDelBtn(m.id)+
+               '</div></div>';
+    }
+    if (m.kind === 'system') {
+      return '<div class="wa-sys wa-sys-tap" data-id="'+m.id+'"><span class="wa-sys-pill">'+renderSysBody(m.body||'')+'</span>'+sysDelBtn(m.id)+'</div>';
+    }
+    var side = m.mine ? 'me' : 'them';
+    var canDel = (m.mine || IS_ADMIN || MY_CAN_DELETE);
+    var inner = '';
+    if (m.kind === 'image') {
+      inner = '<img class="wa-img wa-img-tap" data-msg-id="'+m.id+'" src="'+m.body+'" alt="" loading="lazy">';
+
+    } else if (m.kind === 'audio') {
+      inner = ChatHelpers.audioPlayerHTML(m.body, m.id);
+    } else {
+      var txt = ChatHelpers.linkify(m.body||'');
+      // تلوين المنشن @اسم
+      if (window.__GroupMembers) {
+        window.__GroupMembers.forEach(function(mm){
+          if (!mm || !mm.full_name) return;
+          var esc = mm.full_name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+          txt = txt.replace(new RegExp('@'+esc, 'g'), '<span class="wa-mention">@'+ChatHelpers.escape(mm.full_name)+'</span>');
+        });
+      }
+      inner = '<div class="wa-text">'+txt+'</div>';
+    }
+    // اقتباس الرد
+    var quoted = '';
+    if (m.reply_to) {
+      quoted = '<div class="wa-quoted" data-reply-target="'+m.reply_to.id+'">'+
+                 '<span class="wq-name">'+ChatHelpers.escape(m.reply_to.sender_name||'')+'</span>'+
+                 '<span class="wq-snip">'+ChatHelpers.escape(m.reply_to.snippet||'')+'</span>'+
+               '</div>';
+    }
+    var senderClickable = (!m.mine && m.sender_id);
+    var senderLine = (!m.mine) ? '<div class="wa-sender'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+' style="color:hsl('+((m.sender_id||0)*47%360)+',70%,70%)">'+ChatHelpers.escape(m.sender_name)+'</div>' : '';
+    var delBtn = canDel ? '<button class="wa-del" data-id="'+m.id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79"/></svg></button>' : '';
+    var editBtn = (m.mine && m.kind === 'text') ? '<button type="button" class="wa-edit-btn" data-edit-id="'+m.id+'" aria-label="تعديل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg></button>' : '';
+    var avatar = (!m.mine) ? '<div class="wa-msg-av'+(senderClickable?' wa-sender-link':'')+'"'+(senderClickable?' data-open-chat="'+m.sender_id+'"':'')+'>'+avatarHTML(m)+'</div>' : '';
+    var editedMark = m.edited ? '<span class="wa-edited">معدَّلة</span>' : '';
+    return '<div class="wa-msg wa-'+side+' wa-has-av" data-id="'+m.id+'">'+
+             avatar +
+             '<div class="wa-bubble">'+ senderLine + quoted + inner +
+               '<div class="wa-meta">'+editedMark+'<span class="wa-t">'+ChatHelpers.fmtTime(m.created_at)+'</span></div>'+
+             '</div>'+
+             editBtn + delBtn +
+           '</div>';
+  }
+
+  function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
+
+  function removeDeleted(ids){
+    if (!ids || !ids.length) return;
+    ids.forEach(function(id){
+      var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]') ||
+               msgsEl.querySelector('.wa-sys[data-id="'+id+'"]');
+      if (el) el.remove();
+    });
+  }
+
+  function appendMessages(list){
+    if (!list.length) return;
+    var atBottom = (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 80;
+    var html = '';
+    list.forEach(function(m){
+      if (m.id <= lastId) return;
+      // Skip duplicates that are already rendered
+      if (msgsEl.querySelector('.wa-msg[data-id="'+m.id+'"]') ||
+          msgsEl.querySelector('.wa-sys[data-id="'+m.id+'"]')){
+        lastId = Math.max(lastId, m.id);
+        return;
+      }
+      lastId = Math.max(lastId, m.id);
+      if (m.deleted) return;
+      var dk = ChatHelpers.dayKey(m.created_at);
+      if (dk !== lastDayKey){
+        html += '<div class="wa-day-sep"><span>'+ChatHelpers.dayLabel(m.created_at)+'</span></div>';
+        lastDayKey = dk;
+      }
+      html += bubbleHTML(m);
+    });
+    if (html) msgsEl.insertAdjacentHTML('beforeend', html);
+    ChatHelpers.bindAudio(msgsEl);
+    ChatHelpers.bindCopy(msgsEl);
+    bindDelete();
+    bindOpenChat();
+    if (atBottom) scrollBottom();
+  }
+
+  function bindOpenChat(){
+    msgsEl.querySelectorAll('[data-open-chat]:not([data-oc-bound])').forEach(function(el){
+      el.dataset.ocBound = '1';
+      el.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var id = parseInt(el.dataset.openChat, 10);
+        if (!id || id === ME_ID) return;
+        if (IS_ADMIN) {
+          openMemberSheet(id, el.dataset.openName || '');
+        } else {
+          window.location.href = '/chat/' + id;
+        }
+      });
+    });
+  }
+
+  // ===== قائمة الإجراءات عند الضغط على صورة عضو (المسؤول فقط) =====
+  var memberSheet = document.getElementById('memberSheet');
+  var memberSheetName = document.getElementById('memberSheetName');
+  var memberSheetOpenChat = document.getElementById('memberSheetOpenChat');
+  var memberSheetTogglePerm = document.getElementById('memberSheetTogglePerm');
+  var _currentSheetUid = 0;
+  function openMemberSheet(uid, name){
+    _currentSheetUid = uid;
+    memberSheetName.textContent = name || 'عضو';
+    memberSheetTogglePerm.textContent = 'جاري التحميل…';
+    memberSheetTogglePerm.dataset.state = '';
+    memberSheet.classList.add('is-open');
+    memberSheet.setAttribute('aria-hidden','false');
+    // اجلب حالة الصلاحية الحالية
+    fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+      var m = (d.members||[]).find(function(x){ return x.id === uid; });
+      if (m) {
+        memberSheetName.textContent = m.full_name || name || 'عضو';
+        var can = !!m.can_delete;
+        memberSheetTogglePerm.dataset.state = can ? '1' : '0';
+        memberSheetTogglePerm.textContent = can ? 'سحب صلاحية حذف الرسائل' : 'منح صلاحية حذف الرسائل';
+        memberSheetTogglePerm.classList.toggle('is-danger', can);
+      }
+    });
+  }
+  function closeMemberSheet(){
+    memberSheet.classList.remove('is-open');
+    memberSheet.setAttribute('aria-hidden','true');
+    _currentSheetUid = 0;
+  }
+  if (memberSheet) {
+    memberSheet.querySelectorAll('[data-close-sheet]').forEach(function(el){
+      el.addEventListener('click', closeMemberSheet);
+    });
+    memberSheetOpenChat.addEventListener('click', function(){
+      if (_currentSheetUid) window.location.href = '/chat/' + _currentSheetUid;
+    });
+    memberSheetTogglePerm.addEventListener('click', function(){
+      if (!_currentSheetUid) return;
+      var cur = memberSheetTogglePerm.dataset.state === '1';
+      var next = cur ? '0' : '1';
+      var fd = new FormData(); fd.append('can_delete', next);
+      memberSheetTogglePerm.disabled = true;
+      fetch('/group/perms/'+_currentSheetUid, {method:'POST', body:fd})
+        .then(function(r){return r.json();})
+        .then(function(d){
+          memberSheetTogglePerm.disabled = false;
+          if (d && d.ok) {
+            var can = !!d.can_delete;
+            memberSheetTogglePerm.dataset.state = can ? '1' : '0';
+            memberSheetTogglePerm.textContent = can ? 'سحب صلاحية حذف الرسائل' : 'منح صلاحية حذف الرسائل';
+            memberSheetTogglePerm.classList.toggle('is-danger', can);
+            if (window.appToast) window.appToast(can ? 'تم منح الصلاحية' : 'تم سحب الصلاحية');
+          }
+        }).catch(function(){ memberSheetTogglePerm.disabled = false; });
+    });
+  }
+
+  function bindDelete(){
+    msgsEl.querySelectorAll('.wa-del:not([data-bound])').forEach(function(b){
+      b.dataset.bound = '1';
+      b.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        (window.appConfirm ? window.appConfirm('حذف الرسالة نهائيًا؟', {danger:true, okText:'حذف'}) : Promise.resolve(confirm('حذف الرسالة؟')))
+        .then(function(ok){
+          if (!ok) return;
+          var id = b.dataset.id;
+          fetch('/group/delete/'+id, {method:'POST'}).then(function(r){
+            if (r.ok) {
+              var el = msgsEl.querySelector('.wa-msg[data-id="'+id+'"]') ||
+                       msgsEl.querySelector('.wa-sys[data-id="'+id+'"]');
+              if (el) el.remove();
+            }
+          });
+        });
+      });
+    });
+  }
+
+  var pollBusy = false;
+  function poll(){
+    if (pollBusy) return;
+    pollBusy = true;
+    fetch('/group/messages?after=' + lastId)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        appendMessages(d.messages || []);
+        removeDeleted(d.deleted_ids || []);
+        (d.messages || []).forEach(function(m){
+          if (m.reactions && m.reactions.length && window.__renderReactions)
+            window.__renderReactions(m.id, m.reactions);
+        });
+        if (window.__applyReactionsUpdates) window.__applyReactionsUpdates(d.reactions_updates);
+      }).catch(function(){})
+      .finally(function(){ pollBusy = false; });
+  }
+  window.__MsgReactionsScope = { type:'group' };
+  poll();
+  setInterval(poll, 3000);
+
+
+  function autoGrow(){
+    textInput.style.height = 'auto';
+    var max = 132;
+    textInput.style.height = Math.min(textInput.scrollHeight, max) + 'px';
+    composer.classList.toggle('has-text', textInput.value.trim().length > 0);
+  }
+  textInput.addEventListener('input', autoGrow);
+  textInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      composer.requestSubmit ? composer.requestSubmit() : composer.dispatchEvent(new Event('submit', {cancelable:true}));
+    }
+  });
+  var sending = false;
+  composer.addEventListener('submit', function(e){
+    e.preventDefault();
+    if (sending) return;
+    var v = textInput.value.trim();
+    if (!v) return;
+    sending = true;
+    var fd = new FormData();
+    fd.append('kind','text'); fd.append('body', v);
+    textInput.value = ''; autoGrow();
+    fetch('/group/send', {method:'POST', body:fd})
+      .then(function(){ poll(); })
+      .finally(function(){ sending = false; });
+  });
+
+  imgInput.addEventListener('change', function(){
+    var f = imgInput.files[0]; if (!f) return;
+    ChatHelpers.compressImage(f, {maxDim:1280, quality:0.72}).then(function(nf){
+      var fd = new FormData();
+      fd.append('kind','image'); fd.append('file', nf);
+      fetch('/group/send', {method:'POST', body:fd}).then(poll);
+      imgInput.value = '';
+    });
+  });
+
+  ChatHelpers.attachRecorder({
+    micBtn: micBtn, composer: composer,
+    onSend: function(blob, mime){
+      var fd = new FormData();
+      fd.append('kind','audio');
+      var ext = mime.indexOf('mp4') !== -1 ? 'm4a' : 'webm';
+      fd.append('file', blob, 'voice.'+ext);
+      fetch('/group/send', {method:'POST', body:fd})
+        .then(function(r){ return r.json(); })
+        .then(function(){ poll(); })
+        .catch(function(){ (window.appAlert||alert)('فشل إرسال الرسالة الصوتية','error'); });
+    }
+  });
+
+  // avatar + rename للمسؤول (مع ضغط الصورة)
+  var avFile = document.getElementById('grpAvatarFile');
+  if (avFile) {
+    document.querySelector('.wa-head-avatar-group').addEventListener('click', function(){ avFile.click(); });
+    ChatHelpers.attachImageAutoCompress(avFile, {maxDim:512, quality:0.8, autoSubmitForm:'grpAvatarForm'});
+  }
+  var renameBtn = document.getElementById('renameBtn');
+  var renameModal = document.getElementById('renameModal');
+  if (renameBtn && renameModal) {
+    renameBtn.addEventListener('click', function(){ renameModal.classList.add('is-open'); renameModal.setAttribute('aria-hidden','false'); });
+    renameModal.querySelectorAll('[data-close]').forEach(function(el){
+      el.addEventListener('click', function(){ renameModal.classList.remove('is-open'); renameModal.setAttribute('aria-hidden','true'); });
+    });
+  }
+
+  // ===== Members modal =====
+  var membersModal = document.getElementById('membersModal');
+  var membersList  = document.getElementById('membersList');
+  var membersSub   = document.getElementById('membersSub');
+  var openBtn      = document.getElementById('openMembers');
+
+  function fmtLastSeen(iso){
+    if (!iso) return 'غير متصل';
+    var d = new Date(iso); if (isNaN(d)) return 'غير متصل';
+    var diff = Math.floor((Date.now() - d.getTime())/1000);
+    if (diff < 60)      return 'آخر ظهور منذ لحظات';
+    if (diff < 3600)    return 'آخر ظهور منذ ' + Math.floor(diff/60) + ' د';
+    if (diff < 86400)   return 'آخر ظهور منذ ' + Math.floor(diff/3600) + ' س';
+    if (diff < 86400*7) return 'آخر ظهور منذ ' + Math.floor(diff/86400) + ' أيام';
+    return 'آخر ظهور ' + d.toLocaleDateString('ar-EG');
+  }
+  function memberRow(m){
+    var av = m.avatar
+      ? '<img class="tg-mem-av" src="'+m.avatar+'" alt="">'
+      : '<div class="tg-mem-av tg-mem-av-fb" style="background:hsl('+((m.id||0)*47%360)+',60%,45%)">'+ChatHelpers.escape((m.full_name||'?').charAt(0))+'</div>';
+    var status = m.online
+      ? '<span class="tg-mem-status is-online">متصل الآن</span>'
+      : '<span class="tg-mem-status">'+fmtLastSeen(m.last_seen)+'</span>';
+    var isMe = (m.id === ME_ID);
+    var badge = '';
+    var dot = m.online ? '<span class="tg-mem-dot"></span>' : '';
+    var openTag  = isMe ? '<li class="tg-mem-row">' : '<li class="tg-mem-row tg-mem-row-link"><a class="tg-mem-link" href="/chat/'+m.id+'">';
+    var closeTag = isMe ? '</li>' : '</a></li>';
+    return openTag +
+             '<div class="tg-mem-av-wrap">'+av+dot+'</div>'+
+             '<div class="tg-mem-info">'+
+               '<div class="tg-mem-name">'+ChatHelpers.escape(m.full_name||'')+' '+badge+(isMe?' <span class="tg-mem-you">(أنت)</span>':'')+'</div>'+
+               status+
+             '</div>'+
+           closeTag;
+  }
+  function loadMembers(){
+    membersList.innerHTML = '';
+    membersSub.textContent = 'جاري التحميل…';
+    fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+      var html = (d.members||[]).map(memberRow).join('');
+      membersList.innerHTML = html || '<li class="tg-mem-empty">لا يوجد أعضاء</li>';
+      membersSub.textContent = d.total + ' عضو • ' + d.online + ' متصل الآن';
+      if (grpStatusEl) grpStatusEl.textContent = d.total + ' عضو، ' + d.online + ' متصل';
+    }).catch(function(){
+      membersSub.textContent = 'تعذّر التحميل';
+    });
+  }
+  if (openBtn && membersModal){
+    openBtn.addEventListener('click', function(){
+      membersModal.classList.add('is-open');
+      membersModal.setAttribute('aria-hidden','false');
+      loadMembers();
+    });
+    membersModal.querySelectorAll('[data-close-members]').forEach(function(el){
+      el.addEventListener('click', function(){
+        membersModal.classList.remove('is-open');
+        membersModal.setAttribute('aria-hidden','true');
+      });
+    });
+  }
+  // Refresh status count periodically (silent)
+  setInterval(function(){
+    fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+      if (grpStatusEl) grpStatusEl.textContent = d.total + ' عضو، ' + d.online + ' متصل';
+    }).catch(function(){});
+  }, 15000);
+  // First load — واحفظ قائمة الأعضاء عالمياً عشان reply-swipe.js يستعملها للـmention
+  fetch('/group/members').then(function(r){return r.json();}).then(function(d){
+    window.__GroupMembers = (d.members || []).filter(function(m){ return m && m.id !== ME_ID; });
+    if (grpStatusEl) grpStatusEl.textContent = d.total + ' عضو، ' + d.online + ' متصل';
+  }).catch(function(){});
+
+  // ===== Image lightbox =====
+  var lb = document.createElement('div');
+  lb.className = 'wa-lightbox'; lb.hidden = true;
+  lb.innerHTML = '<div class="wa-lb-back"></div>'+
+                 '<img class="wa-lb-img" alt="">'+
+                 '<div class="wa-lb-bar">'+
+                   '<a class="wa-lb-btn wa-lb-dl" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg><span>تنزيل</span></a>'+
+                   '<button class="wa-lb-btn wa-lb-close" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg><span>إغلاق</span></button>'+
+                 '</div>';
+  document.body.appendChild(lb);
+  var lbImg = lb.querySelector('.wa-lb-img');
+  var lbDl  = lb.querySelector('.wa-lb-dl');
+  function openLB(src, msgId){
+    lbImg.src = src;
+    if (msgId){
+      // نستخدم روت الوسائط عشان الملف يتحفظ باسم "صور تطبيق التحصين_..." وامتداد صحيح
+      var url = '/media/group/' + msgId + '?dl=1';
+      lbDl.href = url;
+      lbDl.setAttribute('download', 'صور تطبيق التحصين_' + msgId + '.jpg');
+    } else {
+      lbDl.href = src;
+      try { lbDl.download = 'صور تطبيق التحصين_' + Date.now() + '.jpg'; } catch(e){}
+    }
+    lb.hidden = false; document.body.style.overflow = 'hidden';
+  }
+  function closeLB(){ lb.hidden = true; lbImg.src=''; document.body.style.overflow = ''; }
+  lb.querySelector('.wa-lb-close').addEventListener('click', closeLB);
+  lb.querySelector('.wa-lb-back').addEventListener('click', closeLB);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !lb.hidden) closeLB(); });
+
+  // Delegated clicks: images open lightbox; system messages flash-highlight
+  msgsEl.addEventListener('click', function(ev){
+    var img = ev.target.closest && ev.target.closest('.wa-img-tap');
+    if (img) { ev.preventDefault(); openLB(img.src, img.dataset.msgId); return; }
+
+    var eb = ev.target.closest && ev.target.closest('.wa-edit-btn');
+    if (eb){
+      ev.preventDefault();
+      var mid = eb.dataset.editId;
+      var msgEl = msgsEl.querySelector('.wa-msg[data-id="'+mid+'"]');
+      var txtEl = msgEl && msgEl.querySelector('.wa-text');
+      var current = txtEl ? txtEl.innerText : '';
+      var val = window.prompt('عدّل الرسالة:', current);
+      if (val == null) return;
+      val = val.trim();
+      if (!val || val === current) return;
+      var fd = new FormData(); fd.append('body', val);
+      fetch('/group/edit/'+mid, {method:'POST', body:fd, credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.ok){
+            if (txtEl) txtEl.innerHTML = ChatHelpers.linkify(d.body);
+            var meta = msgEl.querySelector('.wa-meta');
+            if (meta && !meta.querySelector('.wa-edited')){
+              meta.insertAdjacentHTML('afterbegin','<span class="wa-edited">معدَّلة</span>');
+            }
+            ChatHelpers.toast('تم التعديل');
+          } else { (window.appAlert||alert)('تعذّر التعديل','error'); }
+        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); });
+      return;
+    }
+
+    var sys = ev.target.closest && ev.target.closest('.wa-sys-tap');
+    if (sys && !(ev.target.closest && ev.target.closest('.wa-del'))) {
+      sys.scrollIntoView({behavior:'smooth', block:'center'});
+      sys.classList.remove('is-flash'); void sys.offsetWidth; sys.classList.add('is-flash');
+    }
+  });
+})();
+</script>
+
+<style>
+.wa-sys-i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;vertical-align:-2px;margin-inline-end:4px;color:var(--gold-2,#e6b800)}
+.wa-sys-i svg{width:14px;height:14px}
+.wa-sys-tap{cursor:pointer;transition:transform .15s}
+.wa-sys-tap:active{transform:scale(.98)}
+.wa-sys-tap.is-flash > *{animation:waFlash 1.2s ease-out}
+@keyframes waFlash{0%{box-shadow:0 0 0 3px rgba(47,125,255,.9),0 0 0 8px rgba(47,125,255,.25)}100%{box-shadow:none}}
+.wa-img-tap{cursor:zoom-in}
+.wa-lightbox{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px}
+.wa-lb-back{position:absolute;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(6px)}
+.wa-lb-img{position:relative;max-width:100%;max-height:calc(100vh - 90px);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);object-fit:contain;z-index:1}
+.wa-lb-bar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:2}
+.wa-lb-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:99px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);text-decoration:none;font-weight:700;font-size:13px;backdrop-filter:blur(10px);cursor:pointer}
+.wa-lb-btn:hover{background:rgba(255,255,255,.22)}
+.wa-lb-btn svg{width:16px;height:16px}
+
+/* Lock UI */
+.wa-lock-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(47,125,255,.18);color:#ffcf7a;margin-inline-start:4px}
+.wa-locked-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;background:linear-gradient(180deg,rgba(47,125,255,.14),rgba(47,125,255,.06));border-bottom:1px solid rgba(47,125,255,.22);color:#ffdca6;font-weight:700;font-size:13px}
+.wa-locked-bar svg{width:16px;height:16px}
+.wa-wrap.is-locked-guest .wa-composer{opacity:.35;pointer-events:none;filter:grayscale(.3)}
+.wa-wrap.is-locked-guest .wa-mic,.wa-wrap.is-locked-guest .wa-send,.wa-wrap.is-locked-guest .wa-attach{pointer-events:none}
+</style>
+
+<script>
+(function(){
+  var wrap=document.querySelector('.wa-wrap');
+  var IS_ADMIN=wrap.dataset.isAdmin==='1';
+  var lockedBar=document.getElementById('lockedBar');
+  var lockBtn=document.getElementById('lockBtn');
+  var lockIcon=document.getElementById('lockIcon');
+  function applyLock(locked){
+    wrap.dataset.locked=locked?'1':'0';
+    if(!IS_ADMIN){ wrap.classList.toggle('is-locked-guest', locked); }
+    if(lockedBar){ lockedBar.hidden=!locked; }
+    if(lockIcon){
+      lockIcon.innerHTML = locked
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M4.5 10.5h15v10.5H4.5z"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3 10.5h15v10.5H3zM18 10.5h3"/>';
+    }
+  }
+  applyLock(wrap.dataset.locked==='1');
+  if(lockBtn){
+    lockBtn.addEventListener('click', function(){
+      var cur=wrap.dataset.locked==='1';
+      var next=cur?'0':'1';
+      var msg=cur?'فتح الدردشة والسماح للأعضاء بالكتابة؟':'قفل الدردشة ومنع الأعضاء من الكتابة أو التفاعل؟';
+      (window.appConfirm?window.appConfirm(msg,{okText:cur?'فتح':'قفل',danger:!cur}):Promise.resolve(confirm(msg)))
+      .then(function(ok){ if(!ok) return;
+        var fd=new FormData(); fd.append('locked', next);
+        fetch("{{ url_for('group_toggle_lock') }}", {method:'POST', body:fd, credentials:'same-origin'})
+          .then(function(r){return r.json();})
+          .then(function(d){
+            if(d && d.ok){ applyLock(!!d.is_locked);
+              if(window.appAlert) window.appAlert(d.is_locked?'تم قفل الدردشة':'تم فتح الدردشة','success');
+            }
+          });
+      });
+    });
+  }
+})();
+</script>
+
+
+{% endblock %}

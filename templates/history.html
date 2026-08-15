@@ -1,0 +1,408 @@
+{% extends "app_base.html" %}
+{% block content %}
+{% with tab = 'after' %}{% include '_tabs_counts.html' %}{% endwith %}
+
+<!-- ===== HERO ===== -->
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {{ 'اجمالي اعداد المده' if not (current_user and current_user.role == 'admin') else 'سجل التحصين' }}
+      </span>
+      <h1 class="hero-h1">الأيام المُغلقة فقط</h1>
+      <p class="hero-sub">كل مدة (نصف شهر) بأيامها المسجّلة — بتفصيل تسمين وبياض.</p>
+    </div>
+  </div>
+</section>
+
+{% set is_admin = current_user and current_user.role == 'admin' %}
+
+<div class="acc">
+  {% for p in periods %}
+    {# فلترة: نعرض بس الأيام المسجّلة (المغلقة) — من غير الأيام الفاضية أو الإجازات #}
+    {% set closed_days = p.days|selectattr('has_data')|list %}
+    {% if closed_days or p.is_current %}
+    <details class="acc-item hist-period" {% if p.is_current %}open{% endif %}>
+      <summary>
+        <div class="acc-summary-main">
+          <div class="sec-h-ico sec-h-ico-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
+          </div>
+          <div class="acc-summary-text">
+            <div class="acc-summary-title">
+              {{ p.label }}
+              {% if p.is_current %}<span class="badge badge-green sm">المدة الحالية</span>{% endif %}
+            </div>
+            <div class="acc-summary-sub">
+              {{ closed_days|length }} يوم مُغلق
+              {% if is_admin %}
+                {% set sum_t = closed_days|sum(attribute='tasmeen_after') %}
+                {% set sum_b = closed_days|sum(attribute='bayad_after') %}
+                · <span class="hist-mini-t">تسمين {{ '{:,}'.format(sum_t) }}</span>
+                · <span class="hist-mini-b">بياض {{ '{:,}'.format(sum_b) }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <span class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </span>
+      </summary>
+
+      <div class="acc-body">
+        {% if is_admin and closed_days %}
+          {% set p_start = closed_days[0].date %}
+          {% set p_end = closed_days[-1].date %}
+          <form method="post" action="{{ url_for('admin_reset_period') }}" class="u-w-full"
+                onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها نهائيًا من قاعدة البيانات.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير الفترة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+            <input type="hidden" name="start" value="{{ p_start }}">
+            <input type="hidden" name="end"   value="{{ p_end }}">
+            <button type="submit" class="btn btn-danger btn-sm u-w-full" title="تصفير الفترة">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8A8 8 0 006.34 6.34M4 16a8 8 0 0013.66 1.66"/></svg>
+              تصفير الفترة نهائيًا
+            </button>
+          </form>
+        {% endif %}
+
+        {% if closed_days %}
+        <div class="hist-days">
+          {% for d in closed_days %}
+          <article class="hist-day-card" id="day-{{ d.date }}">
+            <header class="hist-day-head">
+              <div class="hist-day-date">
+                <div class="hist-day-num">{{ d.day_num }}</div>
+                <div class="hist-day-wd">{{ d.weekday }}</div>
+              </div>
+              <div class="hist-day-title">
+                <div class="hist-day-total">
+                  <span class="v">{{ '{:,}'.format(d.total) }}</span>
+                  <span class="l">إجمالي كتاكيت</span>
+                </div>
+                <div class="hist-day-iso u-mono">{{ d.date }}</div>
+              </div>
+              <span class="badge badge-green sm hist-day-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                مغلق
+              </span>
+            </header>
+
+            {% set tasmeen_names = [] %}
+            {% set bayad_names = [] %}
+            {% if d.names %}
+              {% for i in range(d.names|length) %}
+                {% set fm = d.attendee_farms[i] if d.attendee_farms and i < d.attendee_farms|length else '' %}
+                {% if fm == 'bayad' %}{% set _ = bayad_names.append(d.names[i]) %}
+                {% else %}{% set _ = tasmeen_names.append(d.names[i]) %}{% endif %}
+              {% endfor %}
+            {% endif %}
+
+            {% if is_admin %}
+              {# ==== تعديل الأعداد — تسمين و بياض + الإضافي في عمودين ==== #}
+              <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid2 js-hist-edit" data-day="{{ d.date }}">
+                <input type="hidden" name="day" value="{{ d.date }}">
+                <div class="hist-col hist-col-t">
+                  <div class="hist-col-head"><span class="k">تسمين</span><span class="cnt">{{ tasmeen_names|length }}</span></div>
+                  <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
+                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي تسمين</label>
+                  <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
+                  {% if tasmeen_names %}
+                    <div class="hist-col-names">
+                      {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="hist-col hist-col-b">
+                  <div class="hist-col-head"><span class="k">بياض</span><span class="cnt">{{ bayad_names|length }}</span></div>
+                  <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
+                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي بياض</label>
+                  <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
+                  {% if bayad_names %}
+                    <div class="hist-col-names">
+                      {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                <button type="submit" class="hist-edit-save" title="حفظ التعديل">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                  <span class="hist-edit-lbl">حفظ</span>
+                </button>
+              </form>
+
+            {% else %}
+              {% if d.names %}
+              <div class="hist-att">
+                <div class="hist-att-two">
+                  <div class="hist-att-col">
+                    <div class="hist-att-col-h">بياض ({{ bayad_names|length }})</div>
+                    <div class="hist-att-list">
+                      {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                    </div>
+                  </div>
+                  <div class="hist-att-col">
+                    <div class="hist-att-col-h">تسمين ({{ tasmeen_names|length }})</div>
+                    <div class="hist-att-list">
+                      {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            {% endif %}
+
+            {% if is_admin and all_workers %}
+            <details class="hist-att-edit">
+              <summary>تعديل الحضور</summary>
+              <div class="hist-att-editor">
+                {% for w in all_workers %}
+                  {% set present = w.id in d.attendee_ids %}
+                  {% set idx = d.attendee_ids.index(w.id) if present else -1 %}
+                  {% set my_farm = d.attendee_farms[idx] if present and d.attendee_farms and idx < d.attendee_farms|length else '' %}
+                  <div class="hist-att-row {% if present %}is-on{% endif %}">
+                    <span class="hist-att-name">{{ w.full_name }}</span>
+                    <div class="hist-att-actions">
+                      <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
+                        <input type="hidden" name="day" value="{{ d.date }}">
+                        <input type="hidden" name="user_id" value="{{ w.id }}">
+                        <input type="hidden" name="farm" value="tasmeen">
+                        <input type="hidden" name="next" value="history">
+                        <button type="submit" class="hist-att-chip is-t {% if present and my_farm == 'tasmeen' %}is-active{% endif %}"
+                                title="حضور تسمين">تسمين</button>
+                      </form>
+                      <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
+                        <input type="hidden" name="day" value="{{ d.date }}">
+                        <input type="hidden" name="user_id" value="{{ w.id }}">
+                        <input type="hidden" name="farm" value="bayad">
+                        <input type="hidden" name="next" value="history">
+                        <button type="submit" class="hist-att-chip is-b {% if present and my_farm == 'bayad' %}is-active{% endif %}"
+                                title="حضور بياض">بياض</button>
+                      </form>
+                      {% if present %}
+                      <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
+                        <input type="hidden" name="day" value="{{ d.date }}">
+                        <input type="hidden" name="user_id" value="{{ w.id }}">
+                        <input type="hidden" name="farm" value="{{ my_farm or 'tasmeen' }}">
+                        <input type="hidden" name="next" value="history">
+                        <button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور" aria-label="إلغاء الحضور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                      </form>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </details>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+          <div class="empty">مفيش أيام مغلقة في المدة دي لسه.</div>
+        {% endif %}
+      </div>
+    </details>
+    {% endif %}
+  {% else %}
+  <div class="card"><div class="empty">لا توجد بيانات بعد</div></div>
+  {% endfor %}
+</div>
+
+<style>
+.hist-mini-t{color:#2f7dff;font-weight:800}
+.hist-mini-b{color:#7fb0ff;font-weight:800}
+.hist-days{display:grid;gap:12px}
+.hist-day-card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.005));border:1px solid var(--border-1,rgba(255,255,255,.08));border-radius:18px;padding:14px;box-shadow:0 4px 14px -8px rgba(0,0,0,.35)}
+.hist-day-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
+.hist-day-date{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.hist-day-num{font-size:22px;font-weight:900;line-height:1;color:var(--text-1,#fff)}
+.hist-day-wd{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:2px}
+.hist-day-title{min-width:0}
+.hist-day-total{display:flex;align-items:baseline;gap:6px}
+.hist-day-total .v{font-size:20px;font-weight:900;color:var(--gold-2,#2f7dff)}
+.hist-day-total .l{font-size:12px;color:var(--text-3,#a1a4b2)}
+.hist-day-iso{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:2px;letter-spacing:.3px}
+.hist-day-badge{align-self:start}
+.hist-edit-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px;align-items:end}
+.hist-edit-field{display:flex;flex-direction:column;gap:4px}
+.hist-edit-field .k{font-size:11px;font-weight:800;color:var(--text-3,#a1a4b2)}
+.hist-edit-t .k{color:#2f7dff}
+.hist-edit-b .k{color:#7fb0ff}
+.hist-edit-field input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 12px;font-family:inherit;font-weight:800;color:var(--text-1,#fff);font-size:15px;text-align:center;transition:.15s;width:100%}
+.hist-edit-t input:focus{outline:none;border-color:#2f7dff;background:rgba(47,125,255,.08)}
+.hist-edit-b input:focus{outline:none;border-color:#7fb0ff;background:rgba(162,155,254,.08)}
+.hist-edit-save{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;border:1px solid rgba(0,214,143,.4);background:linear-gradient(135deg,rgba(0,214,143,.25),rgba(0,214,143,.08));color:#7ff3cd;font-family:inherit;font-weight:900;font-size:12.5px;cursor:pointer;transition:.15s;white-space:nowrap;height:38px}
+.hist-edit-save:hover{transform:translateY(-1px)}
+.hist-edit-save svg{width:14px;height:14px}
+.hist-farm-chip{margin-top:10px;font-size:12px;color:var(--text-3,#a1a4b2)}
+.hist-att{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.08)}
+.hist-att-head{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3,#a1a4b2);font-weight:800;margin-bottom:8px}
+.hist-att-head svg{width:14px;height:14px}
+.hist-att-list{display:flex;flex-wrap:wrap;gap:6px}
+.name-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:12px;font-weight:700;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text-1,#fff)}
+.name-chip .nc-f{font-size:10px;font-weight:800;padding:2px 6px;border-radius:99px;font-style:normal}
+.name-chip-tasmeen{border-color:rgba(47,125,255,.35);background:rgba(47,125,255,.08)}
+.name-chip-tasmeen .nc-f{background:rgba(47,125,255,.2);color:#2f7dff}
+.name-chip-bayad{border-color:rgba(162,155,254,.35);background:rgba(162,155,254,.08)}
+.name-chip-bayad .nc-f{background:rgba(162,155,254,.2);color:#7fb0ff}
+.hist-att-edit{margin-top:12px}
+.hist-att-edit>summary{list-style:none;cursor:pointer;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);font-size:12px;font-weight:800;color:var(--text-2,#a1a4b2)}
+.hist-att-edit>summary::-webkit-details-marker{display:none}
+.hist-att-editor{margin-top:8px;display:grid;gap:6px}
+.hist-att-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.hist-att-row.is-on{background:rgba(0,214,143,.06);border-color:rgba(0,214,143,.2)}
+.hist-att-name{font-size:12.5px;font-weight:700;color:var(--text-1,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-att-actions{display:flex;gap:4px}
+.hist-att-mini{display:inline}
+.hist-att-chip{padding:5px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-3,#a1a4b2)}
+.hist-att-chip.is-t{border-color:rgba(47,125,255,.3);color:#2f7dff}
+.hist-att-chip.is-t.is-active{background:rgba(47,125,255,.2);color:#fff}
+.hist-att-chip.is-b{border-color:rgba(162,155,254,.3);color:#7fb0ff}
+.hist-att-chip.is-b.is-active{background:rgba(162,155,254,.2);color:#fff}
+.hist-att-chip.is-x{border-color:rgba(255,90,95,.35);color:#ffc2c4}
+.hist-att-chip.is-x:hover{background:rgba(255,90,95,.15)}
+.hist-att-chip:hover{transform:translateY(-1px)}
+
+/* ==== history: two-column edit (tasmeen | bayad) with attendee names under each ==== */
+.hist-edit-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.hist-edit-grid2 .hist-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px}
+.hist-edit-grid2 .hist-col-t{border-color:rgba(47,125,255,.28)}
+.hist-edit-grid2 .hist-col-b{border-color:rgba(162,155,254,.28)}
+.hist-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hist-col-head .k{font-size:12px;font-weight:900}
+.hist-col-t .hist-col-head .k{color:#2f7dff}
+.hist-col-b .hist-col-head .k{color:#7fb0ff}
+.hist-col-head .cnt{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.06);color:#f4f4f6}
+.hist-col-inp{width:100%;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 10px;font-family:inherit;font-weight:800;color:#fff;font-size:15px;text-align:center}
+.hist-col-t .hist-col-inp:focus{outline:none;border-color:#2f7dff;background:rgba(47,125,255,.08)}
+.hist-col-b .hist-col-inp:focus{outline:none;border-color:#7fb0ff;background:rgba(162,155,254,.08)}
+.hist-col-names{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.08)}
+.hist-edit-grid2 .hist-edit-save{grid-column:1/-1;justify-content:center}
+.hist-att-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist-att-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
+.hist-att-col-h{font-size:12px;font-weight:900;color:var(--text-2,#a1a4b2);margin-bottom:6px}
+@media(max-width:420px){.hist-edit-grid2,.hist-att-two{grid-template-columns:1fr}}
+@media(max-width:420px){.hist-edit-grid{grid-template-columns:1fr 1fr}.hist-edit-save{grid-column:1/-1}.hist-day-head{grid-template-columns:auto minmax(0,1fr)}.hist-day-badge{grid-column:1/-1;justify-self:end}}
+</style>
+
+
+<script>
+(function(){
+  var HIST_URL = {{ url_for('history')|tojson }};
+  function toast(msg, type){
+    if(window.appAlert) return window.appAlert(msg, type||'success');
+  }
+  function flashRow(el){
+    if(!el) return;
+    el.classList.add('hist-flash');
+    setTimeout(function(){ el.classList.remove('hist-flash'); }, 900);
+  }
+  async function refreshDay(dayIso){
+    try{
+      var r = await fetch(HIST_URL, { headers:{ 'X-Requested-With':'fetch' }, credentials:'same-origin' });
+      var html = await r.text();
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var fresh = doc.getElementById('day-'+dayIso);
+      var current = document.getElementById('day-'+dayIso);
+      if(fresh && current){
+        current.innerHTML = fresh.innerHTML;
+        wire(current);
+        flashRow(current);
+      }
+      // تحديث ملخص المدة (تسمين X · بياض Y · عدد الأيام)
+      document.querySelectorAll('.hist-period').forEach(function(det){
+        var id = det.querySelector('#day-'+dayIso);
+        if(!id) return;
+        var f = doc.querySelectorAll('.hist-period')[[].indexOf.call(document.querySelectorAll('.hist-period'), det)];
+        if(f){
+          var oldSub = det.querySelector('.acc-summary-sub');
+          var newSub = f.querySelector('.acc-summary-sub');
+          if(oldSub && newSub) oldSub.innerHTML = newSub.innerHTML;
+        }
+      });
+    }catch(e){ console.error(e); }
+  }
+
+  function wire(root){
+    (root||document).querySelectorAll('.js-hist-edit').forEach(function(form){
+      if(form.dataset.wired) return; form.dataset.wired='1';
+      form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var btn = form.querySelector('.hist-edit-save');
+        var lbl = form.querySelector('.hist-edit-lbl');
+        var day = form.dataset.day;
+        if(btn) btn.disabled = true;
+        if(lbl) lbl.textContent = '…';
+        fetch(form.action, { method:'POST', body:new FormData(form),
+                             headers:{'X-Requested-With':'fetch'}, credentials:'same-origin' })
+          .then(function(r){ if(!r.ok) throw new Error('bad'); return r.json(); })
+          .then(function(d){
+            if(lbl) lbl.innerHTML = '<span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span>';
+            // حدث الإجمالي المعروض
+            var card = document.getElementById('day-'+day);
+            if(card){
+              var totalEl = card.querySelector('.hist-day-total .v');
+              if(totalEl) totalEl.textContent = (d.total||0).toLocaleString('en-US');
+              flashRow(card);
+            }
+            toast('تم حفظ يوم '+day+'','success');
+            refreshDay(day);
+            setTimeout(function(){ if(lbl) lbl.textContent='حفظ'; }, 1100);
+          })
+          .catch(function(){ toast('تعذّر الحفظ','error'); if(lbl) lbl.textContent='حفظ'; })
+          .finally(function(){ if(btn) btn.disabled = false; });
+      });
+    });
+
+    (root||document).querySelectorAll('.js-hist-att').forEach(function(form){
+      if(form.dataset.wired) return; form.dataset.wired='1';
+      form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var day = form.dataset.day;
+        var uid = form.dataset.uid;
+        var farm = (form.querySelector('input[name="farm"]')||{}).value || '';
+        var btn = form.querySelector('button');
+        if(btn) btn.disabled = true;
+        fetch(form.action, { method:'POST', body:new FormData(form),
+                             headers:{'X-Requested-With':'fetch'}, credentials:'same-origin' })
+          .then(function(r){ if(!r.ok) throw new Error('bad'); return r.json(); })
+          .then(function(d){
+            // تحديث فوري داخل نفس الصف بدون أي reload
+            var row = form.closest('.hist-att-row');
+            if(row){
+              row.querySelectorAll('.hist-att-chip').forEach(function(ch){ ch.classList.remove('is-active'); });
+              if(d.state === 'present'){
+                var active = row.querySelector('.hist-att-chip.is-' + (d.farm === 'bayad' ? 'b' : 't'));
+                if(active) active.classList.add('is-active');
+                // أضف زر X لو مش موجود
+                if(!row.querySelector('.hist-att-chip.is-x')){
+                  var f = document.createElement('form');
+                  f.method='post'; f.action=form.action; f.className='hist-att-mini js-hist-att';
+                  f.dataset.day=day; f.dataset.uid=uid;
+                  f.innerHTML='<input type="hidden" name="day" value="'+day+'"><input type="hidden" name="user_id" value="'+uid+'"><input type="hidden" name="farm" value="'+d.farm+'"><input type="hidden" name="next" value="history"><button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور" aria-label="إلغاء الحضور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+                  row.appendChild(f); wire(f);
+                }
+              } else {
+                var x = row.querySelector('.hist-att-chip.is-x'); if(x && x.form) x.form.remove();
+              }
+            }
+            toast('تم التحديث','success');
+          })
+          .catch(function(){ toast('تعذّر التحديث','error'); })
+          .finally(function(){ if(btn) btn.disabled = false; });
+      });
+    });
+  }
+  wire(document);
+})();
+</script>
+<style>
+.hist-flash{animation: histFlash .9s ease}
+@keyframes histFlash{
+  0%{box-shadow:0 0 0 0 rgba(0,214,143,.55)}
+  40%{box-shadow:0 0 0 6px rgba(0,214,143,.22)}
+  100%{box-shadow:0 0 0 0 rgba(0,214,143,0)}
+}
+.hist-edit-save:disabled{opacity:.7;cursor:wait}
+</style>
+
+{% endblock %}
