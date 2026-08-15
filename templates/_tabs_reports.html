@@ -1,6 +1,0 @@
-<div class="ptabs">
-  <a href="{{ url_for('admin_range_report') }}" class="{% if tab == 'range' %}is-active{% endif %}">تقرير فترة مخصّصة</a>
-  {% if is_super_admin %}
-  <a href="{{ url_for('admin_all_shares') }}" class="{% if tab == 'shares' %}is-active{% endif %}">نصيب كل الفريق</a>
-  {% endif %}
-</div>
