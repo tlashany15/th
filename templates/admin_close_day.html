@@ -6,10 +6,9 @@
   <div class="hero-row">
     <div>
       <span class="hero-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75"/></svg>إغلاق اليوم</span>
-      <h1 class="hero-h1">تسجيل الإجمالي</h1>
       <p class="hero-sub">اقفل يوم {{ day }} في السجل.</p>
     </div>
-    <div class="hero-date"><div class="hero-date-d">{{ day[8:] }}</div><div class="hero-date-m">{{ day[5:7] }}/{{ day[:4] }}</div></div>
+    <div class="hero-date"><div class="hero-date-d">{{ day[8:] }}</div><div class="hero-date-m">{{ day[5:7] }}/{{ day[:4] }}</div><div class="hero-date-w">{{ day|weekday_ar }}</div></div>
   </div>
   <div class="kpi-grid kpi-grid-2">
     <div class="kpi kpi-gold"><div class="kpi-v" id="kpiDayTotal">{{ '{:,}'.format(day_total or 0) }}</div><div class="kpi-l">إجمالي محفوظ</div></div>
@@ -20,7 +19,7 @@
 <div class="card">
   <div class="daynav">
     <a class="nav-arr" href="{{ url_for('admin_close_page', day=prev_day) }}" aria-label="اليوم السابق"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></a>
-    <div class="daynav-mid"><div class="daynav-label" id="daynavLabel">{% if day_closed %}اليوم مقفول{% else %}اليوم مفتوح{% endif %}{% if is_today %} · اليوم{% endif %}</div><div class="daynav-date">{{ day }}</div></div>
+    <div class="daynav-mid"><div class="daynav-label" id="daynavLabel">{% if day_closed %}اليوم مقفول{% else %}اليوم مفتوح{% endif %}{% if is_today %} · اليوم{% endif %}</div><div class="daynav-date">{{ day }} · {{ day|weekday_ar }}</div></div>
     <a class="nav-arr {% if is_today %}nav-arr-disabled{% endif %}" href="{% if not is_today %}{{ url_for('admin_close_page', day=next_day) }}{% else %}#{% endif %}" aria-label="اليوم التالي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></a>
   </div>
 </div>
