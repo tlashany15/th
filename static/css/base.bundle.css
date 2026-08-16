@@ -128,7 +128,7 @@ a{ color:inherit; text-decoration:none; }
   -webkit-backdrop-filter:none;
   display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px;
   border-top:0;
-  border-radius:var(--r-xl, 26px) var(--r-xl, 26px) 0 0;
+  border-radius:var(--r-xl, 26px);
   box-shadow:0 -10px 30px -14px rgba(0,0,0,.55);
 }
 .bottom-nav a{
@@ -4345,6 +4345,7 @@ select option{ background:#14161d; color:#fff; }
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   text-align:center; overflow:hidden;
 }
+.bottom-nav a.bn-muslim{ overflow:visible; }
 .bottom-nav a > span, .bottom-nav a{ white-space:nowrap; text-overflow:ellipsis; }
 
 /* ------------------------------------------------------------

@@ -264,7 +264,7 @@ label, .field-label { color: var(--text-2); font-size: 13px; font-weight: 600; }
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border-top: 0;
-  border-radius: var(--r-xl, 26px) var(--r-xl, 26px) 0 0;
+  border-radius: var(--r-xl, 26px);
   box-shadow: 0 -10px 30px -14px rgba(0,0,0,.55), 0 -1px 0 var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
