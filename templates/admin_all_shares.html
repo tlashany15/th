@@ -54,6 +54,18 @@
   </button>
 </form>
 
+<!-- ===== إرسال تقرير المدة لقناة تليجرام ===== -->
+<form method="post" action="{{ url_for('admin_all_shares_send_telegram') }}" class="card"
+      onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
+        (window.appConfirm?window.appConfirm('هيتبعت تقرير الإجمالي بدون خصم وحساب كل واحد لقناة تليجرام.',{title:'إرسال لقناة تليجرام؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال لقناة تليجرام؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+  <input type="hidden" name="start_day" value="{{ start_day }}">
+  <input type="hidden" name="end_day" value="{{ end_day }}">
+  <button class="btn btn-ghost" type="submit" style="width:100%">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 4.5l-19 7.6 6 2.2m13-9.8l-3.3 16-9.7-6.2m13-9.8L11.2 14.5"/></svg>
+    إرسال تقرير المدة لقناة تليجرام
+  </button>
+</form>
+
 <!-- ===== قائمة الفريق ===== -->
 <div class="card">
 
