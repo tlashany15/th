@@ -50,6 +50,15 @@
     </button>
   </div>
 
+  <!-- EDIT BANNER (Telegram-style inline edit) -->
+  <div class="wa-edit-banner" id="editBanner" hidden>
+    <div class="wa-edit-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg></div>
+    <div class="wa-edit-info"><b>تعديل الرسالة</b><span id="editBannerSnippet"></span></div>
+    <button type="button" class="wa-edit-cancel" id="editCancelBtn" aria-label="إلغاء التعديل">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg>
+    </button>
+  </div>
+
   <!-- COMPOSER (Telegram-style) -->
   <form class="wa-composer" id="composer" autocomplete="off">
     <label class="wa-attach" aria-label="إرفاق صورة">
@@ -98,9 +107,12 @@
     return 'آخر ظهور ' + d.toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
   }
 
-  function updateStatus(online, lastSeen){
+  function updateStatus(online, lastSeen, typing){
     statusEl.classList.remove('is-online','is-typing');
-    if (online){
+    if (typing){
+      statusEl.classList.add('is-typing');
+      statusEl.textContent = 'بيكتب الآن...';
+    } else if (online){
       statusEl.classList.add('is-online');
       statusEl.textContent = 'متصل الآن';
     } else {
@@ -222,7 +234,7 @@
       .then(function(d){
         appendMessages(d.messages || []);
         refreshReadTicks(d.read_ids || []);
-        updateStatus(!!d.other_online, d.other_last_seen);
+        updateStatus(!!d.other_online, d.other_last_seen, !!d.other_typing);
         // ارسم التفاعلات للرسائل الجديدة
         (d.messages || []).forEach(function(m){
           if (m.reactions && m.reactions.length && window.__renderReactions)
@@ -248,6 +260,30 @@
   });
 
   // Composer behaviour (telegram-style: textarea auto-grow, Enter to send)
+  var editBanner = document.getElementById('editBanner');
+  var editBannerSnippet = document.getElementById('editBannerSnippet');
+  var editCancelBtn = document.getElementById('editCancelBtn');
+  var editingId = null;
+
+  function startEdit(mid, current){
+    editingId = mid;
+    textInput.value = current;
+    autoGrow();
+    textInput.focus();
+    var len = textInput.value.length;
+    try { textInput.setSelectionRange(len, len); } catch (e) {}
+    composer.classList.add('is-editing');
+    editBanner.hidden = false;
+    editBannerSnippet.textContent = current;
+  }
+  function cancelEdit(){
+    editingId = null;
+    textInput.value = ''; autoGrow();
+    composer.classList.remove('is-editing');
+    editBanner.hidden = true;
+  }
+  editCancelBtn.addEventListener('click', cancelEdit);
+
   function autoGrow(){
     textInput.style.height = 'auto';
     var max = 132; // ~5 lines
@@ -255,7 +291,16 @@
     var hasText = textInput.value.trim().length > 0;
     composer.classList.toggle('has-text', hasText);
   }
-  textInput.addEventListener('input', autoGrow);
+  var lastTypingSent = 0;
+  textInput.addEventListener('input', function(){
+    autoGrow();
+    if (editingId) return; // مفيش داعي نبعت "بيكتب" وإحنا بنعدّل رسالة قديمة
+    var now = Date.now();
+    if (now - lastTypingSent > 2000){
+      lastTypingSent = now;
+      fetch('/chat/'+OTHER_ID+'/typing', {method:'POST'}).catch(function(){});
+    }
+  });
   textInput.addEventListener('focus', function(){
     setTimeout(scrollBottom, 200);
   });
@@ -263,6 +308,8 @@
     if (e.key === 'Enter' && !e.shiftKey){
       e.preventDefault();
       composer.requestSubmit ? composer.requestSubmit() : composer.dispatchEvent(new Event('submit', {cancelable:true}));
+    } else if (e.key === 'Escape' && editingId){
+      cancelEdit();
     }
   });
 
@@ -273,6 +320,32 @@
     var v = textInput.value.trim();
     if (!v) return;
     sending = true;
+
+    if (editingId){
+      var mid = editingId;
+      var fd0 = new FormData(); fd0.append('body', v);
+      textInput.value = ''; autoGrow();
+      composer.classList.remove('is-editing'); editBanner.hidden = true; editingId = null;
+      fetch('/chat/edit/'+mid, {method:'POST', body:fd0, credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d && d.ok){
+            var msgEl = msgsEl.querySelector('.wa-msg[data-id="'+mid+'"]');
+            var txtEl = msgEl && msgEl.querySelector('.wa-text');
+            if (txtEl) txtEl.innerHTML = ChatHelpers.linkify(d.body);
+            var meta = msgEl && msgEl.querySelector('.wa-meta');
+            if (meta && !meta.querySelector('.wa-edited')){
+              meta.insertAdjacentHTML('afterbegin', '<span class="wa-edited">معدَّلة</span>');
+            }
+            ChatHelpers.toast('تم التعديل');
+          } else {
+            (window.appAlert||alert)('تعذّر التعديل','error');
+          }
+        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); })
+        .finally(function(){ sending = false; });
+      return;
+    }
+
     var fd = new FormData();
     fd.append('kind','text'); fd.append('body', v);
     textInput.value = ''; autoGrow();
@@ -343,25 +416,7 @@
       var msgEl = msgsEl.querySelector('.wa-msg[data-id="'+mid+'"]');
       var txtEl = msgEl && msgEl.querySelector('.wa-text');
       var current = txtEl ? txtEl.innerText : '';
-      var val = window.prompt('عدّل الرسالة:', current);
-      if (val == null) return;
-      val = val.trim();
-      if (!val || val === current) return;
-      var fd = new FormData(); fd.append('body', val);
-      fetch('/chat/edit/'+mid, {method:'POST', body:fd, credentials:'same-origin'})
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if (d && d.ok){
-            if (txtEl) txtEl.innerHTML = ChatHelpers.linkify(d.body);
-            var meta = msgEl.querySelector('.wa-meta');
-            if (meta && !meta.querySelector('.wa-edited')){
-              meta.insertAdjacentHTML('afterbegin','<span class="wa-edited">معدَّلة</span>');
-            }
-            ChatHelpers.toast('تم التعديل');
-          } else {
-            (window.appAlert||alert)('تعذّر التعديل','error');
-          }
-        }).catch(function(){ (window.appAlert||alert)('تعذّر التعديل','error'); });
+      startEdit(mid, current);
     }
   });
 })();
@@ -375,6 +430,25 @@
 .wa-lb-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:99px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);text-decoration:none;font-weight:700;font-size:13px;backdrop-filter:blur(10px);cursor:pointer}
 .wa-lb-btn:hover{background:rgba(255,255,255,.22)}
 .wa-lb-btn svg{width:16px;height:16px}
+
+/* ===== Edit banner (Telegram-style inline edit) ===== */
+.wa-edit-banner{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px; margin:0 8px;
+  background:var(--surface,#161922); border:1px solid var(--line,rgba(255,255,255,.08));
+  border-bottom:none; border-radius:14px 14px 0 0;
+  animation:waEditIn .15s ease;
+}
+@keyframes waEditIn{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+.wa-edit-ic{ color:var(--accent-2,#2f7dff); flex:0 0 auto; display:flex; }
+.wa-edit-ic svg{ width:18px; height:18px; }
+.wa-edit-info{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; line-height:1.3; }
+.wa-edit-info b{ font-size:12.5px; color:var(--accent-2,#2f7dff); font-weight:800; }
+.wa-edit-info span{ font-size:12px; color:var(--text-3,#8992a3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wa-edit-cancel{ flex:0 0 auto; width:26px; height:26px; display:grid; place-items:center; border-radius:50%; color:var(--text-3,#8992a3); background:transparent; border:none; cursor:pointer; }
+.wa-edit-cancel:hover{ background:rgba(255,255,255,.08); }
+.wa-edit-cancel svg{ width:15px; height:15px; }
+.wa-composer.is-editing{ border-color:var(--accent-2,#2f7dff) !important; box-shadow:0 0 0 2px var(--accent-soft,rgba(47,125,255,.14)); }
 </style>
 
 
