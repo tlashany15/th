@@ -20,6 +20,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import quote as _urlquote
 
 
+# ==== بوت تليجرام: تقرير تلقائي بعد إغلاق اليوم ====
+# القيم الافتراضية هي البوت/القناة اللي المسؤول جهّزها. تقدر تغيّرها من غير
+# ما تلمس الكود عن طريق متغيرات البيئة TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8967537097:AAHd442iAKgkFFVZOc0XVStgXyQWEvQw8_4")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "1845196955")
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
 # رفعنا الحد عشان الصوت ميتقطعش
@@ -1727,6 +1733,82 @@ def _compute_shares_range(cur, s_iso, e_iso):
     return out
 
 
+def _send_telegram_message(text):
+    """يبعت رسالة نصية لقناة/شات تليجرام عن طريق البوت. بيرجّع True/False."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return False
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = _json.dumps({
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }).encode("utf-8")
+    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            resp.read()
+        return True
+    except urllib.error.HTTPError as e:
+        try:
+            print("telegram sendMessage HTTPError:", e.read())
+        except Exception:
+            print("telegram sendMessage HTTPError:", e)
+        return False
+    except Exception as e:
+        print("telegram sendMessage error:", e)
+        return False
+
+
+def _esc_html(s):
+    return (str(s or "")
+            .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_deduct_total):
+    """
+    بعد ما المسؤول يقفل اليوم، بيبعت تقرير كامل لقناة تليجرام:
+    أسماء الحضور، العدد قبل الخصم وبعده، وفلوس كل واحد في اليوم ده.
+    لو حصل أي مشكلة في التطبيق يبقى معاك نسخة محفوظة على تليجرام.
+    """
+    try:
+        cur.execute(
+            """SELECT u.id, u.full_name, a.farm, a.extra
+               FROM attendance a JOIN users u ON u.id = a.user_id
+               WHERE a.day=%s ORDER BY a.farm, u.full_name""",
+            (day,),
+        )
+        attendees = cur.fetchall()
+        day_rows = _compute_shares_range(cur, day, day)
+        money_map = {r["id"]: r for r in day_rows}
+
+        total_after = int(tasmeen_after or 0) + int(bayad_after or 0)
+        lines = []
+        lines.append(f"📋 <b>تقرير إغلاق يوم {_esc_html(day)}</b>")
+        lines.append("")
+        lines.append(f"العدد قبل الخصم: <b>{int(no_deduct_total or 0):,}</b>")
+        lines.append(f"العدد بعد الخصم: <b>{total_after:,}</b>  (تسمين {int(tasmeen_after or 0):,} · بياض {int(bayad_after or 0):,})")
+        lines.append(f"عدد الحاضرين: <b>{len(attendees)}</b>")
+        lines.append("")
+        lines.append("👷 <b>الحضور:</b>")
+        if attendees:
+            for p in attendees:
+                farm_lbl = "تسمين" if p["farm"] == "tasmeen" else ("بياض" if p["farm"] == "bayad" else "—")
+                extra_lbl = " (إضافي)" if p["extra"] else ""
+                r = money_map.get(p["id"])
+                money_lbl = f"{r['money']:,} ج" if r else "—"
+                lines.append(f"• {_esc_html(p['full_name'])} — {farm_lbl}{extra_lbl} — {money_lbl}")
+        else:
+            lines.append("مفيش حضور مسجّل اليوم.")
+        total_money = sum((r["money"] for r in day_rows), 0)
+        lines.append("")
+        lines.append(f"💰 إجمالي فلوس اليوم لكل الفريق: <b>{total_money:,} ج</b>")
+        _send_telegram_message("\n".join(lines))
+    except Exception as e:
+        # مش هنكسر عملية إغلاق اليوم لو تليجرام فشل لأي سبب
+        print("telegram close-day report error:", e)
+
+
 def _send_period_shares_dm(cur, s_iso, e_iso, label, rows=None):
     """
     يبعت لكل شخص رسالة خاصة في الشات من حساب (الإدارة) فيها حسابه في المدة دي.
@@ -1977,6 +2059,15 @@ def admin_close_day():
 
     db.commit()
     cur.close()
+
+    # ==== تقرير تليجرام تلقائي بعد إغلاق اليوم ====
+    try:
+        _tg_cur = db.cursor()
+        _send_close_day_telegram_report(_tg_cur, day, tasmeen_after, bayad_after, no_deduct_total)
+        _tg_cur.close()
+    except Exception as _e:
+        print("telegram close-day dispatch error:", _e)
+
     # ==== ملخص الفترة (نصف شهر) — تلقائي في الجروب ====
     try:
         cur = db.cursor()
@@ -2976,6 +3067,7 @@ def admin_range_report_delete(rid):
 # ============================================================
 
 ONLINE_WINDOW_SECONDS = 60
+TYPING_WINDOW_SECONDS = 5
 
 
 def _is_online(last_seen):
@@ -2985,6 +3077,58 @@ def _is_online(last_seen):
     if last_seen.tzinfo is None:
         last_seen = last_seen.replace(tzinfo=timezone.utc)
     return (now - last_seen).total_seconds() <= ONLINE_WINDOW_SECONDS
+
+
+def _ensure_typing_table(cur):
+    cur.execute("""CREATE TABLE IF NOT EXISTS typing_status (
+        user_id INTEGER NOT NULL,
+        scope TEXT NOT NULL,
+        target_id INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, scope, target_id)
+    )""")
+
+
+def _set_typing(cur, user_id, scope, target_id):
+    """يسجّل إن المستخدم ده بيكتب دلوقتي (شات فردي أو جروب)."""
+    _ensure_typing_table(cur)
+    cur.execute(
+        """INSERT INTO typing_status(user_id, scope, target_id, updated_at)
+           VALUES(%s,%s,%s,NOW())
+           ON CONFLICT (user_id, scope, target_id)
+           DO UPDATE SET updated_at = NOW()""",
+        (user_id, scope, target_id),
+    )
+
+
+def _is_typing(cur, user_id, scope, target_id):
+    """هل المستخدم ده كان بيكتب في آخر كام ثانية (TYPING_WINDOW_SECONDS)؟"""
+    _ensure_typing_table(cur)
+    cur.execute(
+        """SELECT updated_at FROM typing_status
+           WHERE user_id=%s AND scope=%s AND target_id=%s""",
+        (user_id, scope, target_id),
+    )
+    row = cur.fetchone()
+    if not row or not row["updated_at"]:
+        return False
+    ts = row["updated_at"]
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - ts).total_seconds() <= TYPING_WINDOW_SECONDS
+
+
+def _typing_users_in_group(cur, exclude_user_id):
+    """أسماء اللي بيكتبوا في الجروب دلوقتي (من غير أنا)."""
+    _ensure_typing_table(cur)
+    cur.execute(
+        f"""SELECT ts.user_id, u.full_name FROM typing_status ts
+           JOIN users u ON u.id = ts.user_id
+           WHERE ts.scope='group' AND ts.target_id=0 AND ts.user_id != %s
+             AND ts.updated_at > NOW() - INTERVAL '{int(TYPING_WINDOW_SECONDS)} seconds'""",
+        (exclude_user_id,),
+    )
+    return [r["full_name"] for r in cur.fetchall()]
 
 
 def _msg_preview(m):
@@ -3162,6 +3306,7 @@ def chat_messages_api(other_id):
     read_ids = [row["id"] for row in cur.fetchall()]
     cur.execute("SELECT last_seen FROM users WHERE id=%s", (other_id,))
     other_row = cur.fetchone()
+    other_typing = _is_typing(cur, other_id, "chat", u["id"])
     # تفاعلات: للرسائل الجديدة + آخر 100 رسالة (عشان تحديث التفاعلات القديمة)
     new_ids = [r["id"] for r in rows]
     cur.execute("""SELECT id FROM chat_messages
@@ -3193,8 +3338,21 @@ def chat_messages_api(other_id):
         "read_ids": read_ids,
         "other_online": _is_online(other_row["last_seen"]) if other_row else False,
         "other_last_seen": _iso_utc(other_row["last_seen"]) if other_row else None,
+        "other_typing": other_typing,
         "reactions_updates": reactions_updates,
     })
+
+
+@app.route("/chat/<int:other_id>/typing", methods=["POST"])
+@login_required
+def chat_typing(other_id):
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    _set_typing(cur, u["id"], "chat", other_id)
+    db.commit()
+    cur.close()
+    return jsonify({"ok": True})
 
 
 @app.route("/chat/<int:other_id>/send", methods=["POST"])
@@ -3334,6 +3492,7 @@ def group_messages_api():
     recent_ids = [r["id"] for r in cur.fetchall()]
     all_ids = list(set(new_ids) | set(recent_ids))
     reactions_map = _reactions_for(cur, "group_reactions", all_ids, u["id"])
+    typing_names = _typing_users_in_group(cur, u["id"])
     cur.close()
     msgs = []
     for r in rows:
@@ -3364,7 +3523,20 @@ def group_messages_api():
         "pinned": ({"id": pinned["id"], "body": _visible_group_body_for_user(pinned["body"], pinned["kind"], u), "kind": pinned["kind"]} if pinned else None),
         "deleted_ids": deleted_ids,
         "reactions_updates": reactions_updates,
+        "typing_names": typing_names,
     })
+
+
+@app.route("/group/typing", methods=["POST"])
+@login_required
+def group_typing():
+    u = current_user()
+    db = get_db()
+    cur = db.cursor()
+    _set_typing(cur, u["id"], "group", 0)
+    db.commit()
+    cur.close()
+    return jsonify({"ok": True})
 
 
 @app.route("/group/send", methods=["POST"])
