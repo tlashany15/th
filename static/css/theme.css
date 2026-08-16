@@ -245,6 +245,20 @@ label, .field-label { color: var(--text-2); font-size: 13px; font-weight: 600; }
   border-bottom: 1px solid var(--line);
 }
 
+/* ==========================================================================
+   إلغاء "المستطيل الأزرق" — الهيرو بتاع صفحات الإدارة (إغلاق اليوم/التقارير..)
+   كان صندوق تدرّج كحلي/أزرق كبير حوالين العنوان، بنشيله ونخلي العنوان
+   والأرقام تندمج في خلفية الصفحة العادية من غير صندوق ملوّن.
+   ========================================================================== */
+.hero-admin{
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px 2px 14px !important;
+}
+.hero-mesh{ display:none !important; }
+.hero-admin .kpi-grid{ margin-top: 14px; }
+
 .bottom-nav, .tabbar, .nav-bottom {
   background: color-mix(in oklab, var(--bg-1) 88%, transparent);
   -webkit-backdrop-filter: blur(20px);

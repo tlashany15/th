@@ -801,11 +801,13 @@ img.u-av {
   border-radius: 50% !important;
   display: block;
 }
-.att-body { min-width: 0; overflow: hidden; }
+.att-body { min-width: 0; }
 .att-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.35 !important;
 }
 .att-sub { line-height: 1.3; }

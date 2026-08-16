@@ -145,19 +145,24 @@
    ========================================================================== */
 .bottom-nav.bottom-nav-5 > a{ flex:1 1 0; min-width:0; }
 
+/* زر "مسلم" العائم في نص الناف بار — شكل دايرة نضيفة زي تطبيقات الموبايل
+   الكبيرة (فودافون وغيره)، مش شكل "جبل" مدبب. الدايرة كاملة، بترتفع فوق
+   خط الناف بار بارتفاع واضح، وليها حلقة خارجية بلون خلفية الناف بار
+   عشان تدي إحساس إنها "قاعدة" مقصوصة من الشريط مش لزقة عليه. */
 .bottom-nav .bn-muslim{ position:relative; }
 .bottom-nav .bn-muslim .bn-muslim-orb{
   display:flex; align-items:center; justify-content:center;
-  width:40px; height:40px; margin:-16px auto 1px; border-radius:14px;
+  width:52px; height:52px; margin:-30px auto 4px; border-radius:50%;
   color:#fff;
   background:var(--grad-accent, linear-gradient(140deg,#7fb0ff,#2f7dff 55%,#1f5fe0));
-  box-shadow:var(--sh-gold, 0 10px 26px -14px rgba(47,125,255,.55));
-  border:2px solid var(--bg-0, #0b0d12);
-  transition:transform .16s ease;
+  box-shadow:0 8px 20px -6px rgba(47,125,255,.65), 0 0 0 5px var(--bg-1, #14161d);
+  transition:transform .16s ease, box-shadow .16s ease;
 }
-.bottom-nav .bn-muslim .bn-muslim-orb svg{ width:21px; height:21px; }
+.bottom-nav .bn-muslim .bn-muslim-orb svg{ width:23px; height:23px; }
 .bottom-nav .bn-muslim:active .bn-muslim-orb{ transform:scale(.94); }
-.bottom-nav .bn-muslim.active .bn-muslim-orb{ box-shadow:0 0 0 3px var(--accent-soft, rgba(47,125,255,.14)); }
+.bottom-nav .bn-muslim.active .bn-muslim-orb{
+  box-shadow:0 8px 20px -6px rgba(47,125,255,.65), 0 0 0 5px var(--bg-1, #14161d), 0 0 0 8px var(--accent-soft, rgba(47,125,255,.20));
+}
 
 /* ==========================================================================
    زر «لوحة التحكم» — يظهر للمسؤول فقط في شريط الهمبرجر
