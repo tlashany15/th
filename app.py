@@ -64,6 +64,25 @@ ASSET_VER = _compute_asset_ver()
 def _inject_asset_ver():
     return {"ASSET_VER": ASSET_VER}
 
+_AR_WEEKDAYS = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
+
+
+def weekday_ar(value):
+    """يرجّع اسم اليوم بالعربي من تاريخ (date أو نص ISO YYYY-MM-DD)."""
+    try:
+        if isinstance(value, str):
+            d = datetime.strptime(value[:10], "%Y-%m-%d").date()
+        elif isinstance(value, datetime):
+            d = value.date()
+        else:
+            d = value
+        return _AR_WEEKDAYS[d.weekday()]
+    except Exception:
+        return ""
+
+
+app.jinja_env.filters["weekday_ar"] = weekday_ar
+
 _BOOTSTRAP_DB_URL = os.environ.get("DATABASE_URL", "")
 DATABASE_URL = _BOOTSTRAP_DB_URL  # للتوافق مع أي استخدام قديم
 _ACTIVE_DB_URL_CACHE = None  # يتخزّن بعد أول قراءة
