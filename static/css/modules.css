@@ -154,14 +154,14 @@
   display:flex; align-items:center; justify-content:center;
   width:52px; height:52px; margin:-30px auto 4px; border-radius:50%;
   color:#fff;
-  background:var(--grad-accent, linear-gradient(140deg,#7fb0ff,#2f7dff 55%,#1f5fe0));
-  box-shadow:0 8px 20px -6px rgba(47,125,255,.65), 0 0 0 5px var(--bg-1, #14161d);
+  background:var(--grad-accent, linear-gradient(140deg,#59e3b7,#17b98a 52%,#0d8f69));
+  box-shadow:0 8px 20px -6px rgba(23,185,138,.55), 0 0 0 5px var(--surface-2, #141d29);
   transition:transform .16s ease, box-shadow .16s ease;
 }
 .bottom-nav .bn-muslim .bn-muslim-orb svg{ width:23px; height:23px; }
 .bottom-nav .bn-muslim:active .bn-muslim-orb{ transform:scale(.94); }
 .bottom-nav .bn-muslim.active .bn-muslim-orb{
-  box-shadow:0 8px 20px -6px rgba(47,125,255,.65), 0 0 0 5px var(--bg-1, #14161d), 0 0 0 8px var(--accent-soft, rgba(47,125,255,.20));
+  box-shadow:0 8px 20px -6px rgba(23,185,138,.55), 0 0 0 5px var(--surface-2, #141d29), 0 0 0 8px var(--accent-soft, rgba(23,185,138,.20));
 }
 
 /* ==========================================================================

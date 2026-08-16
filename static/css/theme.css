@@ -260,10 +260,12 @@ label, .field-label { color: var(--text-2); font-size: 13px; font-weight: 600; }
 .hero-admin .kpi-grid{ margin-top: 14px; }
 
 .bottom-nav, .tabbar, .nav-bottom {
-  background: color-mix(in oklab, var(--bg-1) 88%, transparent);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-top: 0;
+  border-radius: var(--r-xl, 26px) var(--r-xl, 26px) 0 0;
+  box-shadow: 0 -10px 30px -14px rgba(0,0,0,.55), 0 -1px 0 var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .bottom-nav a, .tabbar a { color: var(--text-3); transition: color var(--dur) var(--ease); }

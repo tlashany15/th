@@ -122,12 +122,14 @@ a{ color:inherit; text-decoration:none; }
 /* ---------- Bottom Nav ---------- */
 .bottom-nav{
   position:fixed; left:0; right:0; bottom:0; z-index:50;
-  padding:8px 10px calc(8px + var(--safe-b));
-  background:linear-gradient(180deg, rgba(11,15,23,0) 0%, rgba(11,15,23,.85) 30%, rgba(11,15,23,.96) 100%);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  padding:10px 10px calc(8px + var(--safe-b));
+  background:var(--surface-2);
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
   display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px;
-  border-top:1px solid var(--line);
+  border-top:0;
+  border-radius:var(--r-xl, 26px) var(--r-xl, 26px) 0 0;
+  box-shadow:0 -10px 30px -14px rgba(0,0,0,.55);
 }
 .bottom-nav a{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
