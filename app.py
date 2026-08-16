@@ -1809,7 +1809,46 @@ def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_ded
         print("telegram close-day report error:", e)
 
 
-def _send_period_shares_dm(cur, s_iso, e_iso, label, rows=None):
+def _send_period_telegram_report(cur, s_iso, e_iso, label, rows=None):
+    """
+    بعد ما المسؤول يبعت حساب المدة، بيبعت تقرير كامل لقناة تليجرام:
+    إجمالي الأعداد بدون خصم في المدة كلها + حساب كل واحد (أيام حضوره،
+    عدد الكتاكيت، وفلوسه). ده تقرير جماعي في القناة، غير الرسايل
+    الخاصة اللي بتتبعت لكل شخص في شات التطبيق.
+    """
+    try:
+        rows = rows if rows is not None else _compute_shares_range(cur, s_iso, e_iso)
+        cur.execute(
+            "SELECT COALESCE(SUM(no_deduct_total),0) AS s FROM day_closures WHERE day BETWEEN %s AND %s",
+            (s_iso, e_iso),
+        )
+        no_deduct_total = int(cur.fetchone()["s"] or 0)
+
+        active = [r for r in rows if r["days"] > 0 or r["bonus"] or r["deduct"]]
+        total_chicks = sum(r["chicks"] for r in active)
+        total_money = sum(r["money"] for r in active)
+
+        lines = []
+        lines.append(f"📊 <b>تقرير حساب {_esc_html(label)}</b>")
+        lines.append("")
+        lines.append(f"الإجمالي بدون خصم في المدة: <b>{no_deduct_total:,}</b>")
+        lines.append(f"إجمالي كتاكيت الفريق: <b>{total_chicks:,}</b> × {CHICK_PRICE} = <b>{total_money:,} ج</b>")
+        lines.append("")
+        lines.append("👷 <b>حساب كل واحد:</b>")
+        if active:
+            for r in active:
+                lines.append(
+                    f"• {_esc_html(r['full_name'])} — {r['days']} يوم — "
+                    f"{r['chicks']:,} × {CHICK_PRICE} = <b>{r['money']:,} ج</b>"
+                )
+        else:
+            lines.append("مفيش حساب مسجّل في المدة دي.")
+        _send_telegram_message("\n".join(lines))
+    except Exception as e:
+        # مش هنكسر عملية إرسال الحساب لو تليجرام فشل لأي سبب
+        print("telegram period report error:", e)
+
+
     """
     يبعت لكل شخص رسالة خاصة في الشات من حساب (الإدارة) فيها حسابه في المدة دي.
     بيرجّع عدد الرسائل اللي اتبعتت.
@@ -1897,6 +1936,34 @@ def admin_all_shares_send():
     except Exception as ex:
         db.rollback(); cur.close()
         flash("خطأ أثناء الإرسال: " + str(ex), "error")
+    return redirect(url_for("admin_all_shares", start_day=s_iso, end_day=e_iso))
+
+
+@app.route("/admin/all-shares/send-telegram", methods=["POST"])
+@super_admin_required
+def admin_all_shares_send_telegram():
+    """يبعت تقرير المدة (الإجمالي بدون خصم + حساب كل واحد) لقناة تليجرام."""
+    db = get_db(); cur = db.cursor()
+    s_arg = (request.form.get("start_day") or "").strip()
+    e_arg = (request.form.get("end_day") or "").strip()
+    try:
+        start_d = datetime.strptime(s_arg, "%Y-%m-%d").date()
+        end_d   = datetime.strptime(e_arg, "%Y-%m-%d").date()
+        if end_d < start_d:
+            start_d, end_d = end_d, start_d
+        half = None
+    except ValueError:
+        start_d, end_d, half = _period_bounds()
+    s_iso = start_d.isoformat(); e_iso = end_d.isoformat()
+    label = _period_label(start_d, end_d, half)
+    try:
+        _send_period_telegram_report(cur, s_iso, e_iso, label)
+        db.commit()
+        cur.close()
+        flash("تم إرسال التقرير لقناة تليجرام", "success")
+    except Exception as ex:
+        db.rollback(); cur.close()
+        flash("خطأ أثناء الإرسال لتليجرام: " + str(ex), "error")
     return redirect(url_for("admin_all_shares", start_day=s_iso, end_day=e_iso))
 
 
