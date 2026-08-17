@@ -146,6 +146,24 @@ a{ color:inherit; text-decoration:none; }
 }
 .bottom-nav a:active{ transform:scale(.94); }
 
+/* شارة مركزية بارزة — تبويب "مسلم" في المنتصف زي شعار الفودافون */
+.bottom-nav a.bn-muslim{ overflow:visible; }
+.bn-muslim-orb{
+  width:46px; height:46px; border-radius:50%;
+  display:grid; place-items:center;
+  margin-top:-26px;
+  background:var(--grad-gold);
+  color:#241a08;
+  border:3px solid var(--surface-2);
+  box-shadow:0 10px 22px -8px rgba(217,177,104,.65), var(--shadow-md);
+  transition:transform .15s var(--ease, ease);
+}
+.bn-muslim-orb svg{ width:22px; height:22px; stroke-width:2; }
+.bottom-nav a.bn-muslim{ padding-top:2px; }
+.bottom-nav a.bn-muslim.active .bn-muslim-orb{ transform:scale(1.06); }
+.bottom-nav a.bn-muslim:active .bn-muslim-orb{ transform:scale(.92); }
+.bottom-nav a.bn-muslim.active{ color:var(--gold); background:transparent; }
+
 /* ---------- Cards ---------- */
 .card{
   background:var(--grad-surface);
@@ -623,6 +641,63 @@ a{ color:inherit; text-decoration:none; }
 .v2-hstat-num.v2-gold{ background:var(--grad-gold); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .v2-hstat-lbl{ font-size:12px; color:var(--text-3); margin-top:4px; font-weight:600; }
 .v2-hstat-sep{ width:1px; align-self:stretch; background:var(--line-strong); }
+
+/* ============================================================
+   PROMO CAROUSEL (بانر متحرك أعلى الرئيسية)
+   ============================================================ */
+.v2-promo{
+  position:relative;
+  border-radius:var(--r-2xl);
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+}
+.v2-promo-track{
+  display:flex;
+  transition:transform .45s var(--ease, cubic-bezier(.22,.61,.36,1));
+  will-change:transform;
+}
+.v2-promo-slide{
+  flex:0 0 100%;
+  display:flex; align-items:center; gap:14px;
+  padding:20px 18px;
+  min-height:104px;
+  position:relative; overflow:hidden;
+}
+.v2-promo-slide::after{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(320px 200px at 100% 0%, rgba(255,255,255,.16), transparent 60%);
+  pointer-events:none;
+}
+.v2-promo-slide-1{ background:var(--grad-accent, linear-gradient(140deg,#59e3b7,#17b98a 52%,#0d8f69)); }
+.v2-promo-slide-2{ background:var(--grad-gold, linear-gradient(140deg,#f0d49b,#d9b168 55%,#b28c46)); }
+.v2-promo-slide-3{ background:linear-gradient(140deg,#7fb0ff 0%,#2f7dff 55%,#1f5fe0 100%); }
+.v2-promo-slide-4{ background:linear-gradient(140deg,#2a3245 0%,#0f141c 100%); }
+.v2-promo-ic{
+  position:relative; z-index:1; flex:0 0 auto;
+  width:52px; height:52px; border-radius:16px;
+  display:grid; place-items:center;
+  background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.3);
+  color:#0c1310;
+}
+.v2-promo-slide-3 .v2-promo-ic, .v2-promo-slide-4 .v2-promo-ic{ color:#fff; }
+.v2-promo-ic svg{ width:26px; height:26px; }
+.v2-promo-txt{ position:relative; z-index:1; min-width:0; }
+.v2-promo-txt b{ display:block; font-size:15.5px; font-weight:900; color:#0c1310; }
+.v2-promo-slide-3 .v2-promo-txt b, .v2-promo-slide-4 .v2-promo-txt b{ color:#fff; }
+.v2-promo-txt span{ display:block; margin-top:3px; font-size:12.5px; font-weight:600; color:rgba(12,19,16,.7); }
+.v2-promo-slide-3 .v2-promo-txt span, .v2-promo-slide-4 .v2-promo-txt span{ color:rgba(255,255,255,.78); }
+.v2-promo-dots{
+  position:absolute; z-index:2; bottom:10px; left:50%; transform:translateX(-50%);
+  display:flex; gap:6px;
+}
+.v2-promo-dots i{
+  width:6px; height:6px; border-radius:999px;
+  background:rgba(255,255,255,.4);
+  transition:width .25s var(--ease, ease), background .25s;
+}
+.v2-promo-dots i.is-active{ width:16px; background:#fff; }
 
 /* action */
 .v2-action{

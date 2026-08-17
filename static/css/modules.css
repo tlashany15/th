@@ -208,6 +208,46 @@
 .v2-muslim-arrow{ width:18px; height:18px; margin-inline-start:auto; color:var(--text-3, #63667a); }
 
 /* ==========================================================================
+   شبكة الوصول السريع 2×2 (كروت ملوّنة) — بديل قائمة الروابط الطولية
+   ========================================================================== */
+.v2-qgrid{
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  margin-top:14px;
+}
+.v2-qcard{
+  display:flex; flex-direction:column; gap:10px;
+  padding:16px 14px; min-height:112px;
+  border-radius:var(--r-lg, 20px);
+  text-decoration:none;
+  border:1px solid var(--line-strong);
+  transition:transform .15s var(--ease, ease);
+  position:relative; overflow:hidden;
+}
+.v2-qcard:active{ transform:scale(.97); }
+.v2-qcard-ic{
+  width:38px; height:38px; border-radius:12px;
+  display:grid; place-items:center; flex:0 0 auto;
+  background:rgba(255,255,255,.14);
+}
+.v2-qcard-ic svg{ width:20px; height:20px; }
+.v2-qcard-txt{ margin-top:auto; }
+.v2-qcard-txt b{ display:block; font-size:14px; font-weight:900; }
+.v2-qcard-txt small{ display:block; margin-top:2px; font-size:11px; font-weight:600; opacity:.8; }
+.v2-qcard-arrow{ position:absolute; top:14px; inset-inline-end:14px; width:16px; height:16px; opacity:.55; }
+
+.v2-qcard-teal{ background:linear-gradient(150deg,#123a30 0%,#0c2019 100%); color:#eafff6; border-color:rgba(23,185,138,.35); }
+.v2-qcard-teal .v2-qcard-ic{ color:#59e3b7; background:rgba(23,185,138,.18); }
+
+.v2-qcard-gold{ background:linear-gradient(150deg,#3a2f16 0%,#20190c 100%); color:#fff6e4; border-color:rgba(217,177,104,.35); }
+.v2-qcard-gold .v2-qcard-ic{ color:#f0d49b; background:rgba(217,177,104,.2); }
+
+.v2-qcard-blue{ background:linear-gradient(150deg,#132a44 0%,#0b1826 100%); color:#eaf3ff; border-color:rgba(76,141,255,.35); }
+.v2-qcard-blue .v2-qcard-ic{ color:#8fb6ff; background:rgba(76,141,255,.2); }
+
+.v2-qcard-dark{ background:linear-gradient(150deg,#1c2230 0%,#0c1017 100%); color:#f4f6f8; border-color:var(--line-strong); }
+.v2-qcard-dark .v2-qcard-ic{ color:#9dabb8; background:rgba(255,255,255,.08); }
+
+/* ==========================================================================
    إصلاحات v19 — البسملة كانت بتتقص من اليمين والشمال على الشاشات الصغيرة
    ========================================================================== */
 .mus-basmala-card{
