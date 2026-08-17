@@ -933,6 +933,24 @@ def splash():
     return render_template("splash.html", next_url=dest)
 
 
+@app.route("/offline")
+def offline():
+    return render_template("offline.html")
+
+
+@app.route("/sw.js")
+def service_worker():
+    # لازم تتقدّم من الـ root (مش من /static/) عشان الـ scope يغطي التطبيق كله
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "js", "service-worker.js")
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read().replace("__SW_VERSION__", ASSET_VER)
+    resp = make_response(content)
+    resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"] = "no-cache"  # المتصفح يفضل يتأكد فيه إصدار جديد ولا لأ
+    return resp
+
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
