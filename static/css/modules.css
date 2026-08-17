@@ -1235,6 +1235,9 @@ body .acc-item{
   color:#08131f; background:var(--m-gold, #e8d8a6);
 }
 .ms20-tile.is-audio .ms20-tile-ic{ color:#8ff0c8; background:rgba(55,211,154,.14); }
+.ms20-tile.is-blue .ms20-tile-ic{ color:#9dc4ff; background:rgba(76,141,255,.16); }
+.ms20-tile.is-rose .ms20-tile-ic{ color:#ffb3b6; background:rgba(255,111,117,.14); }
+.ms20-tile.is-violet .ms20-tile-ic{ color:#c9b6ff; background:rgba(150,110,255,.16); }
 
 /* ---------- 4) الشيتات (سبحة / أذكار / أدعية / ختمة) ---------- */
 .ms20-ov{
