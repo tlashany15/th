@@ -38,6 +38,82 @@
 </section>
 
 
+<!-- ============ PROMO CAROUSEL ============ -->
+<div class="v2-promo v2-fade" style="--i:0" id="v2Promo">
+  <div class="v2-promo-track" id="v2PromoTrack">
+    <div class="v2-promo-slide v2-promo-slide-1">
+      <span class="v2-promo-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+      </span>
+      <span class="v2-promo-txt"><b>سجّل حضورك بضغطة واحدة</b><span>خلّي الفريق يعرف إنك جاهز من أول الصبح</span></span>
+    </div>
+    <div class="v2-promo-slide v2-promo-slide-2">
+      <span class="v2-promo-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 3-6.5"/><path d="M3 4v5h5"/><path d="M12 7v5l3.5 2"/></svg>
+      </span>
+      <span class="v2-promo-txt"><b>تابع نصيبك من الشغل</b><span>كل أعدادك وتحصيناتك من تبويب «السجل»</span></span>
+    </div>
+    <div class="v2-promo-slide v2-promo-slide-3">
+      <span class="v2-promo-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>
+      </span>
+      <span class="v2-promo-txt"><b>الدردشة مفتوحة مع الفريق</b><span>راسل زمايلك والمسؤول في أي وقت</span></span>
+    </div>
+    <div class="v2-promo-slide v2-promo-slide-4">
+      <span class="v2-promo-ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
+      </span>
+      <span class="v2-promo-txt"><b>رفيق المسلم في جيبك</b><span>مواقيت الصلاة والمناسبات وورد اليوم</span></span>
+    </div>
+  </div>
+  <div class="v2-promo-dots" id="v2PromoDots"></div>
+</div>
+<script>
+  (function(){
+    var track = document.getElementById('v2PromoTrack');
+    var dotsWrap = document.getElementById('v2PromoDots');
+    if (!track || !dotsWrap) return;
+    var slides = track.children;
+    var n = slides.length;
+    var i = 0, timer = null;
+    for (var k = 0; k < n; k++){
+      var d = document.createElement('i');
+      if (k === 0) d.className = 'is-active';
+      dotsWrap.appendChild(d);
+    }
+    var dots = dotsWrap.children;
+    function go(idx){
+      i = (idx + n) % n;
+      track.style.transform = 'translateX(' + (i * 100 * (document.dir === 'rtl' ? 1 : -1)) + '%)';
+      for (var k = 0; k < n; k++){ dots[k].className = (k === i) ? 'is-active' : ''; }
+    }
+    function next(){ go(i + 1); }
+    function start(){ stop(); timer = setInterval(next, 4200); }
+    function stop(){ if (timer) clearInterval(timer); timer = null; }
+    go(0);
+    start();
+    var promo = document.getElementById('v2Promo');
+    promo.addEventListener('touchstart', stop, {passive:true});
+    promo.addEventListener('mouseenter', stop);
+    promo.addEventListener('mouseleave', start);
+
+    // swipe support
+    var startX = null;
+    track.addEventListener('touchstart', function(e){ startX = e.touches[0].clientX; }, {passive:true});
+    track.addEventListener('touchend', function(e){
+      if (startX === null) return;
+      var dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 40){
+        var rtl = document.dir === 'rtl';
+        if ((dx < 0 && !rtl) || (dx > 0 && rtl)) next(); else go(i - 1);
+      }
+      startX = null;
+      start();
+    }, {passive:true});
+  })();
+</script>
+
+
 {% if day_closed %}
 
   <!-- ============ DAY CLOSED ============ -->
@@ -92,6 +168,8 @@
       .v2-cta-row .v2-cta-ic{width:20px;height:20px}
       .v2-cta-row .v2-cta-ic svg{width:13px;height:13px}
       .v2-cta-bayad{background:linear-gradient(135deg,#4aa3ff 0%,#2f7dff 100%);color:#fff}
+      .v2-cta-row .v2-cta-tasmeen{box-shadow:0 14px 28px -14px rgba(217,177,104,.6)}
+      .v2-cta-row .v2-cta-bayad{box-shadow:0 14px 28px -14px rgba(47,125,255,.6)}
       @media (max-width:320px){ .v2-cta-row .v2-cta{font-size:12px;padding:10px 6px} }
       .v2-action .v2-action-title{font-size:17px}
       .v2-action .v2-action-sub{font-size:12.5px}
@@ -112,26 +190,40 @@
 {% endif %}
 
 
-<!-- رفيق المسلم اتنقل لصفحة مستقلة: قسم «مسلم» في الشريط السفلي -->
-<a class="v2-muslim-link v2-fade" style="--i:2" href="{{ url_for('muslim_page') }}">
-  <span class="v2-muslim-ic" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
-  </span>
-  <span class="v2-muslim-txt">
-    <b>مسلم</b>
-    <small>مواقيت الصلاة والمناسبات وورد اليوم</small>
-  </span>
-  <svg class="v2-muslim-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-</a>
+<!-- ============ QUICK LINKS GRID 2x2 ============ -->
+<div class="v2-qgrid v2-fade" style="--i:2">
+  <a class="v2-qcard v2-qcard-teal" href="{{ url_for('muslim_page') }}">
+    <span class="v2-qcard-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
+    </span>
+    <span class="v2-qcard-txt"><b>مسلم</b><small>مواقيت الصلاة وورد اليوم</small></span>
+    <svg class="v2-qcard-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
 
+  <a class="v2-qcard v2-qcard-gold" href="{{ url_for('history') }}">
+    <span class="v2-qcard-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 3-6.5"/><path d="M3 4v5h5"/><path d="M12 7v5l3.5 2"/></svg>
+    </span>
+    <span class="v2-qcard-txt"><b>السجل</b><small>الأعداد والتحصينات</small></span>
+    <svg class="v2-qcard-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
 
-<div class="contact-dev">
-  <a class="contact-dev-btn" href="https://wa.me/201553779813?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%B9%D8%A7%D9%88%D8%B2%20%D8%A3%D8%B3%D8%A3%D9%84%D9%83%20%D8%B9%D9%84%D9%89%20%D8%AD%D8%A7%D8%AC%D8%A7%D8%AA%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82" target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 2C6.495 2 2 6.495 2 12.05c0 1.77.462 3.505 1.34 5.033L2 22l5.05-1.32a10.02 10.02 0 004.995 1.315h.005c5.555 0 10.05-4.495 10.05-10.05C22.1 6.495 17.605 2 12.05 2z"/></svg>
-    تواصل مع المطور
+  <a class="v2-qcard v2-qcard-blue" href="{{ url_for('chats_list') }}">
+    <span class="v2-qcard-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>
+    </span>
+    <span class="v2-qcard-txt"><b>الدردشة</b><small>تواصل مع الفريق</small></span>
+    <svg class="v2-qcard-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+
+  <a class="v2-qcard v2-qcard-dark" href="https://wa.me/201553779813?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%B9%D8%A7%D9%88%D8%B2%20%D8%A3%D8%B3%D8%A3%D9%84%D9%83%20%D8%B9%D9%84%D9%89%20%D8%AD%D8%A7%D8%AC%D8%A7%D8%AA%20%D9%81%D9%8A%20%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82" target="_blank" rel="noopener">
+    <span class="v2-qcard-ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 2C6.495 2 2 6.495 2 12.05c0 1.77.462 3.505 1.34 5.033L2 22l5.05-1.32a10.02 10.02 0 004.995 1.315h.005c5.555 0 10.05-4.495 10.05-10.05C22.1 6.495 17.605 2 12.05 2z"/></svg>
+    </span>
+    <span class="v2-qcard-txt"><b>تواصل مع المطور</b><small>استفسارات وحاجات تقنية</small></span>
+    <svg class="v2-qcard-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
   </a>
 </div>
-
 
 
 <script>
