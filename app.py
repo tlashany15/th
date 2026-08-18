@@ -28,6 +28,10 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "1845196955")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
+# خلي تسجيل الدخول يفضل شغال حتى لو المستخدم شال التطبيق من القوائم الأخيرة
+# (بدون ده، الـ session كانت بتتمسح فور ما الـ PWA يتقفل تمامًا من النظام)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # رفعنا الحد عشان الصوت ميتقطعش
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB upload cap
 # كاش طويل للملفات الثابتة (CSS/JS) — بيخلي التنقل بين الصفحات أسرع بكتير
@@ -1009,6 +1013,7 @@ def login():
             flash("الحساب ده حساب نظام — مينفعش الدخول بيه", "error")
             return render_template("login.html")
         if row and check_password_hash(row["password_hash"], password):
+            session.permanent = True  # يخلي الجلسة تفضل شغالة 30 يوم بدل ما تنتهي بمجرد قفل التطبيق
             session["user_id"] = row["id"]
             return redirect(url_for("dashboard"))
         flash("الاسم أو كلمة السر غير صحيحة", "error")
