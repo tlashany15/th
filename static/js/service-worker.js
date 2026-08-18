@@ -1,7 +1,45 @@
 // Service Worker — تطبيق فريق تحصين الكتاكيت
-// النسخة بتتغيّر تلقائي مع أي تعديل في الملف ده (عن طريق SW_VERSION اللي بيحقنها السيرفر)
+// النسخة والإعدادات بتتحقن تلقائيًا من السيرفر (app.py) — متلمسش القيم دي هنا يدويًا.
 const SW_VERSION = "__SW_VERSION__";
 const CACHE_NAME = "th-app-cache-" + SW_VERSION;
+
+// ==== Firebase Cloud Messaging — استقبال إشعارات والتطبيق مقفول تمامًا ====
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+
+const FIREBASE_CONFIG = __FIREBASE_CONFIG_JSON__;
+
+try {
+  if (FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const messaging = firebase.messaging();
+    messaging.onBackgroundMessage(function (payload) {
+      const n = (payload && payload.notification) || {};
+      const data = (payload && payload.data) || {};
+      self.registration.showNotification(n.title || "إشعار جديد", {
+        body: n.body || "",
+        icon: "/static/icons/icon-192.png",
+        badge: "/static/icons/icon-192.png",
+        data: { url: data.url || n.click_action || "/notifications" },
+      });
+    });
+  }
+} catch (e) {
+  // تجاهل صامت لو Firebase مش متظبط لسه
+}
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/notifications";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.includes(url) && "focus" in c) return c.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
 
 // الحد الأدنى من الملفات اللي لازم تتخزن أول ما التطبيق يتفتح
 const PRECACHE_URLS = [
