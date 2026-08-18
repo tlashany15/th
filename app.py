@@ -938,12 +938,40 @@ def offline():
     return render_template("offline.html")
 
 
+def _firebase_web_config():
+    """إعدادات Firebase العامة (Public) الخاصة بالمتصفح/الويب — مختلفة عن
+    مفاتيح الـ Admin SDK السرية (FIREBASE_PRIVATE_KEY وغيرها) المستخدمة في الباك إند."""
+    return {
+        "apiKey": os.environ.get("FIREBASE_WEB_API_KEY", ""),
+        "authDomain": os.environ.get("FIREBASE_WEB_AUTH_DOMAIN", ""),
+        "projectId": os.environ.get("FIREBASE_PROJECT_ID", ""),
+        "storageBucket": os.environ.get("FIREBASE_WEB_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.environ.get("FIREBASE_WEB_SENDER_ID", ""),
+        "appId": os.environ.get("FIREBASE_WEB_APP_ID", ""),
+    }
+
+
+@app.route("/firebase-config.js")
+def firebase_config_js():
+    cfg = _firebase_web_config()
+    vapid = os.environ.get("FIREBASE_WEB_VAPID_KEY", "")
+    content = (
+        "window.FIREBASE_CONFIG = " + _json.dumps(cfg) + ";\n"
+        "window.FIREBASE_VAPID_KEY = " + _json.dumps(vapid) + ";\n"
+    )
+    resp = make_response(content)
+    resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 @app.route("/sw.js")
 def service_worker():
-    # لازم تتقدّم من الـ root (مش من /static/) عشان الـ scope يغطي التطبيق كله
+    # لازم يتقدّم من الـ root (مش من /static/) عشان الـ scope يغطي التطبيق كله
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "js", "service-worker.js")
     with open(path, "r", encoding="utf-8") as f:
         content = f.read().replace("__SW_VERSION__", ASSET_VER)
+    content = content.replace("__FIREBASE_CONFIG_JSON__", _json.dumps(_firebase_web_config()))
     resp = make_response(content)
     resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
     resp.headers["Service-Worker-Allowed"] = "/"
