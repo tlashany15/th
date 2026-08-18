@@ -8,7 +8,11 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="تحصين الكتاكيت">
   <title>{% block title %}فريق تحصين الكتاكيت{% endblock %}</title>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,5 +91,14 @@
   </div>
 </div>
 <script src="{{ url_for('static', filename='js/app-ui.js') }}?v={{ ASSET_VER }}"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () {
+        // فشل التسجيل مش مشكلة كبيرة — التطبيق بيشتغل عادي بدون أوفلاين
+      });
+    });
+  }
+</script>
 </body>
 </html>
