@@ -4252,17 +4252,19 @@ def _get_firebase_app():
 
 def _send_fcm(tokens, title, body, url=""):
     """يبعث إشعار FCM لقائمة توكنات عن طريق HTTP v1 API (Firebase Admin SDK).
-    صامت لو مفيش إعدادات Firebase أو مفيش توكنات."""
+    بترجع dict فيها تفاصيل النتيجة (للتشخيص) بدل ما تكتفي بالطباعة في اللوج."""
     tokens = [t for t in (tokens or []) if t]
     if not tokens:
-        return
+        return {"ok": False, "error": "no_tokens", "detail": "مفيش توكنات إشعارات مسجّلة"}
     app_fb = _get_firebase_app()
     if app_fb is None:
-        print("FCM skipped: Firebase not configured")
-        return
+        return {"ok": False, "error": "firebase_not_configured",
+                "detail": "بيانات Firebase Admin (FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY) ناقصة أو غلط"}
     try:
         from firebase_admin import messaging
         invalid_tokens = []
+        success_count = 0
+        errors = []
         # multicast v1 API - نرسل لحد 500 توكن في المرة الواحدة
         for i in range(0, len(tokens), 500):
             batch = tokens[i:i + 500]
@@ -4291,12 +4293,22 @@ def _send_fcm(tokens, title, body, url=""):
                         notification_count=1,
                     ),
                 ),
+                webpush=messaging.WebpushConfig(
+                    notification=messaging.WebpushNotification(
+                        title=title[:200], body=(body or "")[:200],
+                        icon="/static/icons/icon-192.png",
+                    ),
+                    fcm_options=messaging.WebpushFCMOptions(link=url or "/notifications"),
+                ),
                 tokens=batch,
             )
             response = messaging.send_each_for_multicast(message)
             for idx, resp in enumerate(response.responses):
-                if not resp.success:
+                if resp.success:
+                    success_count += 1
+                else:
                     err = str(resp.exception)
+                    errors.append(err)
                     if "UNREGISTERED" in err or "INVALID_ARGUMENT" in err or "NOT_FOUND" in err:
                         invalid_tokens.append(batch[idx])
         if invalid_tokens:
@@ -4306,27 +4318,33 @@ def _send_fcm(tokens, title, body, url=""):
                 db.commit(); cur.close()
             except Exception as ce:
                 print("FCM cleanup error:", ce)
+        if success_count > 0:
+            return {"ok": True, "sent": success_count, "failed": len(errors)}
+        return {"ok": False, "error": "send_failed", "detail": "; ".join(errors[:3]) or "غير معروف"}
     except Exception as e:
-        print("FCM error:", e)
+        return {"ok": False, "error": "exception", "detail": str(e)}
 
 
 def _notify_users(user_ids, title, body, url="", type_="general", push=True):
-    """يضيف صف في notifications لكل مستخدم + يبعت FCM اختياريًا."""
+    """يضيف صف في notifications لكل مستخدم + يبعت FCM اختياريًا.
+    بترجّع تفاصيل نتيجة إرسال الـ FCM (dict) للتشخيص."""
     ids = [int(x) for x in user_ids if x]
     if not ids:
-        return
+        return {"ok": False, "error": "no_users"}
     db = get_db(); cur = db.cursor()
     for uid in ids:
         cur.execute("""INSERT INTO notifications(user_id, title, body, url, type)
                        VALUES (%s,%s,%s,%s,%s)""",
                     (uid, title[:200], (body or "")[:1000], url or None, type_))
     db.commit()
+    result = None
     if push:
         cur.execute("SELECT token FROM fcm_tokens WHERE user_id = ANY(%s)", (ids,))
         tokens = [r["token"] for r in cur.fetchall()]
-        if tokens:
-            _send_fcm(tokens, title, body or "", url or "")
+        result = _send_fcm(tokens, title, body or "", url or "")
     cur.close()
+    return result
+
 
 
 @app.route("/api/notifications/unread")
@@ -4346,6 +4364,30 @@ def api_notifications_unread():
     } for r in cur.fetchall()]
     cur.close()
     return jsonify({"count": count, "items": items})
+
+
+@app.route("/api/fcm/test", methods=["POST"])
+@login_required
+def api_fcm_test():
+    """أداة تشخيص: تبعت إشعار تجريبي للمستخدم الحالي وترجّع تفاصيل النتيجة
+    (بدل ما تكتفي بالطباعة في لوج السيرفر) عشان نعرف السبب بالظبط لو فشل."""
+    u = current_user()
+    db = get_db(); cur = db.cursor()
+    cur.execute("SELECT token, platform, created_at FROM fcm_tokens WHERE user_id=%s ORDER BY created_at DESC", (u["id"],))
+    rows = cur.fetchall()
+    cur.close()
+    if not rows:
+        return jsonify({
+            "ok": False,
+            "stage": "no_token_in_db",
+            "message": "مفيش توكن إشعارات متسجّل لحسابك في قاعدة البيانات. يعني زرار \"تفعيل الإشعارات\" مانفعش يسجّل التوكن على السيرفر — جرّب تفتح Developer Tools في المتصفح (لو معاك كمبيوتر) وشوف فيه error في الـ Console وقت الضغط على تفعيل.",
+        })
+    tokens = [r["token"] for r in rows]
+    result = _send_fcm(tokens, "🔔 إشعار تجريبي", "لو وصلك الإشعار ده يبقى كل حاجة شغالة تمام!", url_for("notifications_page"))
+    result["stage"] = "sent_attempt"
+    result["tokens_found"] = len(tokens)
+    result["platforms"] = list({r["platform"] for r in rows})
+    return jsonify(result)
 
 
 @app.route("/notifications")
