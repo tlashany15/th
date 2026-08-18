@@ -4260,6 +4260,14 @@ def _send_fcm(tokens, title, body, url=""):
     if app_fb is None:
         return {"ok": False, "error": "firebase_not_configured",
                 "detail": "بيانات Firebase Admin (FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY) ناقصة أو غلط"}
+    # WebpushFCMOptions.link لازم يكون رابط كامل (https://...) مش مسار نسبي زي "/notifications"
+    abs_url = url or "/notifications"
+    if not abs_url.startswith("http://") and not abs_url.startswith("https://"):
+        try:
+            abs_url = request.host_url.rstrip("/") + "/" + abs_url.lstrip("/")
+        except RuntimeError:
+            abs_url = "https://" + os.environ.get("VERCEL_URL", "") + "/" + abs_url.lstrip("/")
+    icon_url = request.host_url.rstrip("/") + "/static/icons/icon-192.png" if request else "/static/icons/icon-192.png"
     try:
         from firebase_admin import messaging
         invalid_tokens = []
@@ -4296,9 +4304,9 @@ def _send_fcm(tokens, title, body, url=""):
                 webpush=messaging.WebpushConfig(
                     notification=messaging.WebpushNotification(
                         title=title[:200], body=(body or "")[:200],
-                        icon="/static/icons/icon-192.png",
+                        icon=icon_url,
                     ),
-                    fcm_options=messaging.WebpushFCMOptions(link=url or "/notifications"),
+                    fcm_options=messaging.WebpushFCMOptions(link=abs_url),
                 ),
                 tokens=batch,
             )
