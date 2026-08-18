@@ -71,6 +71,14 @@
   <script src="{{ url_for('static', filename='js/muslim.js') }}?v={{ ASSET_VER }}" defer></script>
   <script src="{{ url_for('static', filename='js/account.js') }}?v={{ ASSET_VER }}" defer></script>
 
+  {# ===== إشعارات Web Push (Firebase) — بتشتغل بس لو المستخدم مسجّل دخول ===== #}
+  {% if current_user %}
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js" defer></script>
+  <script src="/firebase-config.js?v={{ ASSET_VER }}" defer></script>
+  <script src="{{ url_for('static', filename='js/push-notifications.js') }}?v={{ ASSET_VER }}" defer></script>
+  {% endif %}
+
 {% block head_extra %}{% endblock %}
 </head>
 <body class="no-copy">
