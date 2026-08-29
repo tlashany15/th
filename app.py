@@ -23,8 +23,10 @@ from urllib.parse import quote as _urlquote
 # ==== بوت تليجرام: تقرير تلقائي بعد إغلاق اليوم ====
 # القيم الافتراضية هي البوت/القناة اللي المسؤول جهّزها. تقدر تغيّرها من غير
 # ما تلمس الكود عن طريق متغيرات البيئة TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8967537097:AAHd442iAKgkFFVZOc0XVStgXyQWEvQw8_4")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "1845196955")
+TELEGRAM_BOT_TOKEN = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+TELEGRAM_CHAT_ID = (os.environ.get("TELEGRAM_CHAT_ID") or "1845196955").strip()
+# آخر نتيجة إرسال (للتشخيص من صفحة /admin/telegram-test)
+TELEGRAM_LAST_ERROR = None
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-please-very-secret")
@@ -1803,31 +1805,119 @@ def _compute_shares_range(cur, s_iso, e_iso):
     return out
 
 
-def _send_telegram_message(text):
-    """يبعت رسالة نصية لقناة/شات تليجرام عن طريق البوت. بيرجّع True/False."""
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return False
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = _json.dumps({
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True,
-    }).encode("utf-8")
-    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+def _tg_api(method, payload, timeout=15):
+    """نداء مباشر لـ Telegram Bot API. بيرجّع (ok, data_or_error_string)."""
+    global TELEGRAM_LAST_ERROR
+    token = TELEGRAM_BOT_TOKEN
+    if not token:
+        TELEGRAM_LAST_ERROR = "TELEGRAM_BOT_TOKEN مش متظبط في متغيرات البيئة"
+        print("telegram:", TELEGRAM_LAST_ERROR)
+        return False, TELEGRAM_LAST_ERROR
+    url = f"https://api.telegram.org/bot{token}/{method}"
+    data = _json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data,
+                                 headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            resp.read()
-        return True
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8", "replace")
+        out = _json.loads(body)
+        if not out.get("ok"):
+            TELEGRAM_LAST_ERROR = f"{method}: {out.get('error_code')} {out.get('description')}"
+            print("telegram", TELEGRAM_LAST_ERROR)
+            return False, TELEGRAM_LAST_ERROR
+        TELEGRAM_LAST_ERROR = None
+        return True, out.get("result")
     except urllib.error.HTTPError as e:
         try:
-            print("telegram sendMessage HTTPError:", e.read())
+            body = e.read().decode("utf-8", "replace")
         except Exception:
-            print("telegram sendMessage HTTPError:", e)
-        return False
+            body = str(e)
+        TELEGRAM_LAST_ERROR = f"{method}: HTTP {e.code} {body}"
+        print("telegram", TELEGRAM_LAST_ERROR)
+        return False, TELEGRAM_LAST_ERROR
     except Exception as e:
-        print("telegram sendMessage error:", e)
+        TELEGRAM_LAST_ERROR = f"{method}: {type(e).__name__}: {e}"
+        print("telegram", TELEGRAM_LAST_ERROR)
+        return False, TELEGRAM_LAST_ERROR
+
+
+def _tg_chunks(text, limit=3800):
+    """تليجرام بيرفض أي رسالة أطول من 4096 حرف — بنقسّمها لأجزاء بالسطور."""
+    parts, cur = [], ""
+    for line in str(text).split("\n"):
+        if len(line) > limit:
+            for i in range(0, len(line), limit):
+                piece = line[i:i + limit]
+                if len(cur) + len(piece) + 1 > limit:
+                    if cur:
+                        parts.append(cur)
+                    cur = piece
+                else:
+                    cur = (cur + "\n" + piece) if cur else piece
+            continue
+        if len(cur) + len(line) + 1 > limit:
+            parts.append(cur)
+            cur = line
+        else:
+            cur = (cur + "\n" + line) if cur else line
+    if cur:
+        parts.append(cur)
+    return parts or [""]
+
+
+def _send_telegram_message(text, chat_id=None):
+    """يبعت رسالة نصية للشات/القناة عن طريق البوت. بيرجّع True/False.
+
+    محسّن: بيقسّم الرسايل الطويلة، بيعيد المحاولة، ولو الـ HTML فيه مشكلة
+    بيبعت الرسالة كنص عادي بدل ما يفشل من غير ما حد ياخد باله.
+    """
+    chat = (chat_id or TELEGRAM_CHAT_ID or "").strip()
+    if not TELEGRAM_BOT_TOKEN or not chat:
+        print("telegram: مفيش TELEGRAM_BOT_TOKEN أو TELEGRAM_CHAT_ID")
         return False
+    all_ok = True
+    for part in _tg_chunks(text):
+        ok = False
+        for attempt in range(3):
+            ok, err = _tg_api("sendMessage", {
+                "chat_id": chat,
+                "text": part,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            })
+            if ok:
+                break
+            msg = str(err)
+            if "can't parse entities" in msg or "parse_mode" in msg:
+                ok, err = _tg_api("sendMessage", {
+                    "chat_id": chat,
+                    "text": re.sub(r"<[^>]+>", "", part),
+                    "disable_web_page_preview": True,
+                })
+                break
+            if "401" in msg or "Unauthorized" in msg or "chat not found" in msg:
+                break  # مشكلة إعداد — إعادة المحاولة مش هتفيد
+        all_ok = all_ok and bool(ok)
+    return all_ok
+
+
+@app.route("/admin/telegram-test", methods=["GET", "POST"])
+@admin_required
+def admin_telegram_test():
+    """تشخيص سريع: بيقول التوكن شغال ولا لأ، وبيبعت رسالة تجريبية."""
+    info = {
+        "token_set": bool(TELEGRAM_BOT_TOKEN),
+        "chat_id": TELEGRAM_CHAT_ID or None,
+    }
+    ok, res = _tg_api("getMe", {})
+    info["bot_ok"] = ok
+    info["bot"] = res if ok else None
+    info["error"] = None if ok else res
+    if ok and request.method == "POST":
+        sent = _send_telegram_message("✅ رسالة تجربة من تطبيق فريق التحصين")
+        info["test_sent"] = sent
+        info["error"] = TELEGRAM_LAST_ERROR
+    return jsonify(info), (200 if ok else 500)
 
 
 def _esc_html(s):
@@ -1873,10 +1963,11 @@ def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_ded
         total_money = sum((r["money"] for r in day_rows), 0)
         lines.append("")
         lines.append(f"💰 إجمالي فلوس اليوم لكل الفريق: <b>{total_money:,} ج</b>")
-        _send_telegram_message("\n".join(lines))
+        return _send_telegram_message("\n".join(lines))
     except Exception as e:
         # مش هنكسر عملية إغلاق اليوم لو تليجرام فشل لأي سبب
         print("telegram close-day report error:", e)
+        return False
 
 
 def _send_period_telegram_report(cur, s_iso, e_iso, label, rows=None):
@@ -1913,10 +2004,11 @@ def _send_period_telegram_report(cur, s_iso, e_iso, label, rows=None):
                 )
         else:
             lines.append("مفيش حساب مسجّل في المدة دي.")
-        _send_telegram_message("\n".join(lines))
+        return _send_telegram_message("\n".join(lines))
     except Exception as e:
         # مش هنكسر عملية إرسال الحساب لو تليجرام فشل لأي سبب
         print("telegram period report error:", e)
+        return False
 
 
     """
@@ -2198,12 +2290,16 @@ def admin_close_day():
     cur.close()
 
     # ==== تقرير تليجرام تلقائي بعد إغلاق اليوم ====
+    tg_ok = False
     try:
         _tg_cur = db.cursor()
-        _send_close_day_telegram_report(_tg_cur, day, tasmeen_after, bayad_after, no_deduct_total)
+        tg_ok = _send_close_day_telegram_report(_tg_cur, day, tasmeen_after, bayad_after, no_deduct_total)
         _tg_cur.close()
     except Exception as _e:
         print("telegram close-day dispatch error:", _e)
+    if not tg_ok:
+        flash("اتقفل اليوم، بس تقرير تليجرام مااتبعتش: " +
+              (TELEGRAM_LAST_ERROR or "راجع TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID"), "error")
 
     # ==== ملخص الفترة (نصف شهر) — تلقائي في الجروب ====
     try:
