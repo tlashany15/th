@@ -1835,6 +1835,11 @@ def _esc_html(s):
             .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
 
+def _money_k(v):
+    """بيشيل آخر ٣ أرقام من المبلغ (الكسور) — 1,004,905 تبقى 1004."""
+    return int(int(v or 0) // 1000)
+
+
 def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_deduct_total):
     """
     بعد ما المسؤول يقفل اليوم، بيبعت تقرير كامل لقناة تليجرام:
@@ -1853,34 +1858,27 @@ def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_ded
         money_map = {r["id"]: r for r in day_rows}
 
         total_after = int(tasmeen_after or 0) + int(bayad_after or 0)
-
-        def _money_k(v):
-            # الفلوس بتتخزن بالكسور — بنبعت الرقم الصحيح بس (بدون آخر 3 أرقام)
-            return int(int(v or 0) // 1000)
-
         lines = []
         lines.append(f"<b>تقرير إغلاق يوم {_esc_html(day)}</b>")
-        lines.append("——————————————")
-        lines.append("<b>الأعداد</b>")
+        lines.append("")
+        lines.append("— الأعداد —")
         lines.append(f"قبل الخصم: <b>{int(no_deduct_total or 0):,}</b>")
         lines.append(f"بعد الخصم: <b>{total_after:,}</b>")
-        lines.append(f"تسمين: <b>{int(tasmeen_after or 0):,}</b>")
-        lines.append(f"بياض: <b>{int(bayad_after or 0):,}</b>")
+        lines.append(f"تسمين: {int(tasmeen_after or 0):,} · بياض: {int(bayad_after or 0):,}")
         lines.append("")
-        lines.append(f"<b>الحضور ({len(attendees)})</b>")
+        lines.append(f"— الحضور ({len(attendees)}) —")
         if attendees:
-            for i, p in enumerate(attendees, 1):
+            for idx, p in enumerate(attendees, 1):
                 farm_lbl = "تسمين" if p["farm"] == "tasmeen" else ("بياض" if p["farm"] == "bayad" else "—")
                 extra_lbl = " (إضافي)" if p["extra"] else ""
                 r = money_map.get(p["id"])
                 money_lbl = f"{_money_k(r['money']):,} ج" if r else "—"
-                lines.append(f"{i}. {_esc_html(p['full_name'])} — {farm_lbl}{extra_lbl} — {money_lbl}")
+                lines.append(f"{idx}. {_esc_html(p['full_name'])} — {farm_lbl}{extra_lbl} — {money_lbl}")
         else:
             lines.append("مفيش حضور مسجّل اليوم.")
         total_money = sum((r["money"] for r in day_rows), 0)
         lines.append("")
-        lines.append("——————————————")
-        lines.append(f"إجمالي فلوس اليوم لكل الفريق: <b>{_money_k(total_money):,} ج</b>")
+        lines.append(f"إجمالي فلوس اليوم للفريق: <b>{_money_k(total_money):,} ج</b>")
         _send_telegram_message("\n".join(lines))
     except Exception as e:
         # مش هنكسر عملية إغلاق اليوم لو تليجرام فشل لأي سبب
