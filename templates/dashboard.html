@@ -1,43 +1,6 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<!-- ============ HERO ============ -->
-<section class="v2-hero">
-  <div class="v2-hero-aurora" aria-hidden="true"></div>
-  <div class="v2-hero-grain" aria-hidden="true"></div>
-
-  <div class="v2-hero-top">
-    <span class="v2-eyebrow">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25"/></svg>
-      <span>{{ today }}</span>
-    </span>
-    {% if checked_in %}
-      <span class="v2-pill v2-pill-on"><i></i>حاضر</span>
-    {% else %}
-      <span class="v2-pill v2-pill-off"><i></i>لم تسجّل</span>
-    {% endif %}
-  </div>
-
-  <h1 class="v2-hello">
-    مرحباً،
-    <span class="v2-name">{{ current_user.full_name }}</span>
-  </h1>
-  <p class="v2-hello-sub">ابدأ يومك بذكر الله وصلِّ على النبي محمد ﷺ</p>
-
-  <div class="v2-hero-stats">
-    <div class="v2-hstat">
-      <div class="v2-hstat-num" data-countup="{{ present_count }}">0</div>
-      <div class="v2-hstat-lbl">الحاضرون</div>
-    </div>
-    <div class="v2-hstat-sep"></div>
-    <div class="v2-hstat">
-      <div class="v2-hstat-num v2-gold" data-countup="{{ team_total }}">0</div>
-      <div class="v2-hstat-lbl">{% if day_closed and my_farm_label %}إجمالي {{ my_farm_label }}{% else %}إجمالي اليوم{% endif %}</div>
-    </div>
-  </div>
-</section>
-
-
 <!-- ============ PROMO CAROUSEL ============ -->
 <div class="v2-promo v2-fade" style="--i:0" id="v2Promo">
   <div class="v2-promo-track" id="v2PromoTrack">
@@ -123,6 +86,44 @@
     });
   })();
 </script>
+
+
+<!-- ============ HERO ============ -->
+<section class="v2-hero">
+  <div class="v2-hero-aurora" aria-hidden="true"></div>
+  <div class="v2-hero-grain" aria-hidden="true"></div>
+
+  <div class="v2-hero-top">
+    <span class="v2-eyebrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25"/></svg>
+      <span>{{ today }}</span>
+    </span>
+    {% if checked_in %}
+      <span class="v2-pill v2-pill-on"><i></i>حاضر</span>
+    {% else %}
+      <span class="v2-pill v2-pill-off"><i></i>لم تسجّل</span>
+    {% endif %}
+  </div>
+
+  <h1 class="v2-hello">
+    مرحباً،
+    <span class="v2-name">{{ current_user.full_name }}</span>
+  </h1>
+  <p class="v2-hello-sub">ابدأ يومك بذكر الله وصلِّ على النبي محمد ﷺ</p>
+
+  <div class="v2-hero-stats">
+    <div class="v2-hstat">
+      <div class="v2-hstat-num" data-countup="{{ present_count }}">0</div>
+      <div class="v2-hstat-lbl">الحاضرون</div>
+    </div>
+    <div class="v2-hstat-sep"></div>
+    <div class="v2-hstat">
+      <div class="v2-hstat-num v2-gold" data-countup="{{ team_total }}">0</div>
+      <div class="v2-hstat-lbl">{% if day_closed and my_farm_label %}إجمالي {{ my_farm_label }}{% else %}إجمالي اليوم{% endif %}</div>
+    </div>
+  </div>
+</section>
+
 
 
 {% if day_closed %}

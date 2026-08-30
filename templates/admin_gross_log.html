@@ -69,7 +69,7 @@
     <div class="gl-row" style="flex-wrap:wrap;">
       <div class="gl-body" style="flex:1 1 60%;">
         <div class="gl-nd">{{ '{:,}'.format(p.total) }} <span>بدون خصم</span></div>
-        <div class="gl-tot">{{ p.label }} · {{ p.days }} يوم</div>
+        <div class="gl-tot">{{ p.label }}</div>
       </div>
       <form method="post" action="{{ url_for('admin_gross_clear_period') }}"
             onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة نهائيًا.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير هذه المدة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
