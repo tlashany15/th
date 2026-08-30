@@ -87,6 +87,39 @@ def weekday_ar(value):
 
 app.jinja_env.filters["weekday_ar"] = weekday_ar
 
+
+def money_k(value):
+    """
+    نفس طريقة رسالة تليجرام بالظبط: بنشيل آخر ٣ أرقام من المبلغ.
+    مثال: 1,004,905 → 1,004 — والصفر يفضل صفر.
+    """
+    try:
+        return "{:,}".format(int(float(value or 0)) // 1000)
+    except (TypeError, ValueError):
+        return "0"
+
+
+def money_k_raw(value):
+    """نفس الحساب بس بيرجّع رقم (للعدّاد المتحرك)."""
+    try:
+        return int(float(value or 0)) // 1000
+    except (TypeError, ValueError):
+        return 0
+
+
+def nice_num(value):
+    """يشيل الكسور الزايدة: 250.0 → 250 و 250.5 تفضل 250.5"""
+    try:
+        f = float(value or 0)
+    except (TypeError, ValueError):
+        return "0"
+    return "{:,}".format(int(f)) if f == int(f) else "{:,.2f}".format(f)
+
+
+app.jinja_env.filters["nice_num"] = nice_num
+app.jinja_env.filters["money_k"] = money_k
+app.jinja_env.filters["money_k_raw"] = money_k_raw
+
 _BOOTSTRAP_DB_URL = os.environ.get("DATABASE_URL", "")
 DATABASE_URL = _BOOTSTRAP_DB_URL  # للتوافق مع أي استخدام قديم
 _ACTIVE_DB_URL_CACHE = None  # يتخزّن بعد أول قراءة
