@@ -229,3 +229,196 @@ body{ background-image:none !important; }
   display:grid; place-items:center; box-shadow:0 0 0 2px #fff; line-height:1;
 }
 .container{ padding-bottom:96px !important; }
+
+/* ==========================================================================
+   ✦ REFRESH v2 — طبقة تحسين بصري شامل فوق كل شيء
+   نظام أعمق: عناب فاخر + عنبري دافئ + أسطح كريمية ناعمة + ظلال ملوّنة
+   حواف أنعم، إضاءات لامعة على الأزرار، خلفيات مركّبة، حركة أرقى.
+   ========================================================================== */
+:root{
+  /* لوحة أغنى فوق الأساس الأحمر: عناب عميق + عنبري فاخر للتمييز */
+  --r-deep:#8a0f1c; --r-mid:#e11d2e; --r-hi:#ff5468; --r-glow:#ffb199;
+  --amber:#c8791a; --amber-2:#e8a23c; --amber-soft:rgba(200,121,26,.12);
+  --paper:#fffdfb; --paper-2:#faf6f1;
+
+  --accent: var(--r-mid);
+  --grad-accent: linear-gradient(150deg, var(--r-hi) 0%, var(--r-mid) 48%, var(--r-deep) 100%);
+  --grad-gold: linear-gradient(150deg, var(--amber-2) 0%, var(--amber) 100%);
+  --grad-surface: linear-gradient(175deg, #ffffff 0%, var(--paper-2) 100%);
+
+  --bg-0: var(--paper);
+  --card: #ffffff;
+  --line: rgba(20,10,10,.08);
+  --line-strong: rgba(20,10,10,.15);
+
+  /* ظلال بلمسة لون بدل الرمادي البحت — عمق أكثر دفئًا وفخامة */
+  --sh-1: 0 1px 2px rgba(60,10,15,.06);
+  --sh-2: 0 12px 28px -18px rgba(60,10,15,.30), 0 2px 6px -2px rgba(60,10,15,.10);
+  --sh-3: 0 30px 64px -28px rgba(60,10,15,.38), 0 6px 16px -6px rgba(60,10,15,.14);
+  --sh-glow: 0 18px 38px -16px rgba(225,29,46,.48);
+
+  --r-xs: 10px; --r-sm: 14px; --r-md: 18px; --r-lg: 24px; --r-xl: 30px;
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-smooth: cubic-bezier(.22,.61,.36,1);
+}
+
+/* ---------- خلفية مركّبة هادئة على مستوى التطبيق كله ---------- */
+html, body{ background:var(--paper) !important; }
+body{
+  background:
+    radial-gradient(820px 480px at 108% -8%, rgba(225,29,46,.07), transparent 60%),
+    radial-gradient(680px 460px at -10% 6%, rgba(200,121,26,.055), transparent 58%),
+    radial-gradient(900px 700px at 50% 115%, rgba(225,29,46,.045), transparent 55%),
+    var(--paper) !important;
+  background-attachment:fixed !important;
+}
+
+/* ---------- بطاقات: حافة علوية متدرجة رفيعة + عمق أدفأ ---------- */
+.card, .panel, .sheet, .box, .v2-action, .v2-qcard, .v2-closed, .bd-goal, .bd-kpi, .bd-team, .bd-q{
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--sh-2) !important;
+  border-color: var(--line) !important;
+  position:relative;
+  transition: transform .28s var(--ease-smooth), box-shadow .28s var(--ease-smooth), border-color .2s ease;
+}
+.card:hover, .panel:hover, .bd-q:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--sh-3) !important;
+  border-color: var(--line-strong) !important;
+}
+a.card:active, .card.is-tappable:active, .tile:active, .bd-q:active{ transform:scale(.985); }
+
+/* ---------- أزرار: تدرّج أعمق + بريق يمرّ عند التحويم ---------- */
+.btn, button.btn, a.btn{
+  border-radius: var(--r-sm) !important;
+  font-weight: 800 !important;
+  letter-spacing: -.1px;
+  transition: transform .18s var(--ease-spring), box-shadow .22s ease, filter .18s ease !important;
+}
+.btn-primary, .btn.primary, .btn-accent{
+  background: var(--grad-accent) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: var(--sh-glow) !important;
+  position: relative; overflow: hidden;
+}
+.btn-primary::before, .btn.primary::before, .btn-accent::before{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.35) 48%, transparent 66%);
+  background-size: 220% 100%; background-position: 140% 0;
+  transition: background-position .55s var(--ease-smooth);
+  pointer-events:none;
+}
+.btn-primary:hover::before, .btn.primary:hover::before, .btn-accent:hover::before{ background-position:-40% 0; }
+.btn-primary:hover, .btn.primary:hover, .btn-accent:hover{ filter:brightness(1.04); transform:translateY(-1px); box-shadow:0 22px 42px -18px rgba(225,29,46,.55) !important; }
+.btn-primary:active, .btn.primary:active, .btn-accent:active{ transform:scale(.97) translateY(0); }
+.btn-ghost, .btn.secondary{ border:1.5px solid var(--line-strong) !important; background:#fff !important; }
+.btn-ghost:hover{ background:var(--paper-2) !important; border-color:var(--accent-line) !important; }
+
+/* ---------- الحقول: تركيز أدفأ وأوضح ---------- */
+.field input, .field select, .field textarea, .modal-input, input, select, textarea{
+  border-radius: var(--r-sm) !important;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease !important;
+}
+.field input:focus, .field select:focus, .field textarea:focus, .modal-input:focus, input:focus, select:focus, textarea:focus{
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px var(--accent-soft) !important;
+}
+
+/* ---------- تنبيهات: شارة أيقونة مستديرة ولون أهدأ ---------- */
+.flash{
+  border-radius: var(--r-md) !important;
+  border-width: 1px !important;
+  padding: 13px 15px !important;
+  box-shadow: var(--sh-1);
+}
+.flash svg{ background:rgba(0,0,0,.05); border-radius:50%; padding:3px; box-sizing:content-box; }
+.flash.error svg{ background:rgba(225,29,46,.12); }
+.flash.success svg{ background:rgba(15,157,88,.12); }
+
+/* ==========================================================================
+   شاشات الدخول / التسجيل — لمسة فاخرة
+   ========================================================================== */
+.auth-wrap{
+  position:relative; overflow:hidden;
+  background:
+    radial-gradient(640px 520px at 100% -6%, rgba(225,29,46,.14), transparent 62%),
+    radial-gradient(560px 480px at 0% 104%, rgba(200,121,26,.10), transparent 60%),
+    var(--paper) !important;
+}
+.auth-wrap::before, .auth-wrap::after{
+  content:""; position:absolute; width:340px; height:340px; border-radius:50%;
+  filter:blur(60px); opacity:.35; pointer-events:none; z-index:0;
+  animation: auth-float 9s ease-in-out infinite;
+}
+.auth-wrap::before{ background:radial-gradient(circle,var(--r-hi),transparent 70%); top:-120px; inset-inline-end:-100px; }
+.auth-wrap::after{ background:radial-gradient(circle,var(--amber-2),transparent 70%); bottom:-140px; inset-inline-start:-100px; animation-delay:-4.5s; }
+@keyframes auth-float{ 0%,100%{ transform:translateY(0) scale(1); } 50%{ transform:translateY(-22px) scale(1.06); } }
+
+.auth-card{ position:relative; z-index:1; animation: auth-rise .55s var(--ease-smooth) both; }
+@keyframes auth-rise{ from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:translateY(0); } }
+
+.auth-logo{
+  background: var(--grad-accent) !important;
+  border: none !important;
+  box-shadow: 0 20px 40px -16px rgba(225,29,46,.55) !important;
+  animation: logo-pulse 3.2s ease-in-out infinite;
+}
+@keyframes logo-pulse{ 0%,100%{ box-shadow:0 20px 40px -16px rgba(225,29,46,.55); } 50%{ box-shadow:0 24px 50px -14px rgba(225,29,46,.72); } }
+.auth-title{
+  background: var(--grad-accent);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font-weight: 900 !important;
+}
+.auth-card .card{ border-radius: var(--r-xl) !important; padding: 22px !important; backdrop-filter: blur(6px); }
+
+/* ---------- أزرار التواصل: زجاج لامع ---------- */
+.contact-btn{
+  border-radius: var(--r-md) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  position: relative; overflow:hidden;
+}
+.contact-btn::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.28), transparent 55%);
+  pointer-events:none;
+}
+
+/* ==========================================================================
+   شريط التنقل السفلي — زجاج أعمق
+   ========================================================================== */
+.bottom-nav{
+  border-radius: var(--r-xl) !important;
+  background: rgba(255,255,255,.85) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  box-shadow: 0 -1px 0 rgba(255,255,255,.6) inset, 0 20px 46px -20px rgba(60,10,15,.35) !important;
+}
+.bottom-nav a.active::before{
+  background: var(--accent-soft) !important;
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+/* ==========================================================================
+   لوحة القيادة — تعزيز الفخامة
+   ========================================================================== */
+.bd-att{
+  background: linear-gradient(150deg, var(--r-hi) 0%, var(--r-mid) 45%, var(--r-deep) 100%) !important;
+  border-radius: var(--r-xl) !important;
+}
+.bd-goal, .bd-kpi, .bd-team, .bd-q{ border-radius: var(--r-lg) !important; }
+.bd-kpi::after{ background: var(--grad-gold) !important; }
+.bd-kpi-lbl svg{ color: var(--amber) !important; }
+.bd-head span{ color: var(--r-mid) !important; }
+.bd-goal-bars i.on{ background: var(--grad-accent) !important; }
+.bd-q-solid{ background: var(--grad-accent) !important; box-shadow: var(--sh-glow) !important; }
+
+/* ---------- تفاصيل عامة: تحديد نص وسكرول أنعم ---------- */
+::selection{ background: var(--accent-soft); color: var(--ink); }
+::-webkit-scrollbar-thumb{ background: rgba(20,10,10,.14) !important; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible{
+  outline: 2px solid var(--r-mid) !important; outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .auth-wrap::before, .auth-wrap::after, .auth-logo, .btn-primary::before{ animation:none !important; }
+}
