@@ -1147,47 +1147,10 @@ def dashboard():
                    WHERE v.user_id=%s ORDER BY v.created_at DESC LIMIT 5""",
                 (u["id"],))
     recent = cur.fetchall()
-
-    # ---- الفريق النشط النهارده (كل الحضور بأي عزبة) ----
-    cur.execute("""
-        SELECT u.id, u.full_name, u.avatar, a.farm, a.extra
-        FROM attendance a JOIN users u ON u.id = a.user_id
-        WHERE a.day=%s ORDER BY a.farm, u.full_name
-    """, (today,))
-    active_team = [{
-        "id": r["id"],
-        "full_name": r["full_name"],
-        "avatar": r["avatar"],
-        "extra": bool(r["extra"]),
-        "farm_label": _farm_label(r["farm"]) or "—",
-    } for r in cur.fetchall()]
-
-    # ---- نصيبي هذا الشهر (أيام + فلوس بالألف) ----
-    m_start = date.today().replace(day=1).isoformat()
-    my_month_days = 0
-    my_month_money_k = 0
-    try:
-        cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE user_id=%s AND day BETWEEN %s AND %s",
-                    (u["id"], m_start, today))
-        my_month_days = int(cur.fetchone()["c"] or 0)
-        _rows = _compute_shares_range(cur, m_start, today)
-        _mine = next((r for r in _rows if r["id"] == u["id"]), None)
-        if _mine:
-            my_month_money_k = _money_k(_mine["money"])
-    except Exception as _e:
-        print("dashboard month share error:", _e)
-
     cur.close()
-
-    # ---- نسبة إنجاز الهدف اليومي (الحلقة المتحركة) ----
-    day_goal = int(os.environ.get("DAY_GOAL", "5000") or 5000)
-    goal_pct = 0
-    if day_goal > 0:
-        goal_pct = max(0, min(100, int(round(int(my_total or 0) * 100.0 / day_goal))))
 
     return render_template(
         "dashboard.html",
-        today=today,
         checked_in=checked_in,
         my_total=my_total,
         team_total=team_total,
@@ -1196,11 +1159,6 @@ def dashboard():
         day_closed=closed,
         present_list=present_list,
         my_farm_label=_farm_label(my_farm),
-        active_team=active_team,
-        my_month_days=my_month_days,
-        my_month_money_k=my_month_money_k,
-        day_goal=day_goal,
-        goal_pct=goal_pct,
     )
 
 
@@ -1947,13 +1905,13 @@ def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_ded
                 farm_lbl = "تسمين" if p["farm"] == "tasmeen" else ("بياض" if p["farm"] == "bayad" else "—")
                 extra_lbl = " (إضافي)" if p["extra"] else ""
                 r = money_map.get(p["id"])
-                money_lbl = f"{_money_k(r['money']):,} ألف ج" if r else "—"
+                money_lbl = f"{_money_k(r['money']):,} ج" if r else "—"
                 lines.append(f"{idx}. {_esc_html(p['full_name'])} — {farm_lbl}{extra_lbl} — {money_lbl}")
         else:
             lines.append("مفيش حضور مسجّل اليوم.")
         total_money = sum((r["money"] for r in day_rows), 0)
         lines.append("")
-        lines.append(f"إجمالي فلوس اليوم للفريق: <b>{_money_k(total_money):,} ألف ج</b>")
+        lines.append(f"إجمالي فلوس اليوم للفريق: <b>{_money_k(total_money):,} ج</b>")
         _send_telegram_message("\n".join(lines))
     except Exception as e:
         # مش هنكسر عملية إغلاق اليوم لو تليجرام فشل لأي سبب
@@ -1983,14 +1941,14 @@ def _send_period_telegram_report(cur, s_iso, e_iso, label, rows=None):
         lines.append(f"📊 <b>تقرير حساب {_esc_html(label)}</b>")
         lines.append("")
         lines.append(f"الإجمالي بدون خصم في المدة: <b>{no_deduct_total:,}</b>")
-        lines.append(f"إجمالي كتاكيت الفريق: <b>{total_chicks:,}</b> × {CHICK_PRICE} = <b>{_money_k(total_money):,} ألف ج</b>")
+        lines.append(f"إجمالي كتاكيت الفريق: <b>{total_chicks:,}</b> × {CHICK_PRICE} = <b>{total_money:,} ج</b>")
         lines.append("")
         lines.append("👷 <b>حساب كل واحد:</b>")
         if active:
             for r in active:
                 lines.append(
                     f"• {_esc_html(r['full_name'])} — {r['days']} يوم — "
-                    f"{r['chicks']:,} × {CHICK_PRICE} = <b>{_money_k(r['money']):,} ألف ج</b>"
+                    f"{r['chicks']:,} × {CHICK_PRICE} = <b>{r['money']:,} ج</b>"
                 )
         else:
             lines.append("مفيش حساب مسجّل في المدة دي.")
@@ -4434,25 +4392,6 @@ def _notify_users(user_ids, title, body, url="", type_="general", push=True):
     cur.close()
     return result
 
-
-
-@app.route("/api/chats/unread")
-@login_required
-def api_chats_unread():
-    """إجمالي الرسايل غير المقروءة (فردية + مجموعة) — بادج تبويب الدردشة."""
-    u = current_user()
-    db = get_db(); cur = db.cursor()
-    cur.execute("SELECT COUNT(*) AS c FROM chat_messages WHERE receiver_id=%s AND read_at IS NULL",
-                (u["id"],))
-    direct = int(cur.fetchone()["c"] or 0)
-    cur.execute("SELECT last_read_id FROM group_reads WHERE user_id=%s", (u["id"],))
-    gr = cur.fetchone()
-    last_read_id = gr["last_read_id"] if gr else 0
-    cur.execute("SELECT COUNT(*) AS c FROM group_messages WHERE id > %s AND deleted=FALSE AND sender_id <> %s",
-                (last_read_id, u["id"]))
-    group = int(cur.fetchone()["c"] or 0)
-    cur.close()
-    return jsonify({"count": direct + group, "direct": direct, "group": group})
 
 
 @app.route("/api/notifications/unread")
