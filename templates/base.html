@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#070b10">
-  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="تحصين الكتاكيت">
   <title>{% block title %}فريق تحصين الكتاكيت{% endblock %}</title>
 
@@ -22,7 +22,7 @@
 
   <style>
     /* خلفية مبدئية قبل تحميل أي CSS — تمنع الشاشة البيضاء */
-    html { background:#070b10; color:#eef3f6; }
+    html { background:#ffffff; color:#0b0d12; }
   </style>
 
   {# ===== أوراق التصميم: أساس ← ترقيعات قديمة ← وحدات الصفحات ← نظام التصميم ===== #}
@@ -30,6 +30,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/legacy-patches.css') }}?v={{ ASSET_VER }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/modules.css') }}?v={{ ASSET_VER }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}?v={{ ASSET_VER }}">
+  {# ===== هوية نهارية جريئة (أبيض + أحمر + حبر) — آخر طبقة ===== #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bold-day.css') }}?v={{ ASSET_VER }}">
 
   <style id="uf-scroll-guard">
     /* حارس التمرير — يضمن حركة الصفحة لأعلى وأسفل داخل WebView */
@@ -48,7 +50,7 @@
     }
     html, body, input, textarea, select, button, .container, .card, .kpi, .kpi-v, .tl, .tl-num,
     .tl-tnum, .hero-h1, .settle-v, .adj-amt, .adj-day, .mini-chip{
-      font-family:'ForceLatinDigits', 'Alexandria', 'Cairo', 'IBM Plex Sans Arabic', system-ui,
+      font-family:'ForceLatinDigits', 'Cairo', 'IBM Plex Sans Arabic', system-ui,
                   -apple-system, 'Segoe UI', Roboto, sans-serif !important;
     }
   </style>
