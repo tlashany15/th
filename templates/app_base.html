@@ -186,7 +186,7 @@
 
 <!-- BOTTOM NAV -->
 {% if current_user %}
-<nav class="bottom-nav bottom-nav-5 bd-tabs">
+<nav class="bottom-nav bottom-nav-5">
 
   <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint in ['dashboard','check_in'] %}active{% endif %}">
     {{ snav_icon('dashboard') }}
@@ -205,7 +205,6 @@
   <a href="{{ url_for('chats_list') }}" class="{% if request.endpoint in ['chats_list','chat_room','group_room'] %}active{% endif %}">
     {{ snav_icon('chat') }}
     دردشة
-    <span class="bd-badge" id="chatTabBadge" hidden>0</span>
   </a>
   {% if current_user.role == 'admin' %}
   <a href="{{ url_for('admin_profile') }}" class="{% if request.endpoint == 'admin_profile' %}active{% endif %}">
@@ -261,21 +260,6 @@
   }
   refresh();
   setInterval(refresh, 25000);
-
-  // بادج الدردشة في شريط التبويبات العائم
-  var chatBadge = document.getElementById('chatTabBadge');
-  function refreshChat(){
-    if (!chatBadge) return;
-    fetch('/api/chats/unread', {credentials:'same-origin'})
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        var c = j.count || 0;
-        if (c > 0){ chatBadge.hidden = false; chatBadge.textContent = c > 99 ? '99+' : c; }
-        else { chatBadge.hidden = true; }
-      }).catch(function(){});
-  }
-  refreshChat();
-  setInterval(refreshChat, 25000);
 
   // جسر توكن FCM: في Sketchware Pro يضيف WebView.addJavascriptInterface باسم AndroidFCM
   // فيه دالة getToken() ترجع توكن Firebase. الويب يبعته للسيرفر.
