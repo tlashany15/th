@@ -1,28 +1,14 @@
 {% extends "app_base.html" %}
-
-{% block head_extra %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
-{% endblock %}
-
 {% block content %}
 <div class="nt-page">
 
-  <section class="cp-stage">
-    <div class="cp-stage-top">
-      <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> مركز الإشعارات</span>
-      <span class="cp-clock">{{ today[8:] }}/{{ today[5:7] }}/{{ today[:4] }}</span>
-    </div>
-    <h1 class="cp-title">إرسال إشعار</h1>
-    <p class="cp-subtitle">ابعت تنبيه فوري لقسم كامل أو لعمال محددين.</p>
-    <div class="cp-stage-body">
-      <div class="cp-stage-side">
-        <div class="cp-side-v">{{ users|length }}</div>
-        <div class="cp-side-l">مستخدم يقدر يوصله الإشعار</div>
-      </div>
-    </div>
+  <section class="nt-hero">
+    <span class="nt-hero-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 11-6 0"/></svg>
+      مركز الإشعارات
+    </span>
+    <h1 class="nt-hero-t">إرسال إشعار</h1>
+    <p class="nt-hero-s">ابعت تنبيه فوري لقسم كامل أو لعمال محددين.</p>
   </section>
 
   <form method="post" action="{{ url_for('admin_notify') }}" class="nt-card">

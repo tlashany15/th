@@ -88,19 +88,28 @@
 
     <div class="snav-group">اليومي</div>
     <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية (الحضور)</span></a>
+
+
+
     <a href="{{ url_for('admin_close_page', day=nav_day) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
 
     <div class="snav-group">السجلات والتقارير</div>
-    <a href="{{ url_for('admin_gross_log') }}"><span class="snav-ico">{{ snav_icon('wallet') }}</span><span>السجل</span></a>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>الأعداد</span></a>
     <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>التقارير</span></a>
 
     <div class="snav-group">التواصل</div>
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
     <a href="{{ url_for('admin_notify') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></span><span>إرسال إشعار</span></a>
+    <a href="{{ url_for('admin_notes') }}"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظاتي</span></a>
 
-    <div class="snav-group">الإعدادات</div>
-    <a href="{{ url_for('admin_settings') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg></span><span>الإعدادات</span></a>
+    {% if is_super_admin %}
+    <div class="snav-group">إدارة النظام</div>
+    <a href="{{ url_for('admin_users') }}"><span class="snav-ico">{{ snav_icon('users') }}</span><span>إدارة المستخدمين</span></a>
+    <a href="{{ url_for('admin_storage') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/></svg></span><span>إدارة المساحة</span></a>
+    {% endif %}
+
+    <div class="snav-group">حسابي</div>
+    <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
     {% else %}
     <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية</span></a>
     <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>اجمالي اعداد المده</span></a>
@@ -183,17 +192,10 @@
     {{ snav_icon('dashboard') }}
     الحضور
   </a>
-  {% if current_user.role == 'admin' %}
-  <a href="{{ url_for('admin_gross_log') }}" class="{% if request.endpoint == 'admin_gross_log' %}active{% endif %}">
-    {{ snav_icon('wallet') }}
-    السجل
-  </a>
-  {% else %}
   <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}">
     {{ snav_icon('history') }}
     السجل
   </a>
-  {% endif %}
   <a href="{{ url_for('muslim_page') }}" class="bn-muslim {% if request.endpoint == 'muslim_page' %}active{% endif %}">
     <span class="bn-muslim-orb" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg>
@@ -205,9 +207,9 @@
     دردشة
   </a>
   {% if current_user.role == 'admin' %}
-  <a href="{{ url_for('admin_settings') }}" class="{% if request.endpoint in ['admin_settings','admin_profile','admin_users','admin_storage','admin_notes'] %}active{% endif %}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
-    الإعدادات
+  <a href="{{ url_for('admin_profile') }}" class="{% if request.endpoint == 'admin_profile' %}active{% endif %}">
+    {{ snav_icon('profile') }}
+    حسابي
   </a>
   {% else %}
   <a href="{{ url_for('worker_profile') }}" class="{% if request.endpoint == 'worker_profile' %}active{% endif %}">

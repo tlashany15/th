@@ -1,44 +1,48 @@
 {% extends "app_base.html" %}
-
-{% block head_extra %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
-{% endblock %}
-
 {% block content %}
 {% with tab = 'gross' %}{% include '_tabs_counts.html' %}{% endwith %}
 
-<!-- شريط مصغّر بدل الهيرو الكبير — الصفحة دي غرضها الكثافة المعلوماتية -->
-<div class="cp-bar-mini">
-  <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> سجل مرجعي</span>
-  <span class="cp-clock">للمراجعة فقط — مش داخلة في التوزيع</span>
-</div>
+<section class="hero-admin">
+  <div class="hero-mesh"></div>
+  <div class="hero-row">
+    <div>
+      <span class="hero-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/></svg>
+        دفتر الأستاذ
+      </span>
+      <p class="hero-sub">سجل مرجعي بدون خصم — للمراجعة فقط، مش داخلة في التوزيع.</p>
+    </div>
+  </div>
+</section>
 
 <!-- ==== المدة الحالية ==== -->
-<div class="card">
+<div class="card gl2-card">
   <div class="sec-head">
     <div class="sec-h-l">
-      <div class="sec-h-ico sec-h-ico-blue">
+      <div class="sec-h-ico sec-h-ico-gold">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
       </div>
       <div>
-        <div class="sec-h-t">المدة الحالية — بدون خصم</div>
+        <div class="sec-h-t">المدة الحالية</div>
         <div class="sec-h-s">{{ current_period.label }}</div>
       </div>
     </div>
-  </div>
-  <div class="kpi-grid kpi-grid-2">
-    <div class="kpi kpi-gold">
-      <div class="kpi-v">{{ '{:,}'.format(current_period.total) }}</div>
-      <div class="kpi-l">إجمالي بدون خصم (المدة الحالية)</div>
+    {% if rows %}
+    <div class="gl2-spark" aria-hidden="true">
+      {% set recent = rows[:14]|reverse|list %}
+      {% set peak = (recent|map(attribute='no_deduct_total')|max) or 1 %}
+      {% for r in recent %}
+      <i style="height:{{ ((r.no_deduct_total or 0) / (peak if peak else 1) * 100)|round(0,'ceil')|int if peak else 4 }}%{% if loop.last %};background:var(--gold){% endif %}"></i>
+      {% endfor %}
     </div>
-    <div class="kpi kpi-blue">
-      <div class="kpi-v">{{ current_period.days }}</div>
-      <div class="kpi-l">عدد الأيام</div>
-    </div>
+    {% endif %}
   </div>
+
+  <div class="gl2-total-row">
+    <div class="gl2-total-v">{{ '{:,}'.format(current_period.total) }}<span>بدون خصم</span></div>
+    <div class="gl2-total-days">{{ current_period.days }}<span>يوم مسجَّل</span></div>
+  </div>
+
   {% if current_period.total > 0 %}
   <form method="post" action="{{ url_for('admin_gross_clear_period') }}" class="gl-clear-form"
         onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير عمود (بدون خصم) لأيام هذه المدة نهائيًا بدون أرشيف.',{title:'تصفير أعداد بدون خصم للمدة الحالية؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير أعداد بدون خصم للمدة الحالية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
@@ -52,9 +56,16 @@
   {% endif %}
 </div>
 
+<!-- ==== إجمالي عام ==== -->
+<div class="gl2-grand">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
+  <span>الإجمالي منذ بداية السجل</span>
+  <b>{{ '{:,}'.format(grand) }}</b>
+</div>
+
 <!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
 {% if past_periods %}
-<div class="card">
+<div class="card gl2-card">
   <div class="sec-head">
     <div class="sec-h-l">
       <div class="sec-h-ico">
@@ -66,19 +77,22 @@
       </div>
     </div>
   </div>
-  <div class="gl-list">
+  <div class="gl2-ledger">
     {% for p in past_periods %}
-    <div class="gl-row" style="flex-wrap:wrap;">
-      <div class="gl-body" style="flex:1 1 60%;">
-        <div class="gl-nd">{{ '{:,}'.format(p.total) }} <span>بدون خصم</span></div>
-        <div class="gl-tot">{{ p.label }}</div>
+    <div class="gl2-lrow">
+      <div class="gl2-lrow-l">
+        <div class="gl2-lrow-label">{{ p.label }}</div>
+        <div class="gl2-lrow-days">{{ p.days }} يوم</div>
       </div>
+      <div class="gl2-lrow-v">{{ '{:,}'.format(p.total) }}</div>
       <form method="post" action="{{ url_for('admin_gross_clear_period') }}"
             onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة نهائيًا.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير هذه المدة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
         <input type="hidden" name="year"  value="{{ p.year }}">
         <input type="hidden" name="month" value="{{ p.month }}">
         <input type="hidden" name="half"  value="{{ p.half }}">
-        <button type="submit" class="btn btn-danger" style="padding:6px 12px;font-size:12px;"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تصفير</button>
+        <button type="submit" class="gl2-lrow-clear" aria-label="تصفير">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
       </form>
     </div>
     {% endfor %}
@@ -86,8 +100,8 @@
 </div>
 {% endif %}
 
-
-<div class="card">
+<!-- ==== سجل الأيام (دفتر) ==== -->
+<div class="card gl2-card">
   <div class="sec-head">
     <div class="sec-h-l">
       <div class="sec-h-ico sec-h-ico-blue">
@@ -95,50 +109,87 @@
       </div>
       <div>
         <div class="sec-h-t">سجل الأيام</div>
-        <div class="sec-h-s">أحدث 365 يوم</div>
+        <div class="sec-h-s">أحدث 365 يوم — الأعلى يوميًا في أعلى القايمة</div>
       </div>
     </div>
+    {% if rows %}<div class="gl2-count">{{ rows|length }} يوم</div>{% endif %}
   </div>
 
   {% if rows %}
-    {% set _nd_values = rows|map(attribute='no_deduct_total')|select('number')|list %}
-    {% set _max_nd = (_nd_values + [0])|max %}
-    <div class="cp-telemetry">
-      {% for r in rows %}
-      {% set _rday = r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day %}
-      {% set _h = ((r.no_deduct_total or 0) * 100 / _max_nd) if _max_nd > 0 else 0 %}
-      {% if _rday == today %}
-      <div class="cp-day-sep">اليوم</div>
-      {% elif loop.first and _rday != today %}
-      <div class="cp-day-sep">{{ _rday[:7] }}</div>
-      {% elif not loop.first and _rday[:7] != (rows[loop.index0-1].day.isoformat() if rows[loop.index0-1].day.__class__.__name__ != 'str' else rows[loop.index0-1].day)[:7] %}
-      <div class="cp-day-sep">{{ _rday[:7] }}</div>
-      {% endif %}
-      <div class="cp-t-row">
-        <div class="cp-t-bar"><span style="height: {{ _h|round(0) }}%"></span></div>
-        <div class="cp-t-body">
-          <div class="cp-t-main">{{ _rday[8:] }}/{{ _rday[5:7] }} <span>{{ _rday[:4] }}</span></div>
-          <div class="cp-t-sub">إجمالي اليوم: {{ '{:,}'.format(r.total_count or 0) }}</div>
-        </div>
-        <div class="cp-t-val">{{ '{:,}'.format(r.no_deduct_total or 0) }}<small>بدون خصم</small></div>
-      </div>
-      {% endfor %}
-    </div>
+  {% set peak_all = (rows|map(attribute='no_deduct_total')|max) or 1 %}
+  <div class="gl2-table-wrap">
+    <table class="gl2-table">
+      <thead>
+        <tr><th>التاريخ</th><th>بدون خصم</th><th>إجمالي اليوم</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="gl2-td-day">
+            {% set diso = r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day %}
+            {% set dparts = diso.split('-') %}
+            {{ dparts[2] }}/{{ dparts[1] }}/{{ dparts[0] }}
+          </td>
+          <td class="gl2-td-nd">
+            <div class="gl2-cellbar">
+              <i style="width:{{ (((r.no_deduct_total or 0) / (peak_all if peak_all else 1)) * 100)|round(0,'ceil')|int }}%"></i>
+              <b>{{ '{:,}'.format(r.no_deduct_total or 0) }}</b>
+            </div>
+          </td>
+          <td class="gl2-td-tot">{{ '{:,}'.format(r.total_count or 0) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
     <div class="empty">لا توجد أعداد بدون خصم مسجلة بعد.</div>
   {% endif %}
 </div>
 
 <style>
-.gl-list{display:flex;flex-direction:column;gap:8px}
-.gl-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(47,125,255,.06),rgba(255,255,255,.02));border:1px solid rgba(47,125,255,.2)}
-.gl-day{width:54px;flex-shrink:0;text-align:center;padding:8px 4px;border-radius:10px;background:rgba(0,0,0,.25)}
-.gl-day-d{font-weight:800;font-size:18px;color:#fff}
-.gl-day-m{font-size:10px;color:var(--text-3);margin-top:2px}
-.gl-body{flex:1;min-width:0}
-.gl-nd{font-size:20px;font-weight:800;color:#8ec2ff}
-.gl-nd span{font-size:11px;color:var(--text-3);font-weight:600;margin-inline-start:4px}
-.gl-tot{font-size:12px;color:var(--text-3);margin-top:2px}
-.gl-tot strong{color:var(--text-1)}
+.gl2-card{ overflow:visible; }
+
+/* sparkline in header */
+.gl2-spark{ display:flex; align-items:flex-end; gap:3px; height:34px; flex-shrink:0; }
+.gl2-spark i{ width:5px; min-height:3px; border-radius:2px; background:var(--accent); opacity:.55; }
+
+/* current period total row */
+.gl2-total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding:14px 4px 16px; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); margin:6px 0 12px; }
+.gl2-total-v{ font-size:30px; font-weight:900; color:var(--gold-2); line-height:1; }
+.gl2-total-v span{ display:block; font-size:11.5px; font-weight:700; color:var(--text-3); margin-top:6px; }
+.gl2-total-days{ font-size:20px; font-weight:900; color:var(--text); text-align:end; line-height:1; }
+.gl2-total-days span{ display:block; font-size:11px; font-weight:700; color:var(--text-3); margin-top:6px; }
+
+/* grand total strip */
+.gl2-grand{ display:flex; align-items:center; gap:8px; padding:10px 14px; margin-bottom:14px; border-radius:12px; background:rgba(217,177,104,.06); border:1px solid var(--gold-line); font-size:12.5px; color:var(--text-2); font-weight:700; }
+.gl2-grand svg{ width:16px; height:16px; color:var(--gold); flex-shrink:0; }
+.gl2-grand b{ margin-inline-start:auto; font-size:15px; color:var(--gold-2); }
+
+/* past periods ledger rows */
+.gl2-ledger{ display:flex; flex-direction:column; }
+.gl2-lrow{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); }
+.gl2-lrow:last-child{ border-bottom:none; }
+.gl2-lrow-l{ flex:1; min-width:0; }
+.gl2-lrow-label{ font-size:13px; font-weight:700; color:var(--text); }
+.gl2-lrow-days{ font-size:11px; color:var(--text-3); margin-top:2px; }
+.gl2-lrow-v{ font-size:15px; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums; }
+.gl2-lrow-clear{ all:unset; cursor:pointer; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--red-2); background:var(--red-soft); border:1px solid rgba(255,111,117,.25); flex-shrink:0; }
+.gl2-lrow-clear svg{ width:14px; height:14px; }
+
+/* day ledger table */
+.gl2-count{ font-size:11px; font-weight:800; padding:4px 10px; border-radius:999px; background:var(--accent-soft); color:var(--accent-2); border:1px solid var(--accent-line); flex-shrink:0; }
+.gl2-table-wrap{ max-height:520px; overflow-y:auto; border-radius:12px; border:1px solid var(--line); }
+.gl2-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.gl2-table thead th{ position:sticky; top:0; background:var(--surface-2); color:var(--text-3); font-weight:800; font-size:11px; text-align:start; padding:9px 10px; border-bottom:1px solid var(--line-strong); z-index:1; }
+.gl2-table thead th:last-child, .gl2-table thead th:nth-child(2){ text-align:end; }
+.gl2-table tbody td{ padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.gl2-table tbody tr:last-child td{ border-bottom:none; }
+.gl2-table tbody tr:nth-child(even){ background:rgba(255,255,255,.015); }
+.gl2-td-day{ color:var(--text-2); font-weight:700; white-space:nowrap; }
+.gl2-td-tot{ text-align:end; color:var(--text-3); font-weight:700; font-variant-numeric:tabular-nums; }
+.gl2-cellbar{ position:relative; display:flex; align-items:center; justify-content:flex-end; height:20px; }
+.gl2-cellbar i{ position:absolute; inset-inline-start:0; top:2px; bottom:2px; border-radius:4px; background:var(--accent-soft); z-index:0; }
+.gl2-cellbar b{ position:relative; z-index:1; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
 </style>
 {% endblock %}

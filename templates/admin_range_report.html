@@ -1,380 +1,204 @@
 {% extends "app_base.html" %}
-
-{% block head_extra %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
-{% endblock %}
-
 {% block content %}
 {% with tab = 'range' %}{% include '_tabs_reports.html' %}{% endwith %}
 
 <style>
-/* ============ Range Report — Premium UI ============ */
-.rr2-hero{
+/* ============ Range Report — Receipt UI ============ */
+.rc-hero{
   position:relative;overflow:hidden;border-radius:22px;
   padding:20px 18px 22px;margin-bottom:14px;
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(47,125,255,.22), transparent 55%),
-    radial-gradient(120% 140% at 0% 100%, rgba(47,125,255,.14), transparent 55%),
-    linear-gradient(180deg, rgba(15,21,36,.9), rgba(11,15,23,.95));
-  border:1px solid rgba(47,125,255,.22);
-  box-shadow:0 20px 60px -30px rgba(47,125,255,.55), inset 0 1px 0 rgba(255,255,255,.05);
+  background: linear-gradient(180deg, rgba(15,21,36,.9), rgba(11,15,23,.95));
+  border:1px solid var(--gold-line);
 }
-.rr2-hero::before{
-  content:"";position:absolute;inset:-2px;border-radius:24px;pointer-events:none;
-  background:conic-gradient(from 140deg,rgba(47,125,255,.35),transparent 30%,rgba(47,125,255,.22) 60%,transparent 85%);
-  filter:blur(28px);opacity:.55;z-index:0;animation:rr2-orbit 12s linear infinite;
-}
-@keyframes rr2-orbit{to{transform:rotate(360deg)}}
-.rr2-hero > *{position:relative;z-index:1}
-.rr2-badge{
+.rc-badge{
   display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
   padding:6px 12px;border-radius:999px;color:var(--gold-2);
-  background:linear-gradient(180deg,rgba(47,125,255,.16),rgba(47,125,255,.06));
-  border:1px solid rgba(47,125,255,.35);
-  letter-spacing:.3px;
+  background:var(--gold-soft);border:1px solid var(--gold-line);letter-spacing:.3px;
 }
-.rr2-title{font-size:22px;font-weight:900;margin:8px 0 2px;color:var(--text);letter-spacing:-.2px}
-.rr2-sub{font-size:12.5px;color:var(--text-2);opacity:.85;margin:0}
+.rc-hero-sub{font-size:12.5px;color:var(--text-3);margin:10px 0 0}
 
 /* form card */
-.rr2-card{
-  background:var(--grad-surface);
-  border:1px solid rgba(47,125,255,.14);
+.rc-form-card{
+  background:var(--surface-2);border:1px solid var(--line);
   border-radius:20px;padding:16px;margin-bottom:14px;
-  box-shadow:0 12px 40px -24px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.03);
 }
 
 /* segmented target */
-.rr2-seg{
+.rc-seg{
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
-  background:rgba(0,0,0,.35);padding:5px;border-radius:14px;
-  border:1px solid rgba(47,125,255,.12);margin-bottom:12px;
+  background:rgba(0,0,0,.3);padding:5px;border-radius:14px;
+  border:1px solid var(--line);margin-bottom:12px;
 }
-.rr2-seg button{
+.rc-seg button{
   all:unset;text-align:center;cursor:pointer;font-size:12.5px;font-weight:800;
-  padding:10px 8px;border-radius:10px;color:var(--text-2);transition:.25s;
+  padding:10px 8px;border-radius:10px;color:var(--text-2);transition:.2s;
   display:flex;align-items:center;justify-content:center;gap:6px;
 }
-.rr2-seg button svg{width:14px;height:14px}
-.rr2-seg button.active{
-  background:linear-gradient(180deg,var(--gold),var(--gold));color:#0b0d12;
-  box-shadow:0 6px 16px -6px rgba(47,125,255,.6), inset 0 1px 0 rgba(255,255,255,.4);
-}
-.rr2-seg button:not(.active):hover{background:rgba(47,125,255,.06);color:#fff}
+.rc-seg button svg{width:14px;height:14px}
+.rc-seg button.active{ background:var(--accent);color:#04150f; }
+.rc-seg button:not(.active):hover{background:rgba(255,255,255,.04);color:#fff}
 
-/* person picker with search */
-.rr2-person-wrap{position:relative;margin-bottom:12px}
-.rr2-person-wrap.hidden{display:none}
-.rr2-search{
+/* person picker */
+.rc-person-wrap{position:relative;margin-bottom:12px}
+.rc-person-wrap.hidden{display:none}
+.rc-search{
   width:100%;padding:12px 40px 12px 14px;border-radius:14px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(47,125,255,.2);
-  color:#fff;font-size:14px;font-weight:600;outline:none;transition:.2s;
-  box-sizing:border-box;
+  background:rgba(0,0,0,.35);border:1px solid var(--line-strong);
+  color:#fff;font-size:14px;font-weight:600;outline:none;box-sizing:border-box;
 }
-.rr2-search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(47,125,255,.18)}
-.rr2-search-ico{
-  position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%);
-  width:16px;height:16px;color:var(--gold);pointer-events:none;
-}
-.rr2-persons{
+.rc-search:focus{border-color:var(--accent)}
+.rc-search-ico{ position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%); width:16px;height:16px;color:var(--gold);pointer-events:none; }
+.rc-persons{
   margin-top:8px;max-height:220px;overflow:auto;
-  border:1px solid rgba(47,125,255,.14);border-radius:14px;
-  background:rgba(0,0,0,.35);
-  scrollbar-width:thin;scrollbar-color:var(--gold) transparent;
+  border:1px solid var(--line);border-radius:14px; background:rgba(0,0,0,.3);
 }
-.rr2-persons::-webkit-scrollbar{width:6px}
-.rr2-persons::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
-.rr2-person{
-  display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
-  border-bottom:1px solid rgba(47,125,255,.06);transition:.15s;
-}
-.rr2-person:last-child{border-bottom:0}
-.rr2-person:hover{background:rgba(47,125,255,.06)}
-.rr2-person.sel{background:linear-gradient(90deg,rgba(47,125,255,.16),transparent)}
-.rr2-avatar{
+.rc-person{ display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer; border-bottom:1px solid var(--line); }
+.rc-person:last-child{border-bottom:0}
+.rc-person:hover{background:rgba(255,255,255,.03)}
+.rc-person.sel{background:var(--accent-soft)}
+.rc-avatar{
   width:38px;height:38px;flex:0 0 38px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
-  font-weight:900;font-size:14px;color:#0b0d12;
-  background:linear-gradient(135deg,var(--gold),#2f7dff);
-  box-shadow:0 4px 10px -4px rgba(47,125,255,.7);
-  border:2px solid rgba(47,125,255,.35);
-  position:relative;
+  font-weight:900;font-size:14px;color:#04150f;
+  background:linear-gradient(135deg,var(--gold),var(--accent));
+  border:2px solid var(--line-strong);
 }
-.rr2-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-.rr2-pname{flex:1;font-size:13.5px;font-weight:700;color:#fff;min-width:0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rr2-pcheck{width:18px;height:18px;color:var(--gold);opacity:0;transition:.2s;flex-shrink:0}
-.rr2-person.sel .rr2-pcheck{opacity:1}
+.rc-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.rc-pname{flex:1;font-size:13.5px;font-weight:700;color:#fff;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-pcheck{width:18px;height:18px;color:var(--accent-2);opacity:0}
+.rc-person.sel .rc-pcheck{opacity:1}
 
-/* quick date presets */
-.rr2-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.rr2-preset{
+/* presets */
+.rc-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.rc-preset{
   all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
   padding:7px 12px;border-radius:999px;color:var(--text-2);
-  background:rgba(47,125,255,.08);border:1px solid rgba(47,125,255,.18);
-  transition:.2s;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);
 }
-.rr2-preset:hover{background:rgba(47,125,255,.16);color:#fff}
-.rr2-preset.active{background:linear-gradient(180deg,var(--gold),var(--gold));color:#0b0d12;border-color:transparent}
+.rc-preset:hover{background:rgba(255,255,255,.06);color:#fff}
+.rc-preset.active{background:var(--gold);color:#241a08;border-color:transparent}
 
-/* date fields — عرض واضح ومتناسق */
-.rr2-dates{
-  display:grid;grid-template-columns:1fr;
-  gap:10px;margin-bottom:14px;min-width:0;
+/* dates */
+.rc-dates{ display:grid;grid-template-columns:1fr; gap:10px;margin-bottom:14px;min-width:0; }
+@media (min-width:420px){ .rc-dates{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} }
+.rc-date{position:relative;min-width:0}
+.rc-date label{
+  position:absolute;top:-8px;inset-inline-start:12px; font-size:10.5px;font-weight:800;color:var(--gold);
+  padding:0 6px;background:#14161d;border-radius:6px;z-index:2;
 }
-@media (min-width:420px){
-  .rr2-dates{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.rc-date-input{
+  width:100%;max-width:100%;padding:13px 14px 13px 40px;border-radius:12px;
+  background:rgba(0,0,0,.35);border:1px solid var(--line-strong);
+  color:#fff;font-size:16px;font-weight:800;outline:none;box-sizing:border-box;
+  direction:ltr;text-align:left;cursor:text;min-width:0;line-height:1.2;
+  -webkit-appearance:none;appearance:none;min-height:46px;unicode-bidi:plaintext;
 }
-.rr2-date{position:relative;min-width:0}
-.rr2-date label{
-  position:absolute;top:-8px;inset-inline-start:12px;
-  font-size:10.5px;font-weight:800;color:var(--gold);padding:0 6px;
-  background:#14161d;border-radius:6px;z-index:2;letter-spacing:.2px;
+.rc-date-input::placeholder{color:rgba(255,255,255,.4);font-weight:700}
+.rc-date-input:focus{border-color:var(--accent)}
+.rc-date-input.is-invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,111,117,.16)}
+.rc-date-ico{
+  position:absolute;top:50%;left:6px;transform:translateY(-50%); width:32px;height:32px;color:var(--gold);z-index:2;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;background:transparent;border:0;padding:0;
 }
-.rr2-date-input{
-  width:100%;max-width:100%;
-  padding:13px 14px 13px 40px;
-  border-radius:12px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(47,125,255,.22);
-  color:#fff;font-size:16px;font-weight:800;letter-spacing:0;
-  outline:none;transition:.2s;
-  box-sizing:border-box;font-family:inherit;
-  direction:ltr;text-align:left;
-  cursor:text;min-width:0;line-height:1.2;
-  -webkit-appearance:none;appearance:none;
-  min-height:46px;
-  unicode-bidi:plaintext;
-}
-.rr2-date-input::placeholder{color:rgba(255,255,255,.42);font-weight:700}
-.rr2-date-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(47,125,255,.18)}
-.rr2-date-input.is-invalid{border-color:#ff5d5d;box-shadow:0 0 0 3px rgba(255,93,93,.16)}
-.rr2-date-ico{
-  position:absolute;top:50%;left:6px;transform:translateY(-50%);
-  width:32px;height:32px;color:var(--gold);z-index:2;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:8px;cursor:pointer;
-  background:transparent;border:0;padding:0;
-  transition:.15s;
-}
-.rr2-date-ico svg{width:18px;height:18px}
-.rr2-date-btn:hover{background:rgba(47,125,255,.14);color:#fff}
-.rr2-date-btn:active{transform:translateY(-50%) scale(.94)}
-.rr2-date-native{
-  position:absolute;inset:0;width:100%;height:100%;
-  opacity:0;pointer-events:none;border:0;padding:0;margin:0;
-  color-scheme:dark;
-}
+.rc-date-ico svg{width:18px;height:18px}
+.rc-date-btn:hover{background:rgba(255,255,255,.05);color:#fff}
+.rc-date-native{ position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0;margin:0;color-scheme:dark; }
 
 /* submit */
-.rr2-submit{
+.rc-submit{
   all:unset;box-sizing:border-box;width:100%;text-align:center;cursor:pointer;
-  padding:11px;border-radius:14px;font-size:13px;font-weight:800;color:#0b0d12;
-  background:linear-gradient(135deg,var(--gold-2),var(--gold) 45%,#2f7dff);
-  box-shadow:0 12px 30px -12px rgba(47,125,255,.7), inset 0 1px 0 rgba(255,255,255,.4);
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:.2s;
+  padding:12px;border-radius:14px;font-size:13px;font-weight:800;color:#04150f;
+  background:var(--grad-accent); display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.rr2-submit:hover{transform:translateY(-1px);box-shadow:0 16px 36px -12px rgba(47,125,255,.85), inset 0 1px 0 rgba(255,255,255,.5)}
-.rr2-submit:active{transform:translateY(0)}
-.rr2-submit svg{width:16px;height:16px}
+.rc-submit:hover{filter:brightness(1.06)}
+.rc-submit svg{width:16px;height:16px}
 
-/* result */
-.rr2-result{
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(47,125,255,.18), transparent 55%),
-    linear-gradient(180deg,rgba(23,31,51,.95),rgba(15,21,36,.95));
-  border:1px solid rgba(47,125,255,.3);border-radius:22px;padding:18px;margin-bottom:14px;
-  box-shadow:0 20px 60px -30px rgba(47,125,255,.55);
-  animation:rr2-pop .5s cubic-bezier(.2,.9,.3,1.4);
+.rc-placeholder{ display:flex;flex-direction:column;align-items:center;gap:8px; padding:34px 14px; color:var(--text-3); font-size:12.5px; text-align:center; border:1px dashed var(--line-strong); border-radius:18px; margin-bottom:14px; }
+.rc-placeholder svg{width:26px;height:26px;color:var(--text-3)}
+
+/* ===== the receipt ===== */
+.rc-receipt-wrap{ margin-bottom:14px; animation:rc-pop .45s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes rc-pop{ from{opacity:0;transform:translateY(10px) scale(.98)} }
+.rc-receipt{
+  position:relative; background:#0c1218; border:1px solid var(--line-strong);
+  border-radius:4px; padding:22px 20px 18px; font-family:var(--font-ui);
 }
-@keyframes rr2-pop{from{opacity:0;transform:translateY(12px) scale(.98)}}
-.rr2-r-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.rr2-r-ico{
-  width:44px;height:44px;flex:0 0 44px;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;color:#0b0d12;
-  background:linear-gradient(135deg,var(--gold),#2f7dff);
-  box-shadow:0 8px 20px -8px rgba(47,125,255,.7);
+.rc-receipt::before,.rc-receipt::after{
+  content:""; position:absolute; left:14px; right:14px; height:11px;
+  background: radial-gradient(circle at 9px 0, transparent 7px, #0c1218 7.5px) 0 0/18px 100% repeat-x;
 }
-.rr2-r-ico svg{width:22px;height:22px}
-.rr2-r-t{font-weight:900;font-size:15.5px;color:#fff}
-.rr2-r-s{font-size:11.5px;color:#63667a;margin-top:2px}
-.rr2-r-label{
-  display:inline-block;margin-top:4px;font-size:11px;font-weight:800;
-  padding:3px 10px;border-radius:999px;color:#0b0d12;
-  background:linear-gradient(90deg,var(--gold-2),var(--gold));
+.rc-receipt::before{ top:-6px; }
+.rc-receipt::after{ bottom:-6px; transform:rotate(180deg); }
+.rc-r-head{ text-align:center; border-bottom:1px dashed var(--line-strong); padding-bottom:12px; margin-bottom:12px; }
+.rc-r-brand{ font-size:11px; letter-spacing:1px; color:var(--text-3); font-weight:800; }
+.rc-r-label{
+  display:inline-block; margin-top:8px; font-size:11.5px; font-weight:800; color:#04150f;
+  padding:4px 12px; border-radius:999px; background:var(--grad-gold);
 }
-.rr2-total{
-  text-align:center;padding:20px 12px;border-radius:16px;
-  background:linear-gradient(180deg,rgba(47,125,255,.14),rgba(47,125,255,.04));
-  border:1px dashed rgba(47,125,255,.35);
-}
-.rr2-total-v{
-  font-size:38px;font-weight:900;
-  background:linear-gradient(180deg,#fff2d0,var(--gold));
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  line-height:1.1;letter-spacing:-1px;
-}
-.rr2-total-u{font-size:14px;color:var(--gold);font-weight:800;margin-inline-start:4px}
-.rr2-total-l{font-size:12px;color:#63667a;margin-top:6px;font-weight:700}
-.rr2-breakdown{
-  margin-top:12px;padding:12px 14px;border-radius:12px;
-  background:rgba(0,0,0,.35);border:1px solid rgba(47,125,255,.12);
-  font-size:13px;color:var(--text-2);font-weight:600;text-align:center;
-}
-.rr2-breakdown b{color:var(--gold-2)}
-.rr2-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-.rr2-chip{
-  font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;
-  background:rgba(47,125,255,.08);border:1px solid rgba(47,125,255,.16);color:var(--text-2);
-}
-.rr2-chip b{color:#fff}
-.rr2-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
-.rr2-act{
+.rc-r-range{ font-size:12.5px; color:var(--text-2); margin-top:8px; }
+.rc-r-range b{ color:var(--text); }
+.rc-r-total{ text-align:center; padding:16px 0; }
+.rc-r-total-v{ font-size:36px; font-weight:900; color:var(--gold-2); line-height:1; font-variant-numeric:tabular-nums; }
+.rc-r-total-u{ font-size:14px; color:var(--gold); font-weight:800; margin-inline-start:4px; }
+.rc-r-total-l{ font-size:11.5px; color:var(--text-3); margin-top:8px; font-weight:700; }
+.rc-r-lines{ border-top:1px dashed var(--line-strong); padding-top:10px; }
+.rc-r-line{ display:flex; justify-content:space-between; font-size:12.5px; padding:5px 0; color:var(--text-2); }
+.rc-r-line b{ color:var(--text); font-weight:800; font-variant-numeric:tabular-nums; }
+.rc-r-line.rc-r-sum{ border-top:1px dashed var(--line-strong); margin-top:4px; padding-top:9px; font-size:13.5px; }
+.rc-r-line.rc-r-sum b{ color:var(--gold-2); font-size:15px; }
+.rc-r-foot{ text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed var(--line-strong); }
+.rc-barcode{ height:26px; margin:0 auto 8px; max-width:220px; background:repeating-linear-gradient(90deg, var(--text) 0 2px, transparent 2px 5px); opacity:.45; border-radius:2px; }
+.rc-r-foot-t{ font-size:10.5px; color:var(--text-3); letter-spacing:.4px; }
+
+.rc-actions{ display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+.rc-act{
   all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 auto;min-width:0;text-align:center;
   padding:10px 8px;border-radius:12px;font-size:12px;font-weight:800;
-  border:1px solid rgba(47,125,255,.22);color:var(--gold);
-  background:rgba(0,0,0,.35);transition:.2s;
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border:1px solid var(--line-strong);color:var(--gold);background:rgba(0,0,0,.3);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.rr2-act svg{width:14px;height:14px;flex-shrink:0}
-.rr2-act:hover{background:rgba(47,125,255,.1);color:#fff}
-.rr2-act.primary{
-  background:linear-gradient(135deg,#00d68f,#128c7e);color:#fff;border-color:transparent;
-}
-.rr2-act.primary:hover{filter:brightness(1.1);color:#fff}
+.rc-act svg{width:14px;height:14px;flex-shrink:0}
+.rc-act:hover{background:rgba(255,255,255,.05);color:#fff}
+.rc-act.primary{ background:linear-gradient(135deg,#00d68f,#128c7e);color:#fff;border-color:transparent; }
+.rc-act.primary:hover{filter:brightness(1.1);color:#fff}
 
-/* history */
-.rr2-hist-head{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:12px;gap:8px;
+/* history as small receipt stubs */
+.rc-hist-card{ background:var(--surface-2);border:1px solid var(--line); border-radius:20px;padding:16px;margin-bottom:14px; }
+.rc-hist-head{ display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px; }
+.rc-hist-t{font-weight:900;font-size:15px;color:#fff}
+.rc-hist{display:flex;flex-direction:column;gap:8px}
+.rc-stub{
+  display:flex;align-items:stretch;border-radius:10px;overflow:hidden;
+  border:1px solid var(--line); background:rgba(255,255,255,.015);
 }
-.rr2-hist-t{font-weight:900;font-size:15px;color:#fff}
-.rr2-hist-s{font-size:11.5px;color:#63667a;margin-top:2px}
-.rr2-hist-count{
-  font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;
-  background:rgba(47,125,255,.14);color:var(--gold);border:1px solid rgba(47,125,255,.22);
+.rc-stub-notch{ width:6px; flex-shrink:0; background:repeating-linear-gradient(180deg, transparent 0 5px, var(--line-strong) 5px 6px); background-color:#0c1218; }
+.rc-stub-b{ flex:1; min-width:0; padding:10px 12px; }
+.rc-stub-range{font-size:12.5px;font-weight:800;color:#fff}
+.rc-stub-range small{color:var(--text-3);font-weight:600;margin-inline-start:6px}
+.rc-stub-meta{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.rc-stub-r{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;padding:10px 12px;border-inline-start:1px dashed var(--line-strong)}
+.rc-stub-total{font-size:15px;font-weight:900;color:var(--gold-2);white-space:nowrap}
+.rc-stub-del{
+  all:unset;cursor:pointer;width:26px;height:26px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:var(--red-2);
+  background:var(--red-soft);border:1px solid rgba(255,111,117,.25);
 }
-.rr2-hist{display:flex;flex-direction:column;gap:8px}
-.rr2-item{
-  display:flex;gap:10px;padding:12px;border-radius:14px;
-  background:linear-gradient(180deg,rgba(47,125,255,.05),rgba(0,0,0,.25));
-  border:1px solid rgba(47,125,255,.1);transition:.2s;
-}
-.rr2-item:hover{border-color:rgba(47,125,255,.28);transform:translateX(2px)}
-.rr2-item-l{flex:1;min-width:0}
-.rr2-item-range{font-size:13px;font-weight:800;color:#fff;margin-bottom:3px}
-.rr2-item-range small{color:#63667a;font-weight:600;margin-inline-start:6px}
-.rr2-item-meta{font-size:11.5px;color:#63667a;margin-top:2px}
-.rr2-item-r{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.rr2-item-total{
-  font-size:16px;font-weight:900;color:var(--gold-2);white-space:nowrap;
-}
-.rr2-item-del{
-  all:unset;cursor:pointer;width:30px;height:30px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;color:#ff8f8f;
-  background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.18);
-  transition:.2s;
-}
-.rr2-item-del:hover{background:rgba(255,80,80,.18);color:#fff}
-.rr2-item-del svg{width:14px;height:14px}
-.rr2-empty{
-  text-align:center;padding:30px 12px;color:#63667a;font-size:13px;
-  border:1px dashed rgba(47,125,255,.18);border-radius:14px;
-}
+.rc-stub-del svg{width:13px;height:13px}
+.rc-empty{ text-align:center;padding:30px 12px;color:var(--text-3);font-size:13px; border:1px dashed var(--line-strong);border-radius:14px; }
 </style>
 
-{% set _report_pct = ((result.distributed_total * 100 / result.no_deduct_total) | round(0, 'floor') | int) if result and result.no_deduct_total else 0 %}
-<section class="cp-stage">
-  <div class="cp-stage-top">
-    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> تقارير</span>
-    <span class="cp-clock">{{ today[8:] }}/{{ today[5:7] }}/{{ today[:4] }}</span>
-  </div>
-
-  <h1 class="cp-title">تقرير فترة مخصّصة</h1>
-  <p class="cp-subtitle">احسب إجمالي أي مدة — بدون خصم، بعد الخصم، أو لنصيب شخص محدد.</p>
-
-  <div class="cp-stage-body">
-    <div class="cp-gauge is-gold" id="cpReportGauge" data-pct="{{ _report_pct }}">
-      <svg viewBox="0 0 120 120">
-        <circle class="cp-gauge-track" cx="60" cy="60" r="52" stroke-width="10"/>
-        <circle class="cp-gauge-fill" id="cpReportGaugeFill" cx="60" cy="60" r="52" stroke-width="10"
-                stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
-      </svg>
-      <div class="cp-gauge-mid">
-        <div class="cp-gauge-v">{% if result %}{{ _report_pct }}%{% else %}—{% endif %}</div>
-        <div class="cp-gauge-l">تحصيل بعد الخصم</div>
-      </div>
-    </div>
-    <div class="cp-stage-side">
-      <div class="cp-side-v">{% if result %}{{ '{:,}'.format(result.total) }}{% else %}—{% endif %}</div>
-      <div class="cp-side-l">{% if result %}{{ result.target_label }}{% else %}لسه محسبتش تقرير{% endif %}</div>
-    </div>
-  </div>
+<section class="rc-hero">
+  <span class="rc-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+    تقرير فترة مخصّصة
+  </span>
+  <p class="rc-hero-sub">اختار المدة وهيتحسب زي إيصال جاهز للمشاركة أو الطباعة.</p>
 </section>
 
-<div class="cp-float-strip">
-  <div class="cp-fs-item">
-    <div class="cp-fs-v">{% if result %}{{ result.days }}{% else %}0{% endif %}</div>
-    <div class="cp-fs-l">أيام المدة</div>
-  </div>
-  <div class="cp-fs-item">
-    <div class="cp-fs-v">{% if result %}{{ '{:,}'.format(result.no_deduct_total) }}{% else %}0{% endif %}</div>
-    <div class="cp-fs-l">بدون خصم</div>
-  </div>
-  <div class="cp-fs-item">
-    <div class="cp-fs-v">{{ reports|length }}</div>
-    <div class="cp-fs-l">تقارير محفوظة</div>
-  </div>
-</div>
-
-{% if reports %}
-{% set _recent_reports = reports[:7]|reverse|list %}
-{% set _rvals = _recent_reports|map(attribute='total')|list %}
-{% set _rmax = (_rvals + [0])|max %}
-<div class="rr2-card">
-  <div class="rr2-hist-head">
-    <div>
-      <div class="rr2-hist-t">حركة آخر التقارير المحفوظة</div>
-      <div class="rr2-hist-s">أعلى تقرير محفوظ مميَّز بالذهبي</div>
-    </div>
-  </div>
-  <div class="cp-bars">
-    {% for r in _recent_reports %}
-    {% set _bh = (r.total * 100 / _rmax) if _rmax > 0 else 0 %}
-    <div class="cp-bars-col{% if r.total == _rmax and _rmax > 0 %} is-max{% endif %}">
-      <div class="cp-bars-val">{{ '{:,}'.format(r.total) }}</div>
-      <div class="cp-bars-track"><span style="height: {{ _bh|round(0) }}%"></span></div>
-      <div class="cp-bars-lbl">{{ r.end_day.day }}/{{ r.end_day.month }}</div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<script>
-(function(){
-  var g = document.getElementById('cpReportGauge');
-  var fill = document.getElementById('cpReportGaugeFill');
-  if (g && fill){
-    var pct = parseFloat(g.dataset.pct || '0');
-    var C = 326.7;
-    var offset = C - (C * Math.min(100, Math.max(0, pct)) / 100);
-    requestAnimationFrame(function(){
-      requestAnimationFrame(function(){ fill.style.strokeDashoffset = offset; });
-    });
-  }
-})();
-</script>
-
-<div class="rr2-card">
+<div class="rc-form-card">
   <form method="post" id="rrForm">
 
-    <!-- Segmented control -->
-    <div class="rr2-seg" role="tablist">
+    <div class="rc-seg" role="tablist">
       <button type="button" data-mode="no_deduct" class="active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
         بدون خصم
@@ -390,124 +214,115 @@
     </div>
     <input type="hidden" name="target" id="rrTarget" value="no_deduct">
 
-    <!-- Person picker (hidden by default) -->
-    <div class="rr2-person-wrap hidden" id="rrPersonWrap">
+    <div class="rc-person-wrap hidden" id="rrPersonWrap">
       <div style="position:relative">
-        <input type="text" class="rr2-search" id="rrSearch" placeholder="ابحث بالاسم…" autocomplete="off">
-        <svg class="rr2-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" class="rc-search" id="rrSearch" placeholder="ابحث بالاسم…" autocomplete="off">
+        <svg class="rc-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
       </div>
-      <div class="rr2-persons" id="rrPersons">
+      <div class="rc-persons" id="rrPersons">
         {% for p in people_list %}
-        <div class="rr2-person" data-id="{{ p.id }}" data-name="{{ p.full_name }}">
-          <div class="rr2-avatar">
+        <div class="rc-person" data-id="{{ p.id }}" data-name="{{ p.full_name }}">
+          <div class="rc-avatar">
             {% if p.avatar %}
               <img src="{{ p.avatar }}" alt="" loading="lazy">
             {% else %}
               {{ p.full_name[:1] }}
             {% endif %}
           </div>
-          <div class="rr2-pname">{{ p.full_name }}</div>
-          <svg class="rr2-pcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>
+          <div class="rc-pname">{{ p.full_name }}</div>
+          <svg class="rc-pcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>
         </div>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Quick presets -->
-    <div class="rr2-presets" id="rrPresets">
-      <button type="button" class="rr2-preset" data-preset="today">اليوم</button>
-      <button type="button" class="rr2-preset" data-preset="yesterday">أمس</button>
-      <button type="button" class="rr2-preset" data-preset="7">آخر 7 أيام</button>
-      <button type="button" class="rr2-preset" data-preset="30">آخر 30 يوم</button>
-      <button type="button" class="rr2-preset" data-preset="month">الشهر الحالي</button>
-      <button type="button" class="rr2-preset" data-preset="prev_month">الشهر السابق</button>
+    <div class="rc-presets" id="rrPresets">
+      <button type="button" class="rc-preset" data-preset="today">اليوم</button>
+      <button type="button" class="rc-preset" data-preset="yesterday">أمس</button>
+      <button type="button" class="rc-preset" data-preset="7">آخر 7 أيام</button>
+      <button type="button" class="rc-preset" data-preset="30">آخر 30 يوم</button>
+      <button type="button" class="rc-preset" data-preset="month">الشهر الحالي</button>
+      <button type="button" class="rc-preset" data-preset="prev_month">الشهر السابق</button>
     </div>
 
-    <!-- Dates -->
-    <div class="rr2-dates">
-      <div class="rr2-date">
+    <div class="rc-dates">
+      <div class="rc-date">
         <label for="start_day">من</label>
-        <input class="rr2-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
+        <input class="rc-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
         <input type="hidden" id="start_day" name="start_day">
-        <input type="date" class="rr2-date-native" id="start_day_native" aria-hidden="true" tabindex="-1">
-        <button type="button" class="rr2-date-ico rr2-date-btn" id="start_day_btn" aria-label="اختر التاريخ من التقويم">
+        <input type="date" class="rc-date-native" id="start_day_native" aria-hidden="true" tabindex="-1">
+        <button type="button" class="rc-date-ico rc-date-btn" id="start_day_btn" aria-label="اختر التاريخ من التقويم">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
         </button>
       </div>
-      <div class="rr2-date">
+      <div class="rc-date">
         <label for="end_day">إلى</label>
-        <input class="rr2-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
+        <input class="rc-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
         <input type="hidden" id="end_day" name="end_day">
-        <input type="date" class="rr2-date-native" id="end_day_native" aria-hidden="true" tabindex="-1">
-        <button type="button" class="rr2-date-ico rr2-date-btn" id="end_day_btn" aria-label="اختر التاريخ من التقويم">
+        <input type="date" class="rc-date-native" id="end_day_native" aria-hidden="true" tabindex="-1">
+        <button type="button" class="rc-date-ico rc-date-btn" id="end_day_btn" aria-label="اختر التاريخ من التقويم">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
 
-    <button type="submit" class="rr2-submit">
+    <button type="submit" class="rc-submit">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-      احسب التقرير
+      اطبع الإيصال
     </button>
   </form>
 </div>
 
 {% if not result %}
-<div class="rr2-placeholder">
+<div class="rc-placeholder">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 6-7"/><path d="M3 21h18"/></svg>
-  اختار المدة واضغط «احسب التقرير»
+  اختار المدة واضغط «اطبع الإيصال»
 </div>
 {% endif %}
 
 {% if result %}
-<div class="rr2-result">
-  <div class="rr2-r-head">
-    <div class="rr2-r-ico">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l7.5 7.5 10.5-15"/></svg>
+<div class="rc-receipt-wrap">
+  <div class="rc-receipt">
+    <div class="rc-r-head">
+      <div class="rc-r-brand">فريق التحصين · إيصال تقرير</div>
+      <span class="rc-r-label">{{ result.target_label }}</span>
+      <div class="rc-r-range"><b>{{ result.start_display or result.start }}</b> ← <b>{{ result.end_display or result.end }}</b> · {{ result.days }} يوم</div>
     </div>
-    <div style="flex:1;min-width:0">
-      <div class="rr2-r-t">نتيجة الفترة</div>
-      <div class="rr2-r-s">{{ result.start_display or result.start }} → {{ result.end_display or result.end }} · {{ result.days }} يوم</div>
-      <span class="rr2-r-label">{{ result.target_label }}</span>
+
+    <div class="rc-r-total">
+      <span class="rc-r-total-v" id="rrTotalNum">{{ '{:,}'.format(result.total) }}</span>
+      {% if result.is_money %}<span class="rc-r-total-u">ج.م</span>{% endif %}
+      <div class="rc-r-total-l">{{ result.target_label }}</div>
+    </div>
+
+    <div class="rc-r-lines">
+      {% if result.is_money %}
+      <div class="rc-r-line"><span>عدد الكتاكيت</span><b>{{ '{:,}'.format(result.chick_count) }} × 55 ج</b></div>
+      {% if result.extra_chicks %}<div class="rc-r-line"><span>منها إضافي موزَّع</span><b>{{ '{:,}'.format(result.extra_chicks) }} كتكوت</b></div>{% endif %}
+      {% if result.bonus_money %}<div class="rc-r-line"><span>إضافي مالي</span><b>+{{ '{:,}'.format(result.bonus_money) }} ج</b></div>{% endif %}
+      {% if result.deduct_money %}<div class="rc-r-line"><span>خصم</span><b>−{{ '{:,}'.format(result.deduct_money) }} ج</b></div>{% endif %}
+      {% endif %}
+      <div class="rc-r-line"><span>بدون خصم</span><b>{{ '{:,}'.format(result.no_deduct_total) }}</b></div>
+      <div class="rc-r-line"><span>بعد الخصم</span><b>{{ '{:,}'.format(result.distributed_total) }}</b></div>
+      <div class="rc-r-line rc-r-sum"><span>الإجمالي</span><b>{{ '{:,}'.format(result.total) }}{% if result.is_money %} ج{% endif %}</b></div>
+    </div>
+
+    <div class="rc-r-foot">
+      <div class="rc-barcode"></div>
+      <div class="rc-r-foot-t">شكرًا ليك</div>
     </div>
   </div>
 
-  <div class="rr2-total">
-    <div>
-      <span class="rr2-total-v" id="rrTotalNum">{{ '{:,}'.format(result.total) }}</span>
-      {% if result.is_money %}<span class="rr2-total-u">ج.م</span>{% endif %}
-    </div>
-    <div class="rr2-total-l">{{ result.target_label }}</div>
-  </div>
-
-  {% if result.is_money %}
-  <div class="rr2-breakdown">
-    <b>{{ '{:,}'.format(result.chick_count) }}</b> كتكوت × <b>55</b> ج
-    {%- if result.bonus_money %} + <b>{{ '{:,}'.format(result.bonus_money) }}</b> ج إضافي{% endif %}
-    {%- if result.deduct_money %} − <b>{{ '{:,}'.format(result.deduct_money) }}</b> ج خصم{% endif %}
-    = <b>{{ '{:,}'.format(result.total) }} ج</b>
-  </div>
-  {% endif %}
-
-  <div class="rr2-chips">
-    {% if result.is_money and result.extra_chicks %}
-    <span class="rr2-chip">منها إضافي موزَّع: <b>{{ '{:,}'.format(result.extra_chicks) }}</b> كتكوت</span>
-    {% endif %}
-    <span class="rr2-chip">بدون خصم: <b>{{ '{:,}'.format(result.no_deduct_total) }}</b></span>
-    <span class="rr2-chip">بعد الخصم: <b>{{ '{:,}'.format(result.distributed_total) }}</b></span>
-    <span class="rr2-chip">أيام: <b>{{ result.days }}</b></span>
-  </div>
-
-  <div class="rr2-actions">
-    <button type="button" class="rr2-act primary" id="rrShareWA">
+  <div class="rc-actions">
+    <button type="button" class="rc-act primary" id="rrShareWA">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.5A10 10 0 1 0 12.04 2zm5.83 14.2c-.25.7-1.44 1.32-2 1.4-.5.08-1.15.11-1.85-.12-.43-.14-1-.32-1.7-.63-3-1.3-4.95-4.4-5.1-4.6-.15-.2-1.2-1.6-1.2-3.05 0-1.45.76-2.17 1.03-2.47.27-.3.6-.37.8-.37h.57c.2 0 .45-.07.7.53.27.65.9 2.23.98 2.4.08.16.13.35.03.55-.1.2-.15.32-.3.5-.15.16-.32.37-.45.5-.15.15-.3.32-.13.6.17.28.75 1.24 1.62 2.02 1.12 1 2.06 1.3 2.35 1.45.28.15.45.13.62-.08.17-.2.72-.83.9-1.13.2-.28.4-.23.66-.13.28.1 1.77.83 2.07.98.3.15.5.22.58.35.07.15.07.83-.2 1.6z"/></svg>
       شارك واتساب
     </button>
-    <button type="button" class="rr2-act" id="rrCopy">
+    <button type="button" class="rc-act" id="rrCopy">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
       نسخ
     </button>
-    <button type="button" class="rr2-act" onclick="window.print()">
+    <button type="button" class="rc-act" onclick="window.print()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
       طباعة
     </button>
@@ -515,39 +330,38 @@
 </div>
 {% endif %}
 
-<div class="rr2-card">
-  <div class="rr2-hist-head">
-    <div>
-      <div class="rr2-hist-t">سجل التقارير</div>
-    </div>
+<div class="rc-hist-card">
+  <div class="rc-hist-head">
+    <div class="rc-hist-t">سجل التقارير</div>
   </div>
 
   {% if not reports %}
-    <div class="rr2-empty">مفيش تقارير محفوظة لسه.</div>
+    <div class="rc-empty">مفيش تقارير محفوظة لسه.</div>
   {% else %}
-    <div class="rr2-hist">
+    <div class="rc-hist">
       {% for r in reports %}
-      <div class="rr2-item">
-        <div class="rr2-item-l">
-          <div class="rr2-item-range">
+      <div class="rc-stub">
+        <div class="rc-stub-notch"></div>
+        <div class="rc-stub-b">
+          <div class="rc-stub-range">
             {{ r.start_day.day }}/{{ r.start_day.month }}/{{ r.start_day.year }} → {{ r.end_day.day }}/{{ r.end_day.month }}/{{ r.end_day.year }}
             <small>{{ r.days_count }} يوم</small>
           </div>
-          <div class="rr2-item-meta">{{ r.target_label or 'إجمالي بدون خصم' }}</div>
+          <div class="rc-stub-meta">{{ r.target_label or 'إجمالي بدون خصم' }}</div>
           {% if r.target_kind in ('worker', 'admin') %}
-          <div class="rr2-item-meta">{{ '{:,}'.format(r.chick_count) }} كتكوت × 55 ج</div>
+          <div class="rc-stub-meta">{{ '{:,}'.format(r.chick_count) }} كتكوت × 55 ج</div>
           {% endif %}
-          <div class="rr2-item-meta" style="opacity:.7">
+          <div class="rc-stub-meta" style="opacity:.7">
             حُفظ: {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.strftime is defined else r.created_at }}
           </div>
         </div>
-        <div class="rr2-item-r">
-          <div class="rr2-item-total">
+        <div class="rc-stub-r">
+          <div class="rc-stub-total">
             {{ '{:,}'.format(r.total) }}{% if r.target_kind in ('worker', 'admin') %} ج{% endif %}
           </div>
           <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
                 onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تحذف التقرير ده؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('تحذف التقرير ده؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;" style="margin:0;">
-            <button type="submit" class="rr2-item-del" aria-label="حذف">
+            <button type="submit" class="rc-stub-del" aria-label="حذف">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
             </button>
           </form>
@@ -561,7 +375,7 @@
 <script>
 (function(){
   const form = document.getElementById('rrForm');
-  const seg = form.querySelectorAll('.rr2-seg button');
+  const seg = form.querySelectorAll('.rc-seg button');
   const target = document.getElementById('rrTarget');
   const personWrap = document.getElementById('rrPersonWrap');
   const persons = document.getElementById('rrPersons');
@@ -571,7 +385,6 @@
   const ed = document.getElementById('end_day');
   let selectedPid = null;
 
-  // Segmented control
   seg.forEach(btn => btn.addEventListener('click', () => {
     seg.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -586,26 +399,23 @@
     }
   }));
 
-  // Person select
   persons.addEventListener('click', e => {
-    const p = e.target.closest('.rr2-person');
+    const p = e.target.closest('.rc-person');
     if (!p) return;
-    persons.querySelectorAll('.rr2-person').forEach(x => x.classList.remove('sel'));
+    persons.querySelectorAll('.rc-person').forEach(x => x.classList.remove('sel'));
     p.classList.add('sel');
     selectedPid = p.dataset.id;
     target.value = 'person:' + selectedPid;
   });
 
-  // Search
   search.addEventListener('input', () => {
     const q = search.value.trim().toLowerCase();
-    persons.querySelectorAll('.rr2-person').forEach(p => {
+    persons.querySelectorAll('.rc-person').forEach(p => {
       const n = (p.dataset.name || '').toLowerCase();
       p.style.display = (!q || n.indexOf(q) !== -1) ? '' : 'none';
     });
   });
 
-  // Dates: show day/month/year (1/7/2026) while submitting ISO to the server
   const sdView = document.getElementById('start_day_display');
   const edView = document.getElementById('end_day_display');
   const pad = n => String(n).padStart(2, '0');
@@ -640,7 +450,6 @@
     input.addEventListener('input', () => input.classList.remove('is-invalid'));
   });
 
-  // Native calendar picker — tap the icon to open OS date picker
   const sdNative = document.getElementById('start_day_native');
   const edNative = document.getElementById('end_day_native');
   const sdBtn = document.getElementById('start_day_btn');
@@ -667,11 +476,10 @@
     });
   });
 
-  // Presets
   presetsBox.addEventListener('click', e => {
-    const b = e.target.closest('.rr2-preset');
+    const b = e.target.closest('.rc-preset');
     if (!b) return;
-    presetsBox.querySelectorAll('.rr2-preset').forEach(x => x.classList.remove('active'));
+    presetsBox.querySelectorAll('.rc-preset').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     const now = new Date(); now.setHours(12,0,0,0);
     let s = new Date(now), en = new Date(now);
@@ -689,7 +497,6 @@
     setDatePair(sd, sdView, s); setDatePair(ed, edView, en);
   });
 
-  // Validate before submit
   form.addEventListener('submit', e => {
     const datesOk = syncDate(sd, sdView) & syncDate(ed, edView);
     if (!datesOk) {
@@ -703,7 +510,6 @@
     }
   });
 
-  // Result actions
   {% if result %}
   const total = "{{ '{:,}'.format(result.total) }}";
   const label = "{{ result.target_label }}";
@@ -730,7 +536,6 @@
     } catch(_) { alert('تعذّر النسخ'); }
   });
 
-  // Count-up animation on total
   const el = document.getElementById('rrTotalNum');
   if (el) {
     const target = {{ result.total }};
@@ -745,7 +550,6 @@
   }
   {% endif %}
 
-  // Default: today
   if (!sd.value) { const t = new Date(); t.setHours(12,0,0,0); setDatePair(sd, sdView, t); setDatePair(ed, edView, t); }
 })();
 </script>
