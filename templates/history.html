@@ -10,6 +10,8 @@
     {# فلترة: نعرض بس الأيام المسجّلة (المغلقة) — من غير الأيام الفاضية أو الإجازات #}
     {% set closed_days = p.days|selectattr('has_data')|list %}
     {% if closed_days or p.is_current %}
+    {% set sum_t = closed_days|sum(attribute='tasmeen_after') %}
+    {% set sum_b = closed_days|sum(attribute='bayad_after') %}
     <details class="acc-item hist-period" {% if p.is_current %}open{% endif %}>
       <summary>
         <div class="acc-summary-main">
@@ -17,19 +19,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
           </div>
           <div class="acc-summary-text">
-            <div class="acc-summary-title">
-              {{ p.label }}
-              {% if p.is_current %}<span class="badge badge-green sm">المدة الحالية</span>{% endif %}
-            </div>
-            <div class="acc-summary-sub">
-              {{ closed_days|length }} يوم مُغلق
-              {% if is_admin %}
-                {% set sum_t = closed_days|sum(attribute='tasmeen_after') %}
-                {% set sum_b = closed_days|sum(attribute='bayad_after') %}
-                · <span class="hist-mini-t">تسمين {{ '{:,}'.format(sum_t) }}</span>
-                · <span class="hist-mini-b">بياض {{ '{:,}'.format(sum_b) }}</span>
-              {% endif %}
-            </div>
+            <div class="acc-summary-title">الفترة من {{ p.days[0].day_num }} إلى {{ p.days[-1].day_num }}</div>
+            <div class="acc-summary-sub">{{ closed_days|length }} يوم مُغلق</div>
           </div>
         </div>
         <span class="acc-chevron">
@@ -38,6 +29,26 @@
       </summary>
 
       <div class="acc-body">
+        {% if is_admin and closed_days %}
+        <!-- ==== ودجت ملخص المدة: تسمين / بياض بعد الخصم ==== -->
+        <div class="cwg-row">
+          <div class="cwg-tile cwg-tile-t">
+            <span class="cwg-tile-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span>
+            <div class="cwg-tile-txt">
+              <div class="cwg-tile-v">{{ '{:,}'.format(sum_t) }}</div>
+              <div class="cwg-tile-l">تسمين بعد الخصم</div>
+            </div>
+          </div>
+          <div class="cwg-tile cwg-tile-b">
+            <span class="cwg-tile-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.3 0 6 4.6 6 9a6 6 0 0 1-12 0c0-4.4 2.7-9 6-9z"/></svg></span>
+            <div class="cwg-tile-txt">
+              <div class="cwg-tile-v">{{ '{:,}'.format(sum_b) }}</div>
+              <div class="cwg-tile-l">بياض بعد الخصم</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
         {% if is_admin and closed_days %}
           {% set p_start = closed_days[0].date %}
           {% set p_end = closed_days[-1].date %}
@@ -85,14 +96,17 @@
             {% endif %}
 
             {% if is_admin %}
-              {# ==== تعديل الأعداد — تسمين و بياض + الإضافي في عمودين ==== #}
+              {# ==== تعديل الأعداد — تسمين و بياض كودجتين جنب بعض + الإضافي تحتهم ==== #}
               <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid2 js-hist-edit" data-day="{{ d.date }}">
                 <input type="hidden" name="day" value="{{ d.date }}">
                 <div class="hist-col hist-col-t">
-                  <div class="hist-col-head"><span class="k">تسمين</span><span class="cnt">{{ tasmeen_names|length }}</span></div>
+                  <div class="hist-col-head">
+                    <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg> تسمين</span>
+                    <span class="cnt">{{ tasmeen_names|length }}</span>
+                  </div>
                   <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
-                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي تسمين</label>
-                  <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
+                  <label class="hist-extra-lbl">إضافي تسمين</label>
+                  <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="0">
                   {% if tasmeen_names %}
                     <div class="hist-col-names">
                       {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
@@ -100,10 +114,13 @@
                   {% endif %}
                 </div>
                 <div class="hist-col hist-col-b">
-                  <div class="hist-col-head"><span class="k">بياض</span><span class="cnt">{{ bayad_names|length }}</span></div>
+                  <div class="hist-col-head">
+                    <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.3 0 6 4.6 6 9a6 6 0 0 1-12 0c0-4.4 2.7-9 6-9z"/></svg> بياض</span>
+                    <span class="cnt">{{ bayad_names|length }}</span>
+                  </div>
                   <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
-                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي بياض</label>
-                  <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
+                  <label class="hist-extra-lbl">إضافي بياض</label>
+                  <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="0">
                   {% if bayad_names %}
                     <div class="hist-col-names">
                       {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
@@ -120,13 +137,13 @@
               {% if d.names %}
               <div class="hist-att">
                 <div class="hist-att-two">
-                  <div class="hist-att-col">
+                  <div class="hist-att-col hist-att-col-b">
                     <div class="hist-att-col-h">بياض ({{ bayad_names|length }})</div>
                     <div class="hist-att-list">
                       {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
                     </div>
                   </div>
-                  <div class="hist-att-col">
+                  <div class="hist-att-col hist-att-col-t">
                     <div class="hist-att-col-h">تسمين ({{ tasmeen_names|length }})</div>
                     <div class="hist-att-list">
                       {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
@@ -194,82 +211,145 @@
 </div>
 
 <style>
-.hist-mini-t{color:#2f7dff;font-weight:800}
-.hist-mini-b{color:#7fb0ff;font-weight:800}
-.hist-days{display:grid;gap:12px}
-.hist-day-card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.005));border:1px solid var(--border-1,rgba(255,255,255,.08));border-radius:18px;padding:14px;box-shadow:0 4px 14px -8px rgba(0,0,0,.35)}
-.hist-day-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
-.hist-day-date{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
-.hist-day-num{font-size:22px;font-weight:900;line-height:1;color:var(--text-1,#fff)}
-.hist-day-wd{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:2px}
-.hist-day-title{min-width:0}
-.hist-day-total{display:flex;align-items:baseline;gap:6px}
-.hist-day-total .v{font-size:20px;font-weight:900;color:var(--gold-2,#2f7dff)}
-.hist-day-total .l{font-size:12px;color:var(--text-3,#a1a4b2)}
-.hist-day-iso{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:2px;letter-spacing:.3px}
-.hist-day-badge{align-self:start}
-.hist-edit-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px;align-items:end}
-.hist-edit-field{display:flex;flex-direction:column;gap:4px}
-.hist-edit-field .k{font-size:11px;font-weight:800;color:var(--text-3,#a1a4b2)}
-.hist-edit-t .k{color:#2f7dff}
-.hist-edit-b .k{color:#7fb0ff}
-.hist-edit-field input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 12px;font-family:inherit;font-weight:800;color:var(--text-1,#fff);font-size:15px;text-align:center;transition:.15s;width:100%}
-.hist-edit-t input:focus{outline:none;border-color:#2f7dff;background:rgba(47,125,255,.08)}
-.hist-edit-b input:focus{outline:none;border-color:#7fb0ff;background:rgba(162,155,254,.08)}
-.hist-edit-save{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;border:1px solid rgba(0,214,143,.4);background:linear-gradient(135deg,rgba(0,214,143,.25),rgba(0,214,143,.08));color:#7ff3cd;font-family:inherit;font-weight:900;font-size:12.5px;cursor:pointer;transition:.15s;white-space:nowrap;height:38px}
-.hist-edit-save:hover{transform:translateY(-1px)}
-.hist-edit-save svg{width:14px;height:14px}
-.hist-farm-chip{margin-top:10px;font-size:12px;color:var(--text-3,#a1a4b2)}
-.hist-att{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.08)}
-.hist-att-head{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3,#a1a4b2);font-weight:800;margin-bottom:8px}
-.hist-att-head svg{width:14px;height:14px}
-.hist-att-list{display:flex;flex-wrap:wrap;gap:6px}
-.name-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:12px;font-weight:700;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text-1,#fff)}
-.name-chip .nc-f{font-size:10px;font-weight:800;padding:2px 6px;border-radius:99px;font-style:normal}
-.name-chip-tasmeen{border-color:rgba(47,125,255,.35);background:rgba(47,125,255,.08)}
-.name-chip-tasmeen .nc-f{background:rgba(47,125,255,.2);color:#2f7dff}
-.name-chip-bayad{border-color:rgba(162,155,254,.35);background:rgba(162,155,254,.08)}
-.name-chip-bayad .nc-f{background:rgba(162,155,254,.2);color:#7fb0ff}
-.hist-att-edit{margin-top:12px}
-.hist-att-edit>summary{list-style:none;cursor:pointer;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);font-size:12px;font-weight:800;color:var(--text-2,#a1a4b2)}
-.hist-att-edit>summary::-webkit-details-marker{display:none}
-.hist-att-editor{margin-top:8px;display:grid;gap:6px}
-.hist-att-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
-.hist-att-row.is-on{background:rgba(0,214,143,.06);border-color:rgba(0,214,143,.2)}
-.hist-att-name{font-size:12.5px;font-weight:700;color:var(--text-1,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hist-att-actions{display:flex;gap:4px}
-.hist-att-mini{display:inline}
-.hist-att-chip{padding:5px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-3,#a1a4b2)}
-.hist-att-chip.is-t{border-color:rgba(47,125,255,.3);color:#2f7dff}
-.hist-att-chip.is-t.is-active{background:rgba(47,125,255,.2);color:#fff}
-.hist-att-chip.is-b{border-color:rgba(162,155,254,.3);color:#7fb0ff}
-.hist-att-chip.is-b.is-active{background:rgba(162,155,254,.2);color:#fff}
-.hist-att-chip.is-x{border-color:rgba(255,90,95,.35);color:#ffc2c4}
-.hist-att-chip.is-x:hover{background:rgba(255,90,95,.15)}
-.hist-att-chip:hover{transform:translateY(-1px)}
+/* ============================================================
+   سجل «أعداد بعد الخصم» — نفس تكنيك ودجتس iOS المستخدم في صفحة
+   إغلاق اليوم (كروت مستديرة، خلفية زجاجية، ألوان تسمين/بياض ثابتة)
+   ملحوظة: شكل الأكورديون (acc-item/acc-summary/acc-chevron) بييجي
+   من الملف العام base.bundle.css زي باقي صفحات الأدمن بالظبط —
+   من غير ما نعيد تعريفه هنا عشان الصفحة تفضل متطابقة مع باقي التطبيق.
+   ============================================================ */
 
-/* ==== history: two-column edit (tasmeen | bayad) with attendee names under each ==== */
-.hist-edit-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.hist-edit-grid2 .hist-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px}
-.hist-edit-grid2 .hist-col-t{border-color:rgba(47,125,255,.28)}
-.hist-edit-grid2 .hist-col-b{border-color:rgba(162,155,254,.28)}
-.hist-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.hist-col-head .k{font-size:12px;font-weight:900}
-.hist-col-t .hist-col-head .k{color:#2f7dff}
-.hist-col-b .hist-col-head .k{color:#7fb0ff}
-.hist-col-head .cnt{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.06);color:#f4f4f6}
-.hist-col-inp{width:100%;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 10px;font-family:inherit;font-weight:800;color:#fff;font-size:15px;text-align:center}
-.hist-col-t .hist-col-inp:focus{outline:none;border-color:#2f7dff;background:rgba(47,125,255,.08)}
-.hist-col-b .hist-col-inp:focus{outline:none;border-color:#7fb0ff;background:rgba(162,155,254,.08)}
-.hist-col-names{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.08)}
-.hist-edit-grid2 .hist-edit-save{grid-column:1/-1;justify-content:center}
-.hist-att-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hist-att-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
-.hist-att-col-h{font-size:12px;font-weight:900;color:var(--text-2,#a1a4b2);margin-bottom:6px}
-@media(max-width:420px){.hist-edit-grid2,.hist-att-two{grid-template-columns:1fr}}
-@media(max-width:420px){.hist-edit-grid{grid-template-columns:1fr 1fr}.hist-edit-save{grid-column:1/-1}.hist-day-head{grid-template-columns:auto minmax(0,1fr)}.hist-day-badge{grid-column:1/-1;justify-self:end}}
+/* ---- عنوان الفترة في نص الهيدر ---- */
+.hist-period .acc-summary-text{ flex:1; text-align:center; }
+.hist-period .acc-summary-title{ justify-content:center; font-size:15px; }
+.hist-period .acc-summary-sub{ text-align:center; }
+
+/* ---- ودجت ملخص المدة (تسمين / بياض) ---- */
+.cwg-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:2px; }
+.cwg-tile{
+  display:flex; align-items:center; gap:10px; padding:12px 12px;
+  border-radius:18px; background:rgba(255,255,255,.035); border:1px solid var(--line);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+}
+.cwg-tile-ic{ width:32px; height:32px; border-radius:11px; flex-shrink:0; display:grid; place-items:center; background:var(--gold-soft); color:var(--gold); }
+.cwg-tile-ic svg{ width:16px; height:16px; }
+.cwg-tile-b .cwg-tile-ic{ background:var(--blue-soft); color:var(--blue-2); }
+.cwg-tile-txt{ min-width:0; }
+.cwg-tile-v{ font-size:19px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; color:var(--text); }
+.cwg-tile-l{ font-size:10.5px; font-weight:700; color:var(--text-3); margin-top:5px; }
+
+/* ---- كروت الأيام: نفس لغة ودجتس close-day (زوايا مستديرة، بلَر، حدود هادية) ---- */
+.hist-days{ display:flex; flex-direction:column; gap:10px; }
+.hist-day-card{
+  background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:20px;
+  padding:13px; -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+}
+.hist-day-head{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px;
+  padding-bottom:11px; border-bottom:1px dashed var(--line); margin-bottom:11px; }
+.hist-day-date{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-width:52px; padding:8px 10px; border-radius:14px; background:var(--gold-soft); border:1px solid var(--gold-line); }
+.hist-day-num{ font-size:20px; font-weight:900; line-height:1; color:var(--gold-2); font-variant-numeric:tabular-nums; }
+.hist-day-wd{ font-size:10.5px; color:var(--text-3); margin-top:3px; font-weight:700; }
+.hist-day-title{ min-width:0; }
+.hist-day-total{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+.hist-day-total .v{ font-size:19px; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums; }
+.hist-day-total .l{ font-size:11.5px; color:var(--text-3); font-weight:700; }
+.hist-day-iso{ font-size:11px; color:var(--text-3); margin-top:2px; letter-spacing:.3px; }
+.hist-day-badge{ align-self:start; flex-shrink:0; }
+
+/* ---- فورمة تعديل الأعداد: كودجتين جنب بعض (تسمين/بياض) ---- */
+.hist-edit-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.hist-edit-grid2 .hist-col{
+  padding:11px 10px; border-radius:16px; background:rgba(255,255,255,.03); border:1px solid var(--line);
+  transition:.2s;
+}
+.hist-edit-grid2 .hist-col:focus-within{ border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
+.hist-col-t{ background:linear-gradient(140deg, var(--gold-soft), rgba(255,255,255,.02)); border-color:var(--gold-line); }
+.hist-col-b{ background:linear-gradient(140deg, var(--blue-soft), rgba(255,255,255,.02)); border-color:rgba(76,141,255,.32); }
+.hist-col-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+.hist-col-head .k{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:900; color:var(--text-2); }
+.hist-col-head .k svg{ width:13px; height:13px; }
+.hist-col-t .hist-col-head .k{ color:var(--gold-2); }
+.hist-col-b .hist-col-head .k{ color:var(--blue-2); }
+.hist-col-head .cnt{ font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:99px; background:rgba(255,255,255,.07); color:var(--text-2); }
+.hist-col-inp{
+  width:100%; background:rgba(0,0,0,.22); border:1px solid var(--line-strong); border-radius:12px;
+  padding:9px 10px; font-family:inherit; font-weight:900; color:var(--text); font-size:19px; text-align:center;
+  font-variant-numeric:tabular-nums; outline:none; transition:.15s;
+}
+.hist-col-inp:focus{ border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
+.hist-extra-lbl{ display:block; margin:8px 0 5px; font-size:10.5px; color:var(--text-3); font-weight:800; }
+.hist-col-inp-extra{ font-size:14px; font-weight:800; padding:7px 10px; }
+.hist-col-names{ display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; padding-top:9px; border-top:1px dashed var(--line); }
+.hist-edit-grid2 .hist-edit-save{ grid-column:1/-1; justify-content:center; }
+
+/* ---- زرار الحفظ: بيدج زي زرار إغلاق اليوم ---- */
+.hist-edit-save{
+  display:flex; align-items:center; justify-content:center; gap:8px; margin-top:2px;
+  padding:12px 16px; border-radius:15px; border:1px solid transparent; height:44px;
+  font-family:inherit; font-size:13.5px; font-weight:900; cursor:pointer; color:#0b0d12;
+  background:linear-gradient(135deg,#f2d675 0%,var(--gold) 55%,var(--gold) 100%);
+  box-shadow:0 8px 20px -9px var(--gold-line); transition:transform .15s ease, box-shadow .2s ease;
+}
+.hist-edit-save:hover{ transform:translateY(-1px); }
+.hist-edit-save:disabled{ opacity:.7; cursor:wait; }
+.hist-edit-save svg{ width:15px; height:15px; }
+
+/* ---- عرض الحضور (غير أدمن) ---- */
+.hist-att-two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.hist-att-col{ padding:10px; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid var(--line); }
+.hist-att-col-t{ border-color:var(--gold-line); }
+.hist-att-col-b{ border-color:rgba(76,141,255,.32); }
+.hist-att-col-h{ font-size:11.5px; font-weight:900; color:var(--text-2); margin-bottom:7px; }
+.hist-att-list{ display:flex; flex-wrap:wrap; gap:6px; }
+
+/* ---- شرائح الأسماء ---- */
+.name-chip{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:99px;
+  font-size:11.5px; font-weight:700; background:rgba(255,255,255,.05); border:1px solid var(--line); color:var(--text); }
+.name-chip-tasmeen{ border-color:var(--gold-line); background:var(--gold-soft); }
+.name-chip-bayad{ border-color:rgba(76,141,255,.35); background:var(--blue-soft); }
+
+/* ---- تعديل الحضور (details) ---- */
+.hist-att-edit{ margin-top:11px; }
+.hist-att-edit>summary{
+  list-style:none; cursor:pointer; padding:9px 12px; border-radius:13px;
+  background:rgba(255,255,255,.03); border:1px solid var(--line);
+  font-size:11.5px; font-weight:800; color:var(--text-2);
+}
+.hist-att-edit>summary::-webkit-details-marker{ display:none; }
+.hist-att-edit[open]>summary{ border-color:var(--gold-line); color:var(--gold-2); }
+.hist-att-editor{ margin-top:8px; display:grid; gap:6px; }
+.hist-att-row{ display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px;
+  padding:8px 10px; border-radius:13px; background:rgba(255,255,255,.03); border:1px solid var(--line); }
+.hist-att-row.is-on{ background:rgba(67,209,138,.08); border-color:rgba(67,209,138,.28); }
+.hist-att-name{ font-size:12.5px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hist-att-actions{ display:flex; gap:4px; }
+.hist-att-mini{ display:inline; }
+.hist-att-chip{ padding:6px 11px; border-radius:99px; font-family:inherit; font-size:11px; font-weight:800;
+  border:1px solid transparent; cursor:pointer; transition:.15s; background:rgba(255,255,255,.05); color:var(--text-3); }
+.hist-att-chip.is-t{ border-color:var(--gold-line); color:var(--gold-2); }
+.hist-att-chip.is-t.is-active{ background:var(--gold-soft); color:var(--text); }
+.hist-att-chip.is-b{ border-color:rgba(76,141,255,.32); color:var(--blue-2); }
+.hist-att-chip.is-b.is-active{ background:rgba(76,141,255,.22); color:var(--text); }
+.hist-att-chip.is-x{ border-color:rgba(255,111,117,.35); color:var(--red-2,#ffc2c4); }
+.hist-att-chip.is-x:hover{ background:var(--red-soft,rgba(255,111,117,.12)); }
+.hist-att-chip:hover{ transform:translateY(-1px); }
+
+.empty{ padding:18px 4px; text-align:center; color:var(--text-3); }
+
+/* حفظ ناجح: ومضة خفيفة على الكارت */
+.hist-flash{ animation: histFlash .9s ease; }
+@keyframes histFlash{
+  0%{ box-shadow:0 0 0 0 rgba(67,209,138,.55); }
+  40%{ box-shadow:0 0 0 6px rgba(67,209,138,.22); }
+  100%{ box-shadow:0 0 0 0 rgba(67,209,138,0); }
+}
+
+@media(max-width:420px){
+  .hist-edit-grid2, .hist-att-two, .cwg-row{ grid-template-columns:1fr; }
+  .hist-edit-grid2 .hist-edit-save{ grid-column:auto; }
+}
 </style>
-
 
 <script>
 (function(){
@@ -303,6 +383,9 @@
           var oldSub = det.querySelector('.acc-summary-sub');
           var newSub = f.querySelector('.acc-summary-sub');
           if(oldSub && newSub) oldSub.innerHTML = newSub.innerHTML;
+          var oldRow = det.querySelector('.cwg-row');
+          var newRow = f.querySelector('.cwg-row');
+          if(oldRow && newRow) oldRow.innerHTML = newRow.innerHTML;
         }
       });
     }catch(e){ console.error(e); }
@@ -381,60 +464,4 @@
   wire(document);
 })();
 </script>
-<style>
-.hist-flash{animation: histFlash .9s ease}
-@keyframes histFlash{
-  0%{box-shadow:0 0 0 0 rgba(0,214,143,.55)}
-  40%{box-shadow:0 0 0 6px rgba(0,214,143,.22)}
-  100%{box-shadow:0 0 0 0 rgba(0,214,143,0)}
-}
-.hist-edit-save:disabled{opacity:.7;cursor:wait}
-</style>
-
-<style>
-/* ==== توحيد شكل صفحة السجل مع تصميم دفتر الأستاذ (ledger look) ==== */
-.acc{ display:flex; flex-direction:column; gap:14px; }
-.hist-period{
-  background:var(--card); border:1px solid var(--line); border-radius:18px;
-  padding:14px; overflow:visible;
-  box-shadow:0 10px 26px -22px rgba(0,0,0,.8);
-}
-.hist-period > summary{
-  list-style:none; cursor:pointer; display:flex; align-items:center;
-  justify-content:space-between; gap:10px; padding:0 0 2px;
-}
-.hist-period > summary::-webkit-details-marker{ display:none; }
-.hist-period[open] > summary{
-  padding-bottom:12px; border-bottom:1px dashed var(--line); margin-bottom:12px;
-}
-.hist-period .acc-summary-main{ display:flex; align-items:center; gap:10px; min-width:0; }
-.hist-period .acc-summary-title{ font-size:13.5px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.hist-period .acc-summary-sub{ font-size:11.5px; color:var(--text-3); margin-top:3px; font-variant-numeric:tabular-nums; }
-.hist-period .acc-chevron{
-  width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
-  border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--text-3); flex-shrink:0;
-  transition:.18s;
-}
-.hist-period .acc-chevron svg{ width:14px; height:14px; }
-.hist-period[open] .acc-chevron{ transform:rotate(180deg); color:var(--gold-2); border-color:var(--gold-line,rgba(217,177,104,.35)); background:var(--gold-soft); }
-.hist-period .acc-body{ padding:0; }
-
-/* بطاقات الأيام — نفس لغة الدفتر: صفوف هادية وأرقام tabular */
-.hist-days{ gap:10px; }
-.hist-day-card{
-  background:rgba(255,255,255,.02); border:1px solid var(--line);
-  border-radius:14px; padding:12px; box-shadow:none;
-}
-.hist-day-date{ border-radius:12px; background:var(--gold-soft); border:1px solid var(--gold-line,rgba(217,177,104,.3)); }
-.hist-day-num{ font-size:20px; color:var(--gold-2); font-variant-numeric:tabular-nums; }
-.hist-day-total .v{ color:var(--gold-2); font-variant-numeric:tabular-nums; }
-.hist-day-iso{ font-variant-numeric:tabular-nums; }
-.hist-day-head{ padding-bottom:10px; border-bottom:1px dashed var(--line); }
-.hist-edit-grid2{ margin-top:10px; }
-.hist-edit-grid2 .hist-col{ background:rgba(255,255,255,.02); border-radius:12px; }
-.hist-col-inp, .hist-edit-field input{ font-variant-numeric:tabular-nums; }
-.hist-att-edit>summary{ border-radius:10px; }
-.empty{ padding:18px 4px; text-align:center; }
-</style>
-
 {% endblock %}
