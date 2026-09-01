@@ -31,6 +31,11 @@
     <div class="gl2-total-days">{{ current_period.days }}<span>يوم مسجَّل</span></div>
   </div>
 
+  <div class="gl2-split">
+    <div class="gl2-split-i gl2-split-t"><span>مراجعة التسمين</span><b>{{ '{:,}'.format(current_period.tasmeen or 0) }}</b></div>
+    <div class="gl2-split-i gl2-split-b"><span>مراجعة البياض</span><b>{{ '{:,}'.format(current_period.bayad or 0) }}</b></div>
+  </div>
+
   {% if current_period.total > 0 %}
   <form method="post" action="{{ url_for('admin_gross_clear_period') }}" class="gl-clear-form"
         onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير عمود (بدون خصم) لأيام هذه المدة نهائيًا بدون أرشيف.',{title:'تصفير أعداد بدون خصم للمدة الحالية؟',danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير أعداد بدون خصم للمدة الحالية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
@@ -49,6 +54,10 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
   <span>الإجمالي منذ بداية السجل</span>
   <b>{{ '{:,}'.format(grand) }}</b>
+</div>
+<div class="gl2-split gl2-split-grand">
+  <div class="gl2-split-i gl2-split-t"><span>مراجعة التسمين</span><b>{{ '{:,}'.format(grand_tasmeen or 0) }}</b></div>
+  <div class="gl2-split-i gl2-split-b"><span>مراجعة البياض</span><b>{{ '{:,}'.format(grand_bayad or 0) }}</b></div>
 </div>
 
 <!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
@@ -70,7 +79,7 @@
     <div class="gl2-lrow">
       <div class="gl2-lrow-l">
         <div class="gl2-lrow-label">{{ p.label }}</div>
-        <div class="gl2-lrow-days">{{ p.days }} يوم</div>
+        <div class="gl2-lrow-days">{{ p.days }} يوم · تسمين {{ '{:,}'.format(p.tasmeen or 0) }} · بياض {{ '{:,}'.format(p.bayad or 0) }}</div>
       </div>
       <div class="gl2-lrow-v">{{ '{:,}'.format(p.total) }}</div>
       <form method="post" action="{{ url_for('admin_gross_clear_period') }}"
@@ -108,7 +117,7 @@
   <div class="gl2-table-wrap">
     <table class="gl2-table">
       <thead>
-        <tr><th>التاريخ</th><th>بدون خصم</th><th>إجمالي اليوم</th></tr>
+        <tr><th>التاريخ</th><th>مراجعة التسمين</th><th>مراجعة البياض</th><th>بدون خصم</th><th>إجمالي اليوم</th></tr>
       </thead>
       <tbody>
         {% for r in rows %}
@@ -118,6 +127,8 @@
             {% set dparts = diso.split('-') %}
             {{ dparts[2] }}/{{ dparts[1] }}/{{ dparts[0] }}
           </td>
+          <td class="gl2-td-split gl2-td-t">{{ '{:,}'.format(r.no_deduct_tasmeen or 0) }}</td>
+          <td class="gl2-td-split gl2-td-b">{{ '{:,}'.format(r.no_deduct_bayad or 0) }}</td>
           <td class="gl2-td-nd">
             <div class="gl2-cellbar">
               <i style="width:{{ (((r.no_deduct_total or 0) / (peak_all if peak_all else 1)) * 100)|round(0,'ceil')|int }}%"></i>
@@ -136,6 +147,14 @@
 </div>
 
 <style>
+.gl2-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.gl2-split-grand{margin:8px 0 14px}
+.gl2-split-i{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.gl2-split-i span{font-size:11px;opacity:.75}
+.gl2-split-i b{font-size:16px;font-weight:800}
+.gl2-split-t b{color:var(--gold)}
+.gl2-td-split{font-weight:700;white-space:nowrap;text-align:center}
+
 .gl2-card{ overflow:visible; }
 
 /* sparkline in header */
