@@ -22,16 +22,11 @@
   }
   .wg-wrap *{ box-sizing:border-box; }
 
-  /* شريط علوي صغير: التاريخ + حالة الحضور */
-  .wg-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 4px 0; }
-  .wg-date{ font-size:12.5px; font-weight:700; color:var(--wg-dim); letter-spacing:.2px; }
-  .wg-state{
-    display:inline-flex; align-items:center; gap:6px;
-    font-size:11.5px; font-weight:800; padding:6px 12px; border-radius:999px;
-    background:rgba(67,209,138,.14); color:#7fe7b4; border:1px solid rgba(67,209,138,.22);
-  }
-  .wg-state i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(67,209,138,.18); }
-  .wg-state.is-off{ background:rgba(227,185,107,.13); color:#f0cf94; border-color:rgba(227,185,107,.22); }
+  /* التاريخ جوه الكارت جنب الاسم */
+  .wg-hero-date{ display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:6px 9px;
+    border-radius:10px; background:rgba(255,255,255,.055); border:1px solid var(--wg-line);
+    color:var(--wg-dim); font-size:10.5px; font-weight:800; line-height:1.35; }
+  .wg-hero-date svg{ width:13px; height:13px; flex:0 0 auto; color:var(--wg-gold); }
 
   /* شبكة الودجتس */
   .wg-grid{ display:grid; grid-template-columns:1fr 1fr; gap:var(--wg-gap); }
@@ -123,15 +118,6 @@
 
 <div class="wg-wrap">
 
-  <div class="wg-top">
-    <span class="wg-date">{{ today }}</span>
-    {% if checked_in %}
-      <span class="wg-state"><i></i>حاضر الآن</span>
-    {% else %}
-      <span class="wg-state is-off"><i></i>لم تسجّل</span>
-    {% endif %}
-  </div>
-
   <div class="wg-grid">
 
     <!-- ودجت كبير طولاني: الحضور -->
@@ -143,6 +129,10 @@
       <div>
         <div class="wg-hello">مرحباً</div>
         <div class="wg-name">{{ current_user.full_name }}</div>
+        <div class="wg-hero-date">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.75 3v2.25M17.25 3v2.25M3.75 9h16.5M5.25 5.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25A2.25 2.25 0 0 1 18.75 21H5.25A2.25 2.25 0 0 1 3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25Z"/></svg>
+          <span>{{ today }} · {{ today|weekday_ar }}</span>
+        </div>
       </div>
 
       {% if day_closed %}
