@@ -1,7 +1,7 @@
 {% extends "app_base.html" %}
 {% block content %}
 
-<!-- ===== HERO ===== -->
+<!-- ===== HERO (مبسّط) ===== -->
 <section class="hero-admin">
   <div class="hero-mesh"></div>
   <div class="hero-row u-center u-gap-14">
@@ -14,356 +14,363 @@
         نصيب العامل
       </span>
       <h1 class="hero-h1 u-mt-6">{{ worker.full_name }}</h1>
-    
     </div>
   </div>
 
   {% if grand_pending_chicks > current_pending_chicks %}
-  <div class="card" style="margin-top:10px;padding:10px 12px;font-size:12px;color:var(--text-3);">
-    فيه مدد سابقة لسه مفتوحة —
-    إجمالي غير المُستلم كله: <b style="color:var(--gold-2);">{{ '{:,}'.format(grand_pending_chicks) }}</b> كتكوت
+  <div class="wsw-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+    فيه مدد سابقة لسه مفتوحة — إجمالي غير المستلم
+    <b>{{ '{:,}'.format(grand_pending_chicks) }}</b> كتكوت
     ({{ (grand_pending_money + grand_bonus - grand_deduct)|money_k }} ج)
   </div>
   {% endif %}
 </section>
 
 
-<!-- ===== كشف حساب المدة (إيصال) ===== -->
-{% for p in periods %}{% if p.is_current %}
-<section class="rc20" dir="rtl">
-  <div class="rc20-perf rc20-perf-top" aria-hidden="true"></div>
-  <div class="rc20-foil" aria-hidden="true"></div>
+<!-- ===== المدة الحالية — ودجتس iOS ===== -->
+{% for p in periods if p.is_current %}
+<div class="wsw-wrap">
+  <div class="wsw-grid">
 
-  <div class="rc20-head">
-    <div class="rc20-stamp">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.3"/></svg>
+    <!-- ودجت كبير: الصافي -->
+    <div class="wsw-cell wsw-hero">
+      <div class="wsw-hero-top">
+        <span class="wsw-hero-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.3"/></svg>
+        </span>
+        <span class="wsw-live"><i></i>جاري</span>
+      </div>
+      <div>
+        <div class="wsw-hero-lbl">الصافي — {{ p.label }}</div>
+        <div class="wsw-hero-val"><b data-countup="{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k_raw }}">0</b><small>جنيه</small></div>
+        <div class="wsw-hero-sub">من {{ '{:,}'.format(p.pending_chicks) }} كتكوت لسه ما اتحاسبش عليهم</div>
+      </div>
     </div>
-    <div class="rc20-hx">
-      <div class="rc20-title">كشف حساب المدة</div>
-      <div class="rc20-sub">{{ p.label }}</div>
-    </div>
-    <span class="rc20-live"><i></i>جاري</span>
-  </div>
 
-  <div class="rc20-amount">
-    <div class="rc20-amt-lbl">الرصيد غير المُستلم</div>
-    <div class="rc20-amt-val"><span class="wl19-b-val" id="wl19Val" data-v="{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k_raw }}">0</span><small>جنيه</small></div>
-    <div class="rc20-amt-note">من {{ '{:,}'.format(p.pending_chicks) }} كتكوت لسه ما اتحاسبش عليهم</div>
-  </div>
+    <!-- ودجت صغير: أيام الحضور -->
+    <div class="wsw-cell wsw-stat wsw-stat-1">
+      <span class="wsw-stat-ic" style="color:#7fe7b4" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
+      </span>
+      <div>
+        <div class="wsw-stat-num" data-countup="{{ p.days_attended }}">0</div>
+        <div class="wsw-stat-lbl">أيام الحضور</div>
+      </div>
+    </div>
 
-  <div class="rc20-rule" aria-hidden="true"></div>
+    <!-- ودجت صغير: إجمالي المدة -->
+    <div class="wsw-cell wsw-stat wsw-stat-2">
+      <span class="wsw-stat-ic" style="color:#8cc6ff" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg>
+      </span>
+      <div>
+        <div class="wsw-stat-num" data-countup="{{ p.total_period }}">0</div>
+        <div class="wsw-stat-lbl">إجمالي المدة</div>
+      </div>
+    </div>
 
-  <div class="rc20-ledger">
-    <div class="rc20-l-row">
-      <span class="rc20-l-k">أيام الحضور</span>
-      <span class="rc20-l-v">{{ p.days_attended }}</span>
-    </div>
-    <div class="rc20-l-row">
-      <span class="rc20-l-k">إجمالي المدة</span>
-      <span class="rc20-l-v">{{ '{:,}'.format(p.total_period) }}</span>
-    </div>
-    <div class="rc20-l-row">
-      <span class="rc20-l-k">قيمة الكتاكيت</span>
-      <span class="rc20-l-v">{{ p.pending_money|money_k }} ج</span>
-    </div>
     {% if p.bonus_total %}
-    <div class="rc20-l-row is-pos">
-      <span class="rc20-l-k">مكافآت</span>
-      <span class="rc20-l-v">+{{ p.bonus_total|money_k }} ج</span>
+    <div class="wsw-cell wsw-wide wsw-tone-green">
+      <span class="wsw-wide-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 9l7-6 7 6"/></svg></span>
+      <span class="wsw-wide-txt"><b>مكافآت</b></span>
+      <span class="wsw-wide-val">+{{ p.bonus_total|money_k }} ج</span>
     </div>
     {% endif %}
+
     {% if p.deduct_total %}
-    <div class="rc20-l-row is-neg">
-      <span class="rc20-l-k">خصومات</span>
-      <span class="rc20-l-v">−{{ p.deduct_total|money_k }} ج</span>
+    <div class="wsw-cell wsw-wide wsw-tone-red">
+      <span class="wsw-wide-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V3M5 15l7 6 7-6"/></svg></span>
+      <span class="wsw-wide-txt"><b>خصومات</b></span>
+      <span class="wsw-wide-val">−{{ p.deduct_total|money_k }} ج</span>
     </div>
     {% endif %}
-    <div class="rc20-l-row is-total">
-      <span class="rc20-l-k">الصافي</span>
-      <span class="rc20-l-v">{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k }} ج</span>
-    </div>
+
   </div>
 
-  <div class="rc20-perf rc20-perf-bot" aria-hidden="true"></div>
-</section>
+  {% if is_admin_view %}
+  <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
+        onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.',{title:'تأكيد استلام أموال هذه المدة؟',danger:true,okText:'تصفير وتأكيد'}):Promise.resolve(confirm('تأكيد استلام أموال هذه المدة؟ سيتم تصفير المدة نهائيًا.'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;"
+        class="u-w-full">
+    <input type="hidden" name="user_id" value="{{ worker.id }}">
+    <input type="hidden" name="year"    value="{{ p.y }}">
+    <input type="hidden" name="month"   value="{{ p.m }}">
+    <input type="hidden" name="half"    value="{{ p.half }}">
+    <button type="submit" class="btn btn-danger btn-sm u-w-full">
+      <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تأكيد الاستلام وتصفير المدة نهائيًا
+    </button>
+  </form>
+  {% endif %}
 
-<style>
-.rc20{position:relative;overflow:hidden;margin:12px 0 14px;padding:16px 15px 14px;border-radius:20px;
-  background:
-    radial-gradient(120% 90% at 92% -10%,rgba(242,214,117,.16),transparent 60%),
-    linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
-  border:1px solid rgba(242,214,117,.22);
-  box-shadow:0 18px 40px -26px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.06) inset}
-.rc20-foil{position:absolute;inset:-40% -60%;pointer-events:none;
-  background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.10) 50%,transparent 58%);
-  animation:rc20Foil 6.5s ease-in-out infinite}
-@keyframes rc20Foil{0%,100%{transform:translateX(-30%)}50%{transform:translateX(30%)}}
-.rc20-perf{position:absolute;left:0;right:0;height:10px;pointer-events:none;
-  background-image:radial-gradient(circle at 6px 5px,rgba(0,0,0,.55) 3.4px,transparent 3.6px);
-  background-size:14px 10px;opacity:.5}
-.rc20-perf-top{top:-1px}.rc20-perf-bot{bottom:-1px}
-.rc20-head{position:relative;display:flex;align-items:center;gap:10px}
-.rc20-stamp{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex-shrink:0;
-  color:#0d0f14;background:linear-gradient(135deg,#f7e6ae,#e8c25f);
-  box-shadow:0 6px 16px -8px rgba(242,214,117,.8)}
-.rc20-stamp svg{width:20px;height:20px}
-.rc20-hx{min-width:0;flex:1}
-.rc20-title{font-size:14px;font-weight:900;color:var(--text-1,#f2f5fa);letter-spacing:.2px}
-.rc20-sub{font-size:11.5px;color:var(--text-3,#93a0b5);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rc20-live{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;padding:4px 9px;border-radius:99px;
-  font-size:10.5px;font-weight:900;color:#7ff3cd;background:rgba(0,214,143,.12);border:1px solid rgba(0,214,143,.32)}
-.rc20-live i{width:6px;height:6px;border-radius:50%;background:#00d68f;animation:rc20Pulse 1.8s ease-in-out infinite}
-@keyframes rc20Pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,214,143,.5)}50%{opacity:.55;box-shadow:0 0 0 6px rgba(0,214,143,0)}}
-.rc20-amount{position:relative;margin-top:14px;text-align:center}
-.rc20-amt-lbl{font-size:11px;font-weight:800;color:#f7e2b3;letter-spacing:.4px}
-.rc20-amt-val{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:4px}
-.rc20-amt-val .wl19-b-val{font-size:38px;font-weight:900;line-height:1;color:var(--text-1,#f2f5fa);
-  font-variant-numeric:tabular-nums;text-shadow:0 6px 22px rgba(242,214,117,.22)}
-.rc20-amt-val small{font-size:13px;font-weight:800;color:#f0d59a}
-.rc20-amt-note{font-size:11px;color:var(--text-3,#93a0b5);margin-top:6px}
-.rc20-rule{height:1px;margin:14px -15px 12px;
-  background:repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 6px,transparent 6px 12px)}
-.rc20-ledger{display:flex;flex-direction:column;gap:2px}
-.rc20-l-row{display:flex;align-items:baseline;gap:8px;font-size:12.5px;padding:4px 0}
-.rc20-l-k{color:var(--text-3,#93a0b5);font-weight:700;white-space:nowrap}
-.rc20-l-row::after{content:"";flex:1;height:0;border-bottom:1px dotted rgba(255,255,255,.14);transform:translateY(-3px)}
-.rc20-l-v{order:3;font-weight:900;color:var(--text-1,#f2f5fa);font-variant-numeric:tabular-nums;white-space:nowrap}
-.rc20-l-row.is-pos .rc20-l-v{color:#7ff3cd}
-.rc20-l-row.is-neg .rc20-l-v{color:#ffb1b1}
-.rc20-l-row.is-total{margin-top:6px;padding-top:8px;border-top:1px solid rgba(242,214,117,.22)}
-.rc20-l-row.is-total .rc20-l-k{color:#f7e2b3;font-weight:900}
-.rc20-l-row.is-total .rc20-l-v{color:#ffe6b0;font-size:15px}
-@media (prefers-reduced-motion:reduce){.rc20-foil,.rc20-live i{animation:none}}
-</style>
-{% endif %}{% endfor %}
-
-
-<!-- ===== PERIODS (accordion — only current period open by default) ===== -->
-<div class="acc">
-  {% for p in periods %}
-    {% if not p.is_current %}
-      {# مدة سابقة لسه المسؤول ما صفّرش أموالها — نعرض ملخص بس، من غير أي تفاصيل يوم بيوم #}
-      <div class="acc-item ws-past-period">
-        <div class="ws-past-head">
-          <div class="sec-h-ico sec-h-ico-gold">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
-          </div>
-          <div class="ws-past-text">
-            <div class="ws-past-title">{{ p.label }}</div>
-            <div class="ws-past-msg">
-              حسابك في المدة:
-              <b>{{ '{:,}'.format(p.pending_chicks) }}</b> كتكوت
-              × 55 = <b class="ws-past-money">{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k }} ج</b>
-            </div>
-            <div class="ws-past-hint">لسه المسؤول ما استلمش أموال المدة دي.</div>
-          </div>
-        </div>
-        {% if is_admin_view %}
-        <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
-              onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.',{title:'تأكيد استلام أموال هذه المدة؟',danger:true,okText:'تصفير وتأكيد'}):Promise.resolve(confirm('تأكيد استلام أموال هذه المدة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;"
-              class="u-w-full">
-          <input type="hidden" name="user_id" value="{{ worker.id }}">
-          <input type="hidden" name="year"    value="{{ p.y }}">
-          <input type="hidden" name="month"   value="{{ p.m }}">
-          <input type="hidden" name="half"    value="{{ p.half }}">
-          <button type="submit" class="btn btn-danger btn-sm u-w-full" style="margin-top:10px;">
-            <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تأكيد الاستلام وتصفير المدة نهائيًا
-          </button>
-        </form>
-        {% endif %}
-      </div>
-    {% else %}
-    <details class="acc-item" open>
-    <summary>
-      <div class="acc-summary-main">
-        <div class="sec-h-ico sec-h-ico-blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
-        </div>
-        <div class="acc-summary-text">
-          <div class="acc-summary-title">
-            {{ p.label }}
-            {% if p.is_current %}<span class="badge badge-green sm">المدة الحالية</span>{% endif %}
-          </div>
-          <div class="acc-summary-sub">{{ p.days_attended }} يوم حضور · إجمالي {{ '{:,}'.format(p.total_period) }}</div>
-        </div>
-      </div>
-      {% if is_admin_view %}
-      <div class="acc-summary-figure" style="display:none"></div>
-      {% endif %}
-
-      <span class="acc-chevron">
+  {% if is_admin_view %}
+  {% if p.settled_days_list or p.pending_days_list or p.bonus_list or p.deduct_list or p.settle_list %}
+  <details class="acc-item" style="box-shadow:none;">
+    <summary style="padding:10px 12px;">
+      <span class="u-sm u-bold">تفاصيل الأيام والتعديلات</span>
+      <span class="acc-chevron" style="width:24px;height:24px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
       </span>
     </summary>
-
     <div class="acc-body">
+      {% if p.pending_days_list %}
+      <div class="row-list">
+        <div class="row-list-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+          أيام لم تُصفَّ ({{ p.pending_days_list|length }})
+        </div>
+        {% for it in p.pending_days_list %}
+        <div class="row-item">
+          <span class="d">{{ it.date }} · {{ it.weekday }} · <span class="mini-chip">{{ it.farm }}</span> — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+          <form method="post" action="{{ url_for('admin_worker_day_settle') }}">
+            <input type="hidden" name="user_id" value="{{ worker.id }}">
+            <input type="hidden" name="day" value="{{ it.date }}">
+            <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تم</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if p.settled_days_list %}
+      <div class="row-list">
+        <div class="row-list-head pos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          أيام تمّت المحاسبة ({{ p.settled_days_list|length }})
+        </div>
+        {% for it in p.settled_days_list %}
+        <div class="row-item">
+          <span class="d">{{ it.date }} · {{ it.weekday }} · <span class="mini-chip">{{ it.farm }}</span> على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
+          <form method="post" action="{{ url_for('admin_worker_day_settle') }}"
+                onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('إلغاء المحاسبة لهذا اليوم؟',{danger:true,okText:'إلغاء المحاسبة'}):Promise.resolve(confirm('إلغاء المحاسبة لهذا اليوم؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+            <input type="hidden" name="user_id" value="{{ worker.id }}">
+            <input type="hidden" name="day" value="{{ it.date }}">
+            <button type="submit" class="rm" title="إلغاء المحاسبة">✕</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if p.settle_list %}
+      <div class="row-list">
+        <div class="row-list-head neg">تصفيات ({{ p.settle_list|length }})</div>
+        {% for it in p.settle_list %}
+        <div class="row-item">
+          <span class="d">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
+          <span class="u-flex u-center u-gap-6">
+            <span class="a neg">- {{ it.amount|money_k }} ج</span>
+            <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}"
+                  onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('حذف هذه التصفية؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('حذف هذه التصفية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+              <input type="hidden" name="user_id" value="{{ worker.id }}">
+              <button type="submit" class="rm">✕</button>
+            </form>
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
+  {% endif %}
+
+  <!-- سجل أيام المدة يوم بيوم -->
+  {% if p.days %}
+  <details class="acc-item" style="box-shadow:none;">
+    <summary style="padding:10px 12px;">
+      <span class="u-sm u-bold">سجل الأيام ({{ p.days|length }})</span>
+      <span class="acc-chevron" style="width:24px;height:24px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </span>
+    </summary>
+    <div class="acc-body">
+      <div class="tl">
+        {% for d in p.days %}
+        <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
+          <div class="tl-date">
+            <div class="tl-num">{{ d.date.split('-')[-1] }}</div>
+            <div class="tl-wd">{{ d.weekday }}</div>
+          </div>
+          <div class="tl-bar"></div>
+          <div class="tl-body">
+            <div class="tl-row-top">
+              <div class="tl-total">
+                <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
+                <div class="tl-tlab">إجمالي معمل {{ d.farm }}</div>
+              </div>
+              <span class="badge badge-green sm">{{ d.farm }}</span>
+            </div>
+            <div class="tl-meta u-flex u-wrap u-gap-8 u-mt-8">
+              <span class="mini-chip">{{ d.attendees }} عامل في المعمل</span>
+              <span class="mini-chip u-mono">{{ d.date }}</span>
+              <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
+                {{ '{:,}'.format(d.share|round(0,'common')|int) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </details>
+  {% else %}
+  <div class="empty">مفيش أيام مسجلة في المدة دي لسه.</div>
+  {% endif %}
+</div>
+{% endfor %}
+
+
+<!-- ===== مدد سابقة لسه ما اتحاسبتش — دفتر ===== -->
+{% set past_periods = periods|rejectattr('is_current')|list %}
+{% if past_periods %}
+<div class="card" style="margin-top:12px;">
+  <div class="sec-head">
+    <div class="sec-h-l">
+      <div class="sec-h-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
+      </div>
+      <div>
+        <div class="sec-h-t">مدد سابقة لسه مفتوحة</div>
+        <div class="sec-h-s">لسه المسؤول ما استلمش أموالها</div>
+      </div>
+    </div>
+  </div>
+  <div class="wsw-ledger">
+    {% for p in past_periods %}
+    <div class="wsw-lrow">
+      <div class="wsw-lrow-l">
+        <div class="wsw-lrow-label">{{ p.label }}</div>
+        <div class="wsw-lrow-meta">{{ '{:,}'.format(p.pending_chicks) }} كتكوت{% if p.bonus_total %} · مكافآت {{ p.bonus_total|money_k }}{% endif %}{% if p.deduct_total %} · خصومات {{ p.deduct_total|money_k }}{% endif %}</div>
+      </div>
+      <div class="wsw-lrow-v">{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k }} ج</div>
       {% if is_admin_view %}
       <form method="post" action="{{ url_for('admin_worker_clear_period') }}"
-            onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.',{title:'تأكيد استلام أموال هذه المدة؟',danger:true,okText:'تصفير وتأكيد'}):Promise.resolve(confirm('تأكيد استلام أموال هذه المدة؟ سيتم تصفير المدة نهائيًا.'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;"
-            class="u-w-full">
+            onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('سيتم تصفير المدة وحذف بياناتها من قاعدة البيانات نهائيًا.',{title:'تأكيد استلام أموال هذه المدة؟',danger:true,okText:'تصفير وتأكيد'}):Promise.resolve(confirm('تأكيد استلام أموال هذه المدة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
         <input type="hidden" name="user_id" value="{{ worker.id }}">
         <input type="hidden" name="year"    value="{{ p.y }}">
         <input type="hidden" name="month"   value="{{ p.m }}">
         <input type="hidden" name="half"    value="{{ p.half }}">
-        <button type="submit" class="btn btn-danger btn-sm u-w-full">
-          <span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تأكيد الاستلام وتصفير المدة نهائيًا
+        <button type="submit" class="wsw-lrow-btn" title="تأكيد الاستلام">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
         </button>
       </form>
       {% endif %}
-
-      <div class="money-box" style="padding:12px 14px;">
-        <div class="l" style="font-size:12.5px;color:var(--text-3);">قيمة الكتاكيت المتبقية</div>
-        <div class="calc" style="font-size:13px;margin-top:4px;">
-          {{ '{:,}'.format(p.pending_chicks) }} كتكوت × 55 ج = <b>{{ p.pending_money|money_k }} ج</b>
-        </div>
-        <div class="final" style="font-size:14px;margin-top:6px;font-weight:800;">
-          {% if is_admin_view %}المستحق حاليًا:{% else %}نصيبي في هذه المدة:{% endif %}
-          <span class="v" style="color:var(--gold-2);">{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k }} ج</span>
-        </div>
-      </div>
-
-
-
-      {% if is_admin_view %}
-      {% if p.settled_days_list or p.pending_days_list or p.bonus_list or p.deduct_list or p.settle_list %}
-      <details class="acc-item" style="box-shadow:none;">
-        <summary style="padding:10px 12px;">
-          <span class="u-sm u-bold">تفاصيل الأيام والتعديلات</span>
-          <span class="acc-chevron" style="width:24px;height:24px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-          </span>
-        </summary>
-        <div class="acc-body">
-          {% if p.pending_days_list %}
-          <div class="row-list">
-            <div class="row-list-head">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
-              أيام لم تُصفَّ ({{ p.pending_days_list|length }})
-            </div>
-            {% for it in p.pending_days_list %}
-            <div class="row-item">
-              <span class="d">{{ it.date }} · {{ it.weekday }} · <span class="mini-chip">{{ it.farm }}</span> — <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
-              <form method="post" action="{{ url_for('admin_worker_day_settle') }}">
-                <input type="hidden" name="user_id" value="{{ worker.id }}">
-                <input type="hidden" name="day" value="{{ it.date }}">
-                <button type="submit" class="mini-settle-btn" title="تم المحاسبة على اليوم ده"><span class="ic-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg></span> تم</button>
-              </form>
-            </div>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          {% if p.settled_days_list %}
-          <div class="row-list">
-            <div class="row-list-head pos">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-              أيام تمّت المحاسبة ({{ p.settled_days_list|length }})
-            </div>
-            {% for it in p.settled_days_list %}
-            <div class="row-item">
-              <span class="d">{{ it.date }} · {{ it.weekday }} · <span class="mini-chip">{{ it.farm }}</span> على <b>{{ '{:,}'.format(it.chicks) }}</b> كتكوت</span>
-              <form method="post" action="{{ url_for('admin_worker_day_settle') }}"
-                    onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('إلغاء المحاسبة لهذا اليوم؟',{danger:true,okText:'إلغاء المحاسبة'}):Promise.resolve(confirm('إلغاء المحاسبة لهذا اليوم؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
-                <input type="hidden" name="user_id" value="{{ worker.id }}">
-                <input type="hidden" name="day" value="{{ it.date }}">
-                <button type="submit" class="rm" title="إلغاء المحاسبة">✕</button>
-              </form>
-            </div>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-
-
-          {% if p.settle_list %}
-          <div class="row-list">
-            <div class="row-list-head neg">تصفيات ({{ p.settle_list|length }})</div>
-            {% for it in p.settle_list %}
-            <div class="row-item">
-              <span class="d">{{ it.date }} · {{ it.weekday }}{% if it.note %} — {{ it.note }}{% endif %}</span>
-              <span class="u-flex u-center u-gap-6">
-                <span class="a neg">- {{ it.amount|money_k }} ج</span>
-                <form method="post" action="{{ url_for('admin_worker_settle_delete', sid=it.id) }}"
-                      onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('حذف هذه التصفية؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('حذف هذه التصفية؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
-                  <input type="hidden" name="user_id" value="{{ worker.id }}">
-                  <button type="submit" class="rm">✕</button>
-                </form>
-              </span>
-            </div>
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-      </details>
-      {% endif %}
-      {% endif %}
-
-      <!-- سجل أيام المدة يوم بيوم -->
-      {% if p.days %}
-      <details class="acc-item" style="box-shadow:none;">
-        <summary style="padding:10px 12px;">
-          <span class="u-sm u-bold">سجل الأيام ({{ p.days|length }})</span>
-          <span class="acc-chevron" style="width:24px;height:24px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-          </span>
-        </summary>
-        <div class="acc-body">
-          <div class="tl">
-            {% for d in p.days %}
-            <div class="tl-row {% if d.attended %}is-done{% else %}is-empty{% endif %}">
-              <div class="tl-date">
-                <div class="tl-num">{{ d.date.split('-')[-1] }}</div>
-                <div class="tl-wd">{{ d.weekday }}</div>
-              </div>
-              <div class="tl-bar"></div>
-              <div class="tl-body">
-                <div class="tl-row-top">
-                  <div class="tl-total">
-                    <div class="tl-tnum">{{ '{:,}'.format(d.total) }}</div>
-                    <div class="tl-tlab">إجمالي معمل {{ d.farm }}</div>
-                  </div>
-                  <span class="badge badge-green sm">{{ d.farm }}</span>
-                </div>
-                <div class="tl-meta u-flex u-wrap u-gap-8 u-mt-8">
-                  <span class="mini-chip">{{ d.attendees }} عامل في المعمل</span>
-                  <span class="mini-chip u-mono">{{ d.date }}</span>
-                  <span class="mini-chip" style="background:var(--gold-soft);color:var(--gold-2);font-weight:800;">
-                    نصيبه: {{ '{:,}'.format(d.share|round(0,'common')|int) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </details>
-      {% else %}
-      <div class="empty">مفيش أيام مسجلة في المدة دي لسه.</div>
-      {% endif %}
     </div>
-  </details>
-    {% endif %}
-  {% else %}
-  <div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
-  {% endfor %}
+    {% endfor %}
+  </div>
 </div>
+{% endif %}
 
-<style>
-.ws-past-period{padding:14px;display:block}
-.ws-past-head{display:flex;gap:12px;align-items:flex-start}
-.ws-past-text{min-width:0;flex:1}
-.ws-past-title{font-size:14px;font-weight:900;color:var(--text-1,#fff);margin-bottom:6px}
-.ws-past-msg{font-size:13px;color:var(--text-2,#a1a4b2);line-height:1.7}
-.ws-past-money{color:var(--gold-2,#2f7dff);font-weight:900}
-.ws-past-hint{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:6px}
-</style>
+{% if not periods %}
+<div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
+{% endif %}
 
-<div class="card u-center-text u-xs u-muted" style="padding:12px;">
+<div class="card u-center-text u-xs u-muted" style="padding:12px;margin-top:12px;">
   المدة بتفضل ظاهرة لحد ما المسؤول يأكد استلام الأموال ويصفّرها — مفيش أي تصفير تلقائي.
 </div>
 
 <style>
+/* ================= ودجتس نصيب العامل (iOS style) ================= */
+.wsw-note{
+  display:flex; align-items:center; flex-wrap:wrap; gap:5px;
+  margin-top:10px; padding:9px 12px; border-radius:14px; font-size:11.5px; color:var(--text-3);
+  background:rgba(224,180,88,.08); border:1px solid rgba(224,180,88,.20);
+}
+.wsw-note svg{ width:15px; height:15px; color:#e0b458; flex-shrink:0; }
+.wsw-note b{ color:#f0d59a; }
+
+.wsw-wrap{ display:flex; flex-direction:column; gap:11px; margin-top:12px; }
+.wsw-wrap *{ box-sizing:border-box; }
+.wsw-grid{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+
+.wsw-cell{
+  position:relative; overflow:hidden; border-radius:22px;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.07);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  color:var(--text,#f2f5fa); display:flex; flex-direction:column;
+}
+
+.wsw-hero{
+  grid-column:1; grid-row:1 / span 2;
+  padding:15px 14px; justify-content:space-between; min-height:186px;
+  background:
+    radial-gradient(120% 90% at 85% -10%, rgba(224,180,88,.30) 0%, rgba(224,180,88,.06) 55%, transparent 100%),
+    linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  border-color:rgba(224,180,88,.24);
+}
+.wsw-hero-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.wsw-hero-ic{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center;
+  background:rgba(224,180,88,.20); color:#f0d59a; border:1px solid rgba(224,180,88,.26); }
+.wsw-hero-ic svg{ width:18px; height:18px; }
+.wsw-live{ display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:4px 9px; border-radius:99px;
+  font-size:10px; font-weight:900; color:#7ff3cd; background:rgba(0,214,143,.12); border:1px solid rgba(0,214,143,.32); }
+.wsw-live i{ width:6px; height:6px; border-radius:50%; background:#00d68f; animation:wswPulse 1.8s ease-in-out infinite; }
+@keyframes wswPulse{ 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+.wsw-hero-lbl{ font-size:11.5px; font-weight:800; color:#f7e2b3; margin-top:14px; }
+.wsw-hero-val{ display:flex; align-items:baseline; gap:5px; margin-top:3px; }
+.wsw-hero-val b{ font-size:32px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
+.wsw-hero-val small{ font-size:13px; font-weight:800; color:#f0d59a; }
+.wsw-hero-sub{ font-size:11px; color:var(--text-3); margin-top:8px; }
+
+.wsw-stat{ grid-column:2; padding:13px 13px 12px; justify-content:space-between; min-height:87px; background:rgba(255,255,255,.028); }
+.wsw-stat-1{ grid-row:1; }
+.wsw-stat-2{ grid-row:2; }
+.wsw-stat-ic{ width:26px; height:26px; display:grid; place-items:center; }
+.wsw-stat-ic svg{ width:19px; height:19px; }
+.wsw-stat-num{ font-size:22px; font-weight:900; line-height:1; margin-top:8px; }
+.wsw-stat-lbl{ font-size:10.5px; font-weight:700; color:var(--text-3); margin-top:4px; }
+
+.wsw-wide{ grid-column:1 / -1; display:grid; grid-template-columns:40px 1fr auto; align-items:center; gap:10px; padding:12px 13px; min-height:60px; flex-direction:row; }
+.wsw-wide-ic{ width:40px; height:40px; border-radius:13px; display:grid; place-items:center; }
+.wsw-wide-ic svg{ width:19px; height:19px; }
+.wsw-wide-txt b{ font-size:13px; font-weight:900; }
+.wsw-wide-val{ font-size:15px; font-weight:900; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.wsw-tone-green{ background:linear-gradient(135deg, rgba(0,214,143,.16), rgba(0,214,143,.03)); border-color:rgba(0,214,143,.20); }
+.wsw-tone-green .wsw-wide-ic{ background:rgba(0,214,143,.18); color:#7fe7b4; }
+.wsw-tone-green .wsw-wide-val{ color:#7ff3cd; }
+.wsw-tone-red{ background:linear-gradient(135deg, rgba(255,111,117,.14), rgba(255,111,117,.03)); border-color:rgba(255,111,117,.20); }
+.wsw-tone-red .wsw-wide-ic{ background:rgba(255,111,117,.16); color:#ffb1b1; }
+.wsw-tone-red .wsw-wide-val{ color:#ffb1b1; }
+
+@media (max-width:340px){ .wsw-hero-val b{ font-size:27px; } }
+
+/* past periods ledger */
+.wsw-ledger{ display:flex; flex-direction:column; }
+.wsw-lrow{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); }
+.wsw-lrow:last-child{ border-bottom:none; }
+.wsw-lrow-l{ flex:1; min-width:0; }
+.wsw-lrow-label{ font-size:13px; font-weight:800; color:var(--text); }
+.wsw-lrow-meta{ font-size:11px; color:var(--text-3); margin-top:2px; }
+.wsw-lrow-v{ font-size:15px; font-weight:900; color:#f0d59a; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.wsw-lrow-btn{ all:unset; cursor:pointer; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  color:#7ff3cd; background:rgba(0,214,143,.14); border:1px solid rgba(0,214,143,.30); flex-shrink:0; }
+.wsw-lrow-btn svg{ width:15px; height:15px; }
+
 .mini-settle-btn{background:rgba(0,214,143,.16);color:#7ff3cd;border:1px solid rgba(0,214,143,.45);border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
 .mini-settle-btn:hover{background:rgba(0,214,143,.28)}
 </style>
+
+<script>
+(function(){
+  function ease(t){ return 1 - Math.pow(1 - t, 3); }
+  function run(el){
+    var target = parseInt(el.getAttribute('data-countup')||'0', 10);
+    if (!target || target < 1) { el.textContent = (target||0).toLocaleString('en-US'); return; }
+    var dur = 700;
+    var start = performance.now();
+    function tick(now){
+      var p = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(ease(p) * target).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){ run(e.target); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.4 });
+  document.querySelectorAll('[data-countup]').forEach(function(el){ io.observe(el); });
+})();
+</script>
 {% endblock %}
