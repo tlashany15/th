@@ -5,7 +5,7 @@
 {%- set days_in_month = {1:31,2:(29 if (p.y % 4 == 0 and (p.y % 100 != 0 or p.y % 400 == 0)) else 28),3:31,4:30,5:31,6:30,7:31,8:31,9:30,10:31,11:30,12:31} -%}
 {%- set start_day = 1 if p.half == 1 else 16 -%}
 {%- set end_day = 15 if p.half == 1 else days_in_month[p.m] -%}
-{{- start_day }}/{{ p.m }} - {{ end_day }}/{{ p.m }}/{{ p.y -}}
+{{- start_day }}/{{ p.m }} - {{ end_day }}/{{ p.m -}}
 {%- endmacro %}
 
 <!-- ===== HERO (مبسّط) ===== -->
@@ -16,10 +16,7 @@
       {% if worker.avatar %}<img src="{{ worker.avatar }}" alt="">{% else %}{{ (worker.full_name or '?')[:1] }}{% endif %}
     </div>
     <div style="min-width:0;flex:1;">
-      <span class="hero-chip">
-        نصيب العامل
-      </span>
-      <h1 class="hero-h1 u-mt-6">{{ worker.full_name }}</h1>
+      <h1 class="hero-h1">{{ worker.full_name }}</h1>
     </div>
   </div>
 
@@ -43,7 +40,6 @@
       <div>
         <div class="wsw-hero-lbl">الصافي — {{ period_range(p) }}</div>
         <div class="wsw-hero-val"><b data-countup="{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k_raw }}">0</b><small>جنيه</small></div>
-        <div class="wsw-hero-sub">من {{ '{:,}'.format(p.pending_chicks) }} كتكوت لسه ما اتحاسبش عليهم</div>
       </div>
     </div>
 
@@ -308,7 +304,7 @@
 .wsw-hero-val small{ font-size:13px; font-weight:800; color:#f0d59a; }
 .wsw-hero-sub{ font-size:11px; color:var(--text-3); margin-top:8px; }
 
-.wsw-stat{ grid-column:2; padding:13px 13px 12px; justify-content:space-between; min-height:87px; background:rgba(255,255,255,.028); }
+.wsw-stat{ grid-column:2; padding:13px 13px 12px; justify-content:space-between; min-height:87px; background:rgba(255,255,255,.028); align-items:center; text-align:center; }
 .wsw-stat-1{ grid-row:1; }
 .wsw-stat-2{ grid-row:2; }
 .wsw-stat-ic{ width:26px; height:26px; display:grid; place-items:center; }
