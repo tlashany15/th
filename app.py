@@ -297,6 +297,8 @@ def init_db(url=None):
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_tasmeen INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_bayad INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE;
         ALTER TABLE attendance ADD COLUMN IF NOT EXISTS farm TEXT NOT NULL DEFAULT 'tasmeen';
         ALTER TABLE attendance ADD COLUMN IF NOT EXISTS extra BOOLEAN NOT NULL DEFAULT FALSE;
@@ -2197,12 +2199,19 @@ def admin_close_day():
         flash("ادخل أعداد صحيحة", "error")
         return redirect(url_for("admin_close_page", day=day))
     total = tasmeen_after + bayad_after
-    try:
-        no_deduct_total = int(request.form.get("no_deduct_total", "0") or "0")
-        if no_deduct_total < 0:
-            no_deduct_total = 0
-    except ValueError:
-        no_deduct_total = 0
+    # الأعداد بدون خصم بقت مقسومة لكل قسم — والإجمالي بيتجمع تلقائي
+    def _nd(name):
+        try:
+            v = int(request.form.get(name, "0") or "0")
+            return v if v >= 0 else 0
+        except (TypeError, ValueError):
+            return 0
+    no_deduct_tasmeen = _nd("no_deduct_tasmeen")
+    no_deduct_bayad = _nd("no_deduct_bayad")
+    if request.form.get("no_deduct_tasmeen") is None and request.form.get("no_deduct_bayad") is None:
+        # توافق مع النموذج القديم اللي كان بيبعت الإجمالي بس
+        no_deduct_tasmeen = _nd("no_deduct_total")
+    no_deduct_total = no_deduct_tasmeen + no_deduct_bayad
     db = get_db()
     cur = db.cursor()
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS total_count INTEGER NOT NULL DEFAULT 0")
@@ -2211,19 +2220,23 @@ def admin_close_day():
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_bayad INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_bayad INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS reopened BOOLEAN NOT NULL DEFAULT FALSE")
     cur.execute(
-        """INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total, reopened)
-           VALUES(%s,%s,%s,%s,%s,%s,%s,%s,FALSE)
+        """INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total, no_deduct_tasmeen, no_deduct_bayad, reopened)
+           VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)
            ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count,
                                              tasmeen_after = EXCLUDED.tasmeen_after,
                                              bayad_after = EXCLUDED.bayad_after,
                                              extra_tasmeen = EXCLUDED.extra_tasmeen,
                                              extra_bayad = EXCLUDED.extra_bayad,
                                             no_deduct_total = EXCLUDED.no_deduct_total,
+                                            no_deduct_tasmeen = EXCLUDED.no_deduct_tasmeen,
+                                            no_deduct_bayad = EXCLUDED.no_deduct_bayad,
                                             reopened = FALSE,
                                             closed_by = EXCLUDED.closed_by""",
-        (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total),
+        (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total, no_deduct_tasmeen, no_deduct_bayad),
     )
     # ==== اتلغى نشر ملخص الإغلاق في الجروب بناءً على طلب المسؤول ====
     # بدل الرسايل في الجروب، آخر كل مدة بيتبعت لكل واحد حسابه في رسالة خاصة
@@ -2293,6 +2306,8 @@ def admin_close_day():
             "extra_tasmeen": extra_tasmeen,
             "extra_bayad": extra_bayad,
             "no_deduct_total": no_deduct_total,
+            "no_deduct_tasmeen": no_deduct_tasmeen,
+            "no_deduct_bayad": no_deduct_bayad,
         })
     flash("تم إغلاق اليوم — العمال هيشوفوا الإجمالي الآن", "success")
     return redirect(url_for("admin_close_page", day=day))
@@ -2731,11 +2746,15 @@ def admin_close_page():
     cur.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS manual_share NUMERIC")
     cur.execute("SELECT COALESCE(SUM(count),0) AS s FROM vaccinations WHERE day=%s", (day_s,))
     day_total = cur.fetchone()["s"]
-    cur.execute("SELECT total_count, tasmeen_after, bayad_after, COALESCE(extra_tasmeen,0) AS extra_tasmeen, COALESCE(extra_bayad,0) AS extra_bayad, no_deduct_total, reopened FROM day_closures WHERE day=%s", (day_s,))
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_bayad INTEGER NOT NULL DEFAULT 0")
+    cur.execute("SELECT total_count, tasmeen_after, bayad_after, COALESCE(extra_tasmeen,0) AS extra_tasmeen, COALESCE(extra_bayad,0) AS extra_bayad, no_deduct_total, COALESCE(no_deduct_tasmeen,0) AS no_deduct_tasmeen, COALESCE(no_deduct_bayad,0) AS no_deduct_bayad, reopened FROM day_closures WHERE day=%s", (day_s,))
     _row = cur.fetchone()
     has_saved = _row is not None
     closed = has_saved and not (_row.get("reopened") if isinstance(_row, dict) else _row["reopened"])
     no_deduct_total = 0
+    no_deduct_tasmeen = 0
+    no_deduct_bayad = 0
     tasmeen_after = 0
     bayad_after = 0
     extra_tasmeen = 0
@@ -2750,6 +2769,11 @@ def admin_close_page():
         if tasmeen_after == 0 and bayad_after == 0:
             tasmeen_after = int(day_total or 0)
         no_deduct_total = _row["no_deduct_total"] or 0
+        no_deduct_tasmeen = int(_row["no_deduct_tasmeen"] or 0)
+        no_deduct_bayad = int(_row["no_deduct_bayad"] or 0)
+        # صفوف قديمة اتسجلت قبل التقسيم — نعتبر الإجمالي كله تسمين
+        if no_deduct_tasmeen == 0 and no_deduct_bayad == 0 and int(no_deduct_total or 0) > 0:
+            no_deduct_tasmeen = int(no_deduct_total)
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s", (day_s,))
     present_count = cur.fetchone()["c"]
     cur.execute("SELECT COUNT(*) AS c FROM attendance WHERE day=%s AND farm='tasmeen'", (day_s,))
@@ -2789,6 +2813,8 @@ def admin_close_page():
                             extra_tasmeen=extra_tasmeen,
                             extra_bayad=extra_bayad,
                            no_deduct_total=no_deduct_total,
+                           no_deduct_tasmeen=no_deduct_tasmeen,
+                           no_deduct_bayad=no_deduct_bayad,
                            present_count=present_count, day_closed=closed,
                             present_tasmeen=present_tasmeen,
                             present_bayad=present_bayad,
@@ -2813,13 +2839,22 @@ def admin_gross_log():
         PRIMARY KEY (year, month, half)
     )""")
 
-    cur.execute("""SELECT day, total_count, no_deduct_total, closed_at
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_bayad INTEGER NOT NULL DEFAULT 0")
+    cur.execute("""SELECT day, total_count, no_deduct_total,
+                          COALESCE(no_deduct_tasmeen,0) AS no_deduct_tasmeen,
+                          COALESCE(no_deduct_bayad,0) AS no_deduct_bayad, closed_at
                    FROM day_closures
                    WHERE COALESCE(no_deduct_total,0) > 0
                    ORDER BY day DESC LIMIT 365""")
     rows = cur.fetchall()
-    cur.execute("SELECT COALESCE(SUM(no_deduct_total),0) AS s FROM day_closures")
-    grand = int(cur.fetchone()["s"] or 0)
+    cur.execute("""SELECT COALESCE(SUM(no_deduct_total),0) AS s,
+                          COALESCE(SUM(no_deduct_tasmeen),0) AS s_t,
+                          COALESCE(SUM(no_deduct_bayad),0) AS s_b FROM day_closures""")
+    _g = cur.fetchone()
+    grand = int(_g["s"] or 0)
+    grand_tasmeen = int(_g["s_t"] or 0)
+    grand_bayad = int(_g["s_b"] or 0)
 
     # المدة الحالية (نصف شهر)
     today = date.today()
@@ -2833,7 +2868,9 @@ def admin_gross_log():
         cur_s = date(today.year, today.month, 16).isoformat()
         cur_e = date(today.year, today.month, last_day).isoformat()
         cur_label = f"النصف الثاني (16-{last_day}) — {today.month}/{today.year}"
-    cur.execute("""SELECT COALESCE(SUM(no_deduct_total),0) AS s, COUNT(*) AS c
+    cur.execute("""SELECT COALESCE(SUM(no_deduct_total),0) AS s,
+                          COALESCE(SUM(no_deduct_tasmeen),0) AS s_t,
+                          COALESCE(SUM(no_deduct_bayad),0) AS s_b, COUNT(*) AS c
                    FROM day_closures WHERE day BETWEEN %s AND %s
                      AND COALESCE(no_deduct_total,0)>0""",
                 (cur_s, cur_e))
@@ -2842,6 +2879,7 @@ def admin_gross_log():
         "year": today.year, "month": today.month, "half": cur_half,
         "label": cur_label, "start": cur_s, "end": cur_e,
         "total": int(r["s"] or 0), "days": int(r["c"] or 0),
+        "tasmeen": int(r["s_t"] or 0), "bayad": int(r["s_b"] or 0),
     }
 
     # المدد السابقة اللي فيها بيانات ومش متصفّرة
@@ -2849,6 +2887,8 @@ def admin_gross_log():
                           EXTRACT(MONTH FROM day)::int AS m,
                           CASE WHEN EXTRACT(DAY FROM day)<=15 THEN 1 ELSE 2 END AS half,
                           COALESCE(SUM(no_deduct_total),0) AS s,
+                          COALESCE(SUM(no_deduct_tasmeen),0) AS s_t,
+                          COALESCE(SUM(no_deduct_bayad),0) AS s_b,
                           COUNT(*) AS c
                    FROM day_closures
                    WHERE COALESCE(no_deduct_total,0)>0
@@ -2868,11 +2908,13 @@ def admin_gross_log():
         past_periods.append({
             "year": p["y"], "month": p["m"], "half": p["half"],
             "label": lab, "total": int(p["s"] or 0), "days": int(p["c"] or 0),
+            "tasmeen": int(p["s_t"] or 0), "bayad": int(p["s_b"] or 0),
         })
 
     cur.close()
     return render_template("admin_gross_log.html",
                            rows=rows, grand=grand,
+                           grand_tasmeen=grand_tasmeen, grand_bayad=grand_bayad,
                            current_period=current_period,
                            past_periods=past_periods)
 
@@ -2900,7 +2942,7 @@ def admin_gross_clear_period():
     db = get_db(); cur = db.cursor()
     try:
         # تصفير نهائي: مسح قيمة الأعداد بدون خصم لأيام المدة — من غير أي أرشيف/snapshot
-        cur.execute("UPDATE day_closures SET no_deduct_total=0 WHERE day BETWEEN %s AND %s", (s, e))
+        cur.execute("UPDATE day_closures SET no_deduct_total=0, no_deduct_tasmeen=0, no_deduct_bayad=0 WHERE day BETWEEN %s AND %s", (s, e))
         db.commit()
         flash("تم تصفير الأعداد بدون خصم للمدة", "success")
     except Exception as ex:
@@ -3984,11 +4026,17 @@ def admin_edit_day_total():
     extra_tasmeen = _int_or(request.form.get("extra_tasmeen"), None)
     extra_bayad = _int_or(request.form.get("extra_bayad"), None)
     total_form = _int_or(request.form.get("total_count"), None)
-    no_deduct_total = _int_or(request.form.get("no_deduct_total"), 0) or 0
+    no_deduct_tasmeen = _int_or(request.form.get("no_deduct_tasmeen"), 0) or 0
+    no_deduct_bayad = _int_or(request.form.get("no_deduct_bayad"), 0) or 0
+    if request.form.get("no_deduct_tasmeen") is None and request.form.get("no_deduct_bayad") is None:
+        no_deduct_tasmeen = _int_or(request.form.get("no_deduct_total"), 0) or 0
+    no_deduct_total = no_deduct_tasmeen + no_deduct_bayad
 
     db = get_db()
     cur = db.cursor()
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_total INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_tasmeen INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS no_deduct_bayad INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS tasmeen_after INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS bayad_after INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS extra_tasmeen INTEGER NOT NULL DEFAULT 0")
@@ -4018,15 +4066,17 @@ def admin_edit_day_total():
         bayad_after = 0
 
     total = int(tasmeen_after) + int(bayad_after)
-    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total)
-                   VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
+    cur.execute("""INSERT INTO day_closures(day, closed_by, total_count, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total, no_deduct_tasmeen, no_deduct_bayad)
+                   VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (day) DO UPDATE SET total_count = EXCLUDED.total_count,
                                                     tasmeen_after = EXCLUDED.tasmeen_after,
                                                     bayad_after = EXCLUDED.bayad_after,
                                                     extra_tasmeen = EXCLUDED.extra_tasmeen,
                                                     extra_bayad = EXCLUDED.extra_bayad,
-                                                    no_deduct_total = EXCLUDED.no_deduct_total""",
-                (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total))
+                                                    no_deduct_total = EXCLUDED.no_deduct_total,
+                                                    no_deduct_tasmeen = EXCLUDED.no_deduct_tasmeen,
+                                                    no_deduct_bayad = EXCLUDED.no_deduct_bayad""",
+                (day, u["id"], total, tasmeen_after, bayad_after, extra_tasmeen, extra_bayad, no_deduct_total, no_deduct_tasmeen, no_deduct_bayad))
     db.commit()
     cur.close()
     if request.headers.get("X-Requested-With") == "fetch":
