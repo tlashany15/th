@@ -31,10 +31,6 @@
     <div class="gl2-total-days">{{ current_period.days }}<span>يوم مسجَّل</span></div>
   </div>
 
-  <div class="gl2-split">
-    <div class="gl2-split-i gl2-split-t"><span>مراجعة التسمين</span><b>{{ '{:,}'.format(current_period.tasmeen or 0) }}</b></div>
-    <div class="gl2-split-i gl2-split-b"><span>مراجعة البياض</span><b>{{ '{:,}'.format(current_period.bayad or 0) }}</b></div>
-  </div>
 
   {% if current_period.total > 0 %}
   <form method="post" action="{{ url_for('admin_gross_clear_period') }}" class="gl-clear-form"
@@ -54,10 +50,6 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
   <span>الإجمالي منذ بداية السجل</span>
   <b>{{ '{:,}'.format(grand) }}</b>
-</div>
-<div class="gl2-split gl2-split-grand">
-  <div class="gl2-split-i gl2-split-t"><span>مراجعة التسمين</span><b>{{ '{:,}'.format(grand_tasmeen or 0) }}</b></div>
-  <div class="gl2-split-i gl2-split-b"><span>مراجعة البياض</span><b>{{ '{:,}'.format(grand_bayad or 0) }}</b></div>
 </div>
 
 <!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
