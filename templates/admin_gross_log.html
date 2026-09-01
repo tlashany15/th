@@ -55,10 +55,6 @@
   <span>الإجمالي منذ بداية السجل</span>
   <b>{{ '{:,}'.format(grand) }}</b>
 </div>
-<div class="gl2-split gl2-split-grand">
-  <div class="gl2-split-i gl2-split-t"><span>  التسمين</span><b>{{ '{:,}'.format(grand_tasmeen or 0) }}</b></div>
-  <div class="gl2-split-i gl2-split-b"><span>  البياض</span><b>{{ '{:,}'.format(grand_bayad or 0) }}</b></div>
-</div>
 
 <!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
 {% if past_periods %}
@@ -148,7 +144,6 @@
 
 <style>
 .gl2-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
-.gl2-split-grand{margin:8px 0 14px}
 .gl2-split-i{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 .gl2-split-i span{font-size:11px;opacity:.75}
 .gl2-split-i b{font-size:16px;font-weight:800}
