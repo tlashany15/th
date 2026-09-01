@@ -5,15 +5,83 @@
 
 {% set is_admin = current_user and current_user.role == 'admin' %}
 
+{# ================= حسابات دفتر الأستاذ (بعد الخصم) ================= #}
+{% set ns = namespace(grand=0, days=0, t=0, b=0, cur_total=0, cur_days=0, cur_t=0, cur_b=0, best=0, best_day='') %}
+{% set spark = [] %}
+{% for p in periods %}
+  {% set cd = p.days|selectattr('has_data')|list %}
+  {% for d in cd %}
+    {% set ns.grand = ns.grand + (d.total or 0) %}
+    {% set ns.days  = ns.days + 1 %}
+    {% set ns.t     = ns.t + (d.tasmeen_after or 0) %}
+    {% set ns.b     = ns.b + (d.bayad_after or 0) %}
+    {% if (d.total or 0) > ns.best %}{% set ns.best = d.total or 0 %}{% set ns.best_day = d.date %}{% endif %}
+    {% set _ = spark.append(d.total or 0) %}
+  {% endfor %}
+  {% if p.is_current %}
+    {% set ns.cur_total = cd|sum(attribute='total') %}
+    {% set ns.cur_days  = cd|length %}
+    {% set ns.cur_t     = cd|sum(attribute='tasmeen_after') %}
+    {% set ns.cur_b     = cd|sum(attribute='bayad_after') %}
+  {% endif %}
+{% endfor %}
+
+<!-- ==== دفتر الأستاذ — بعد الخصم ==== -->
+<div class="card hd-book">
+  <div class="hd-book-head">
+    <div class="hd-book-h-l">
+      <div class="hd-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75c-2-1.4-4.2-1.9-6.75-1.5v12c2.55-.4 4.75.1 6.75 1.5m0-12c2-1.4 4.2-1.9 6.75-1.5v12c-2.55-.4-4.75.1-6.75 1.5m0-12v12"/></svg>
+      </div>
+      <div>
+        <div class="hd-book-t">دفتر الأعداد — بعد الخصم</div>
+        <div class="hd-book-s">صافي الأعداد المعتمدة بعد الخصم لكل يوم مُغلق</div>
+      </div>
+    </div>
+    {% if spark %}
+    <div class="hd-spark" aria-hidden="true">
+      {% set recent = spark[-16:] %}
+      {% set peak = (recent|max) or 1 %}
+      {% for v in recent %}
+      <i style="height:{{ ((v / peak) * 100)|round(0,'ceil')|int if peak else 4 }}%{% if loop.last %};background:var(--green){% endif %}"></i>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="hd-total-row">
+    <div class="hd-total-v">{{ '{:,}'.format(ns.cur_total) }}<span>إجمالي المدة الحالية</span></div>
+    <div class="hd-total-days">{{ ns.cur_days }}<span>يوم مُغلق</span></div>
+  </div>
+
+  <div class="hd-split">
+    <div class="hd-split-i hd-split-t"><span>تسمين (المدة الحالية)</span><b>{{ '{:,}'.format(ns.cur_t) }}</b></div>
+    <div class="hd-split-i hd-split-b"><span>بياض (المدة الحالية)</span><b>{{ '{:,}'.format(ns.cur_b) }}</b></div>
+  </div>
+
+  <div class="hd-mini-row">
+    <div class="hd-mini"><span>متوسط اليوم</span><b>{{ '{:,}'.format((ns.grand // ns.days) if ns.days else 0) }}</b></div>
+    <div class="hd-mini"><span>أعلى يوم</span><b>{{ '{:,}'.format(ns.best) }}</b></div>
+    <div class="hd-mini"><span>أيام مسجّلة</span><b>{{ ns.days }}</b></div>
+  </div>
+</div>
+
+<!-- ==== إجمالي عام بعد الخصم ==== -->
+<div class="hd-grand">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
+  <span>الإجمالي بعد الخصم منذ بداية السجل</span>
+  <b>{{ '{:,}'.format(ns.grand) }}</b>
+</div>
+
 <div class="acc">
   {% for p in periods %}
     {# فلترة: نعرض بس الأيام المسجّلة (المغلقة) — من غير الأيام الفاضية أو الإجازات #}
     {% set closed_days = p.days|selectattr('has_data')|list %}
     {% if closed_days or p.is_current %}
-    <details class="acc-item hist-period" {% if p.is_current %}open{% endif %}>
+    <details class="acc-item hist-period {% if p.is_current %}is-current{% endif %}" {% if p.is_current %}open{% endif %}>
       <summary>
         <div class="acc-summary-main">
-          <div class="sec-h-ico sec-h-ico-gold">
+          <div class="hd-ico hd-ico-sm">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25M3 18.75A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75M3 18.75V11.25h18V18.75"/></svg>
           </div>
           <div class="acc-summary-text">
@@ -32,16 +100,31 @@
             </div>
           </div>
         </div>
-        <span class="acc-chevron">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-        </span>
+        <div class="hd-sum-right">
+          <div class="hd-sum-total">{{ '{:,}'.format(closed_days|sum(attribute='total')) }}</div>
+          <span class="acc-chevron">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          </span>
+        </div>
       </summary>
 
       <div class="acc-body">
+        {% if closed_days %}
+        {% set p_total = closed_days|sum(attribute='total') %}
+        {% set p_t = closed_days|sum(attribute='tasmeen_after') %}
+        {% set p_b = closed_days|sum(attribute='bayad_after') %}
+        <div class="hd-pstrip">
+          <div class="hd-pstrip-i"><span>إجمالي المدة</span><b>{{ '{:,}'.format(p_total) }}</b></div>
+          <div class="hd-pstrip-i hd-pstrip-t"><span>تسمين</span><b>{{ '{:,}'.format(p_t) }}</b></div>
+          <div class="hd-pstrip-i hd-pstrip-b"><span>بياض</span><b>{{ '{:,}'.format(p_b) }}</b></div>
+          <div class="hd-pstrip-i"><span>متوسط اليوم</span><b>{{ '{:,}'.format((p_total // closed_days|length) if closed_days|length else 0) }}</b></div>
+        </div>
+        {% endif %}
+
         {% if is_admin and closed_days %}
           {% set p_start = closed_days[0].date %}
           {% set p_end = closed_days[-1].date %}
-          <form method="post" action="{{ url_for('admin_reset_period') }}" class="u-w-full"
+          <form method="post" action="{{ url_for('admin_reset_period') }}" class="u-w-full hd-reset-form"
                 onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تصفير الفترة كلها ({{ p_start }} → {{ p_end }})؟ سيتم مسح كل الإغلاقات والحضور والتحصينات فيها نهائيًا من قاعدة البيانات.',{danger:true,okText:'تصفير'}):Promise.resolve(confirm('تصفير الفترة؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
             <input type="hidden" name="start" value="{{ p_start }}">
             <input type="hidden" name="end"   value="{{ p_end }}">
@@ -53,6 +136,11 @@
         {% endif %}
 
         {% if closed_days %}
+        {% set p_peak = (closed_days|map(attribute='total')|max) or 1 %}
+        <div class="hd-ledger-head">
+          <span>سجل الأيام</span>
+          <i>{{ closed_days|length }} يوم</i>
+        </div>
         <div class="hist-days">
           {% for d in closed_days %}
           <article class="hist-day-card" id="day-{{ d.date }}">
@@ -64,9 +152,10 @@
               <div class="hist-day-title">
                 <div class="hist-day-total">
                   <span class="v">{{ '{:,}'.format(d.total) }}</span>
-                  <span class="l">إجمالي كتاكيت</span>
+                  <span class="l">بعد الخصم</span>
                 </div>
                 <div class="hist-day-iso u-mono">{{ d.date }}</div>
+                <div class="hd-daybar" aria-hidden="true"><i style="width:{{ (((d.total or 0) / p_peak) * 100)|round(0,'ceil')|int }}%"></i></div>
               </div>
               <span class="badge badge-green sm hist-day-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
@@ -91,7 +180,7 @@
                 <div class="hist-col hist-col-t">
                   <div class="hist-col-head"><span class="k">تسمين</span><span class="cnt">{{ tasmeen_names|length }}</span></div>
                   <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
-                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي تسمين</label>
+                  <label class="hist-extra-lbl">إضافي تسمين</label>
                   <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
                   {% if tasmeen_names %}
                     <div class="hist-col-names">
@@ -102,7 +191,7 @@
                 <div class="hist-col hist-col-b">
                   <div class="hist-col-head"><span class="k">بياض</span><span class="cnt">{{ bayad_names|length }}</span></div>
                   <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
-                  <label class="hist-extra-lbl" style="display:block;margin-top:6px;font-size:11px;color:var(--text-3,#8b93a1);font-weight:700">إضافي بياض</label>
+                  <label class="hist-extra-lbl">إضافي بياض</label>
                   <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="إضافي">
                   {% if bayad_names %}
                     <div class="hist-col-names">
@@ -194,80 +283,180 @@
 </div>
 
 <style>
-.hist-mini-t{color:#2f7dff;font-weight:800}
-.hist-mini-b{color:#7fb0ff;font-weight:800}
-.hist-days{display:grid;gap:12px}
-.hist-day-card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.005));border:1px solid var(--border-1,rgba(255,255,255,.08));border-radius:18px;padding:14px;box-shadow:0 4px 14px -8px rgba(0,0,0,.35)}
-.hist-day-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
-.hist-day-date{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
-.hist-day-num{font-size:22px;font-weight:900;line-height:1;color:var(--text-1,#fff)}
-.hist-day-wd{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:2px}
+/* ============================================================
+   دفتر الأعداد — بعد الخصم
+   هوية مختلفة عن صفحة (بدون خصم): أخضر صافي + بطاقات أيام قابلة للتعديل
+   ============================================================ */
+.hd-book{ overflow:visible; border-inline-start:3px solid var(--green); }
+.hd-book-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.hd-book-h-l{ display:flex; align-items:center; gap:10px; min-width:0; }
+.hd-ico{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center; flex-shrink:0;
+  background:var(--green-soft); border:1px solid rgba(0,214,143,.3); color:var(--green); }
+.hd-ico svg{ width:18px; height:18px; }
+.hd-ico-sm{ width:32px; height:32px; border-radius:10px; }
+.hd-ico-sm svg{ width:16px; height:16px; }
+.hd-book-t{ font-size:14px; font-weight:900; color:var(--text); }
+.hd-book-s{ font-size:11.5px; color:var(--text-3); margin-top:2px; }
+
+.hd-spark{ display:flex; align-items:flex-end; gap:3px; height:34px; flex-shrink:0; }
+.hd-spark i{ width:5px; min-height:3px; border-radius:2px; background:var(--green); opacity:.45; }
+
+.hd-total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+  padding:14px 4px 16px; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); margin:12px 0; }
+.hd-total-v{ font-size:30px; font-weight:900; color:var(--green-2,#7ff3cd); line-height:1; font-variant-numeric:tabular-nums; }
+.hd-total-v span{ display:block; font-size:11.5px; font-weight:700; color:var(--text-3); margin-top:6px; }
+.hd-total-days{ font-size:20px; font-weight:900; color:var(--text); text-align:end; line-height:1; font-variant-numeric:tabular-nums; }
+.hd-total-days span{ display:block; font-size:11px; font-weight:700; color:var(--text-3); margin-top:6px; }
+
+.hd-split{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.hd-split-i{ display:flex; flex-direction:column; gap:2px; padding:9px 11px; border-radius:12px;
+  background:rgba(255,255,255,.03); border:1px solid var(--line); }
+.hd-split-i span{ font-size:11px; opacity:.75; }
+.hd-split-i b{ font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+.hd-split-t{ border-color:rgba(47,125,255,.28); } .hd-split-t b{ color:var(--gold); }
+.hd-split-b{ border-color:rgba(127,176,255,.24); } .hd-split-b b{ color:var(--gold-2); }
+
+.hd-mini-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+.hd-mini{ text-align:center; padding:8px 6px; border-radius:12px; background:rgba(255,255,255,.02); border:1px solid var(--line); }
+.hd-mini span{ display:block; font-size:10.5px; color:var(--text-3); font-weight:700; }
+.hd-mini b{ display:block; font-size:14px; font-weight:900; color:var(--text); margin-top:3px; font-variant-numeric:tabular-nums; }
+
+.hd-grand{ display:flex; align-items:center; gap:8px; padding:10px 14px; margin:12px 0 14px; border-radius:12px;
+  background:rgba(0,214,143,.06); border:1px solid rgba(0,214,143,.25); font-size:12.5px; color:var(--text-2); font-weight:700; }
+.hd-grand svg{ width:16px; height:16px; color:var(--green); flex-shrink:0; }
+.hd-grand b{ margin-inline-start:auto; font-size:15px; color:var(--green-2,#7ff3cd); font-variant-numeric:tabular-nums; }
+
+/* ==== الأكورديون: مدد ==== */
+.acc{ display:flex; flex-direction:column; gap:14px; }
+.hist-period{ background:var(--card,var(--surface)); border:1px solid var(--line); border-radius:18px;
+  padding:14px; overflow:visible; box-shadow:0 10px 26px -22px rgba(0,0,0,.8); }
+.hist-period.is-current{ border-color:rgba(0,214,143,.28); }
+.hist-period > summary{ list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 0 2px; }
+.hist-period > summary::-webkit-details-marker{ display:none; }
+.hist-period[open] > summary{ padding-bottom:12px; border-bottom:1px dashed var(--line); margin-bottom:12px; }
+.hist-period .acc-summary-main{ display:flex; align-items:center; gap:10px; min-width:0; }
+.hist-period .acc-summary-title{ font-size:13.5px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.hist-period .acc-summary-sub{ font-size:11.5px; color:var(--text-3); margin-top:3px; font-variant-numeric:tabular-nums; }
+.hd-sum-right{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.hd-sum-total{ font-size:15px; font-weight:900; color:var(--green-2,#7ff3cd); font-variant-numeric:tabular-nums; }
+.hist-period .acc-chevron{ width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
+  border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--text-3); flex-shrink:0; transition:.18s; }
+.hist-period .acc-chevron svg{ width:14px; height:14px; }
+.hist-period[open] .acc-chevron{ transform:rotate(180deg); color:var(--green-2,#7ff3cd);
+  border-color:rgba(0,214,143,.3); background:var(--green-soft); }
+.hist-period .acc-body{ padding:0; }
+
+/* شريط ملخص المدة */
+.hd-pstrip{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+.hd-pstrip-i{ text-align:center; padding:8px 5px; border-radius:11px; background:rgba(0,214,143,.05); border:1px solid rgba(0,214,143,.16); }
+.hd-pstrip-i span{ display:block; font-size:10px; color:var(--text-3); font-weight:700; }
+.hd-pstrip-i b{ display:block; font-size:13.5px; font-weight:900; color:var(--green-2,#7ff3cd); margin-top:3px; font-variant-numeric:tabular-nums; }
+.hd-pstrip-t{ background:rgba(47,125,255,.05); border-color:rgba(47,125,255,.2); } .hd-pstrip-t b{ color:var(--gold); }
+.hd-pstrip-b{ background:rgba(127,176,255,.05); border-color:rgba(127,176,255,.2); } .hd-pstrip-b b{ color:var(--gold-2); }
+.hd-reset-form{ margin-bottom:12px; }
+
+.hd-ledger-head{ display:flex; align-items:center; justify-content:space-between; margin:2px 0 8px; }
+.hd-ledger-head span{ font-size:12px; font-weight:900; color:var(--text-2); }
+.hd-ledger-head i{ font-style:normal; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px;
+  background:var(--green-soft); color:var(--green-2,#7ff3cd); border:1px solid rgba(0,214,143,.25); }
+
+/* ==== بطاقة اليوم — صف دفتر قابل للتعديل ==== */
+.hist-mini-t{color:var(--gold);font-weight:800}
+.hist-mini-b{color:var(--gold-2);font-weight:800}
+.hist-days{display:grid;gap:10px}
+.hist-day-card{ background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:14px; padding:12px;
+  border-inline-start:2px solid rgba(0,214,143,.28); }
+.hist-day-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;
+  padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.hist-day-date{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:8px 10px;
+  border-radius:12px;background:var(--green-soft);border:1px solid rgba(0,214,143,.28)}
+.hist-day-num{font-size:20px;font-weight:900;line-height:1;color:var(--green-2,#7ff3cd);font-variant-numeric:tabular-nums}
+.hist-day-wd{font-size:11px;color:var(--text-3);margin-top:2px}
 .hist-day-title{min-width:0}
 .hist-day-total{display:flex;align-items:baseline;gap:6px}
-.hist-day-total .v{font-size:20px;font-weight:900;color:var(--gold-2,#2f7dff)}
-.hist-day-total .l{font-size:12px;color:var(--text-3,#a1a4b2)}
-.hist-day-iso{font-size:11px;color:var(--text-3,#a1a4b2);margin-top:2px;letter-spacing:.3px}
+.hist-day-total .v{font-size:20px;font-weight:900;color:var(--green-2,#7ff3cd);font-variant-numeric:tabular-nums}
+.hist-day-total .l{font-size:11.5px;color:var(--text-3)}
+.hist-day-iso{font-size:11px;color:var(--text-3);margin-top:2px;letter-spacing:.3px;font-variant-numeric:tabular-nums}
+.hd-daybar{ position:relative; height:4px; border-radius:99px; background:rgba(255,255,255,.05); margin-top:7px; overflow:hidden; }
+.hd-daybar i{ position:absolute; inset-inline-start:0; top:0; bottom:0; border-radius:99px;
+  background:linear-gradient(90deg,rgba(0,214,143,.35),var(--green)); }
 .hist-day-badge{align-self:start}
-.hist-edit-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px;align-items:end}
-.hist-edit-field{display:flex;flex-direction:column;gap:4px}
-.hist-edit-field .k{font-size:11px;font-weight:800;color:var(--text-3,#a1a4b2)}
-.hist-edit-t .k{color:#2f7dff}
-.hist-edit-b .k{color:#7fb0ff}
-.hist-edit-field input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 12px;font-family:inherit;font-weight:800;color:var(--text-1,#fff);font-size:15px;text-align:center;transition:.15s;width:100%}
-.hist-edit-t input:focus{outline:none;border-color:#2f7dff;background:rgba(47,125,255,.08)}
-.hist-edit-b input:focus{outline:none;border-color:#7fb0ff;background:rgba(162,155,254,.08)}
-.hist-edit-save{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;border:1px solid rgba(0,214,143,.4);background:linear-gradient(135deg,rgba(0,214,143,.25),rgba(0,214,143,.08));color:#7ff3cd;font-family:inherit;font-weight:900;font-size:12.5px;cursor:pointer;transition:.15s;white-space:nowrap;height:38px}
+
+/* ==== نموذج التعديل (عمودين) ==== */
+.hist-edit-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.hist-edit-grid2 .hist-col{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:12px;padding:10px}
+.hist-edit-grid2 .hist-col-t{border-color:rgba(47,125,255,.26)}
+.hist-edit-grid2 .hist-col-b{border-color:rgba(127,176,255,.24)}
+.hist-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hist-col-head .k{font-size:12px;font-weight:900}
+.hist-col-t .hist-col-head .k{color:var(--gold)}
+.hist-col-b .hist-col-head .k{color:var(--gold-2)}
+.hist-col-head .cnt{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.06);color:var(--text)}
+.hist-extra-lbl{display:block;margin-top:6px;font-size:11px;color:var(--text-3);font-weight:700}
+.hist-col-inp{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--line-strong);border-radius:10px;padding:9px 10px;
+  font-family:inherit;font-weight:800;color:var(--text);font-size:15px;text-align:center;font-variant-numeric:tabular-nums;transition:.15s}
+.hist-col-t .hist-col-inp:focus{outline:none;border-color:var(--gold);background:rgba(47,125,255,.08)}
+.hist-col-b .hist-col-inp:focus{outline:none;border-color:var(--gold-2);background:rgba(127,176,255,.08)}
+.hist-col-inp-extra{font-size:13px;padding:7px 10px}
+.hist-col-names{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.hist-edit-grid2 .hist-edit-save{grid-column:1/-1;justify-content:center}
+.hist-edit-save{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;
+  border:1px solid rgba(0,214,143,.4);background:linear-gradient(135deg,rgba(0,214,143,.22),rgba(0,214,143,.06));
+  color:var(--green-2,#7ff3cd);font-family:inherit;font-weight:900;font-size:12.5px;cursor:pointer;transition:.15s;white-space:nowrap;height:38px}
 .hist-edit-save:hover{transform:translateY(-1px)}
 .hist-edit-save svg{width:14px;height:14px}
-.hist-farm-chip{margin-top:10px;font-size:12px;color:var(--text-3,#a1a4b2)}
-.hist-att{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.08)}
-.hist-att-head{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3,#a1a4b2);font-weight:800;margin-bottom:8px}
-.hist-att-head svg{width:14px;height:14px}
+.hist-edit-save:disabled{opacity:.7;cursor:wait}
+
+/* ==== الحضور ==== */
+.hist-att{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .hist-att-list{display:flex;flex-wrap:wrap;gap:6px}
-.name-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:12px;font-weight:700;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text-1,#fff)}
-.name-chip .nc-f{font-size:10px;font-weight:800;padding:2px 6px;border-radius:99px;font-style:normal}
-.name-chip-tasmeen{border-color:rgba(47,125,255,.35);background:rgba(47,125,255,.08)}
-.name-chip-tasmeen .nc-f{background:rgba(47,125,255,.2);color:#2f7dff}
-.name-chip-bayad{border-color:rgba(162,155,254,.35);background:rgba(162,155,254,.08)}
-.name-chip-bayad .nc-f{background:rgba(162,155,254,.2);color:#7fb0ff}
+.name-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:12px;font-weight:700;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text)}
+.name-chip-tasmeen{border-color:rgba(47,125,255,.32);background:rgba(47,125,255,.08)}
+.name-chip-bayad{border-color:rgba(127,176,255,.3);background:rgba(127,176,255,.08)}
+.hist-att-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist-att-col{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:12px;padding:10px}
+.hist-att-col-h{font-size:12px;font-weight:900;color:var(--text-2);margin-bottom:6px}
 .hist-att-edit{margin-top:12px}
-.hist-att-edit>summary{list-style:none;cursor:pointer;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);font-size:12px;font-weight:800;color:var(--text-2,#a1a4b2)}
+.hist-att-edit>summary{list-style:none;cursor:pointer;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.03);
+  border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--text-2)}
 .hist-att-edit>summary::-webkit-details-marker{display:none}
 .hist-att-editor{margin-top:8px;display:grid;gap:6px}
-.hist-att-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.hist-att-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;
+  background:rgba(255,255,255,.03);border:1px solid var(--line)}
 .hist-att-row.is-on{background:rgba(0,214,143,.06);border-color:rgba(0,214,143,.2)}
-.hist-att-name{font-size:12.5px;font-weight:700;color:var(--text-1,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-att-name{font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-att-actions{display:flex;gap:4px}
 .hist-att-mini{display:inline}
-.hist-att-chip{padding:5px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-3,#a1a4b2)}
-.hist-att-chip.is-t{border-color:rgba(47,125,255,.3);color:#2f7dff}
+.hist-att-chip{padding:5px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:800;border:1px solid transparent;
+  cursor:pointer;transition:.15s;background:rgba(255,255,255,.05);color:var(--text-3)}
+.hist-att-chip.is-t{border-color:rgba(47,125,255,.3);color:var(--gold)}
 .hist-att-chip.is-t.is-active{background:rgba(47,125,255,.2);color:#fff}
-.hist-att-chip.is-b{border-color:rgba(162,155,254,.3);color:#7fb0ff}
-.hist-att-chip.is-b.is-active{background:rgba(162,155,254,.2);color:#fff}
-.hist-att-chip.is-x{border-color:rgba(255,90,95,.35);color:#ffc2c4}
+.hist-att-chip.is-b{border-color:rgba(127,176,255,.3);color:var(--gold-2)}
+.hist-att-chip.is-b.is-active{background:rgba(127,176,255,.2);color:#fff}
+.hist-att-chip.is-x{border-color:rgba(255,90,95,.35);color:var(--red-2,#ffc2c4)}
 .hist-att-chip.is-x:hover{background:rgba(255,90,95,.15)}
 .hist-att-chip:hover{transform:translateY(-1px)}
 
-/* ==== history: two-column edit (tasmeen | bayad) with attendee names under each ==== */
-.hist-edit-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.hist-edit-grid2 .hist-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px}
-.hist-edit-grid2 .hist-col-t{border-color:rgba(47,125,255,.28)}
-.hist-edit-grid2 .hist-col-b{border-color:rgba(162,155,254,.28)}
-.hist-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.hist-col-head .k{font-size:12px;font-weight:900}
-.hist-col-t .hist-col-head .k{color:#2f7dff}
-.hist-col-b .hist-col-head .k{color:#7fb0ff}
-.hist-col-head .cnt{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.06);color:#f4f4f6}
-.hist-col-inp{width:100%;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 10px;font-family:inherit;font-weight:800;color:#fff;font-size:15px;text-align:center}
-.hist-col-t .hist-col-inp:focus{outline:none;border-color:#2f7dff;background:rgba(47,125,255,.08)}
-.hist-col-b .hist-col-inp:focus{outline:none;border-color:#7fb0ff;background:rgba(162,155,254,.08)}
-.hist-col-names{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.08)}
-.hist-edit-grid2 .hist-edit-save{grid-column:1/-1;justify-content:center}
-.hist-att-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hist-att-col{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
-.hist-att-col-h{font-size:12px;font-weight:900;color:var(--text-2,#a1a4b2);margin-bottom:6px}
-@media(max-width:420px){.hist-edit-grid2,.hist-att-two{grid-template-columns:1fr}}
-@media(max-width:420px){.hist-edit-grid{grid-template-columns:1fr 1fr}.hist-edit-save{grid-column:1/-1}.hist-day-head{grid-template-columns:auto minmax(0,1fr)}.hist-day-badge{grid-column:1/-1;justify-self:end}}
+.empty{ padding:18px 4px; text-align:center; }
+
+.hist-flash{animation: histFlash .9s ease}
+@keyframes histFlash{
+  0%{box-shadow:0 0 0 0 rgba(0,214,143,.55)}
+  40%{box-shadow:0 0 0 6px rgba(0,214,143,.22)}
+  100%{box-shadow:0 0 0 0 rgba(0,214,143,0)}
+}
+
+@media(max-width:460px){
+  .hd-mini-row{grid-template-columns:repeat(3,1fr)}
+  .hd-pstrip{grid-template-columns:1fr 1fr}
+}
+@media(max-width:420px){
+  .hist-edit-grid2,.hist-att-two{grid-template-columns:1fr}
+  .hist-day-head{grid-template-columns:auto minmax(0,1fr)}
+  .hist-day-badge{grid-column:1/-1;justify-self:end}
+  .hd-total-v{font-size:26px}
+}
 </style>
 
 
@@ -294,16 +483,27 @@
         wire(current);
         flashRow(current);
       }
-      // تحديث ملخص المدة (تسمين X · بياض Y · عدد الأيام)
-      document.querySelectorAll('.hist-period').forEach(function(det){
+      // تحديث ملخص المدة (تسمين X · بياض Y · عدد الأيام) + شرائط الدفتر
+      document.querySelectorAll('.hist-period').forEach(function(det, i){
         var id = det.querySelector('#day-'+dayIso);
         if(!id) return;
-        var f = doc.querySelectorAll('.hist-period')[[].indexOf.call(document.querySelectorAll('.hist-period'), det)];
+        var f = doc.querySelectorAll('.hist-period')[i];
         if(f){
           var oldSub = det.querySelector('.acc-summary-sub');
           var newSub = f.querySelector('.acc-summary-sub');
           if(oldSub && newSub) oldSub.innerHTML = newSub.innerHTML;
+          var oldTot = det.querySelector('.hd-sum-total');
+          var newTot = f.querySelector('.hd-sum-total');
+          if(oldTot && newTot) oldTot.textContent = newTot.textContent;
+          var oldStrip = det.querySelector('.hd-pstrip');
+          var newStrip = f.querySelector('.hd-pstrip');
+          if(oldStrip && newStrip) oldStrip.innerHTML = newStrip.innerHTML;
         }
+      });
+      // تحديث كارت دفتر الأعداد العلوي
+      ['.hd-book','.hd-grand'].forEach(function(sel){
+        var oldEl = document.querySelector(sel), newEl = doc.querySelector(sel);
+        if(oldEl && newEl) oldEl.innerHTML = newEl.innerHTML;
       });
     }catch(e){ console.error(e); }
   }
@@ -381,60 +581,5 @@
   wire(document);
 })();
 </script>
-<style>
-.hist-flash{animation: histFlash .9s ease}
-@keyframes histFlash{
-  0%{box-shadow:0 0 0 0 rgba(0,214,143,.55)}
-  40%{box-shadow:0 0 0 6px rgba(0,214,143,.22)}
-  100%{box-shadow:0 0 0 0 rgba(0,214,143,0)}
-}
-.hist-edit-save:disabled{opacity:.7;cursor:wait}
-</style>
-
-<style>
-/* ==== توحيد شكل صفحة السجل مع تصميم دفتر الأستاذ (ledger look) ==== */
-.acc{ display:flex; flex-direction:column; gap:14px; }
-.hist-period{
-  background:var(--card); border:1px solid var(--line); border-radius:18px;
-  padding:14px; overflow:visible;
-  box-shadow:0 10px 26px -22px rgba(0,0,0,.8);
-}
-.hist-period > summary{
-  list-style:none; cursor:pointer; display:flex; align-items:center;
-  justify-content:space-between; gap:10px; padding:0 0 2px;
-}
-.hist-period > summary::-webkit-details-marker{ display:none; }
-.hist-period[open] > summary{
-  padding-bottom:12px; border-bottom:1px dashed var(--line); margin-bottom:12px;
-}
-.hist-period .acc-summary-main{ display:flex; align-items:center; gap:10px; min-width:0; }
-.hist-period .acc-summary-title{ font-size:13.5px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.hist-period .acc-summary-sub{ font-size:11.5px; color:var(--text-3); margin-top:3px; font-variant-numeric:tabular-nums; }
-.hist-period .acc-chevron{
-  width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
-  border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--text-3); flex-shrink:0;
-  transition:.18s;
-}
-.hist-period .acc-chevron svg{ width:14px; height:14px; }
-.hist-period[open] .acc-chevron{ transform:rotate(180deg); color:var(--gold-2); border-color:var(--gold-line,rgba(217,177,104,.35)); background:var(--gold-soft); }
-.hist-period .acc-body{ padding:0; }
-
-/* بطاقات الأيام — نفس لغة الدفتر: صفوف هادية وأرقام tabular */
-.hist-days{ gap:10px; }
-.hist-day-card{
-  background:rgba(255,255,255,.02); border:1px solid var(--line);
-  border-radius:14px; padding:12px; box-shadow:none;
-}
-.hist-day-date{ border-radius:12px; background:var(--gold-soft); border:1px solid var(--gold-line,rgba(217,177,104,.3)); }
-.hist-day-num{ font-size:20px; color:var(--gold-2); font-variant-numeric:tabular-nums; }
-.hist-day-total .v{ color:var(--gold-2); font-variant-numeric:tabular-nums; }
-.hist-day-iso{ font-variant-numeric:tabular-nums; }
-.hist-day-head{ padding-bottom:10px; border-bottom:1px dashed var(--line); }
-.hist-edit-grid2{ margin-top:10px; }
-.hist-edit-grid2 .hist-col{ background:rgba(255,255,255,.02); border-radius:12px; }
-.hist-col-inp, .hist-edit-field input{ font-variant-numeric:tabular-nums; }
-.hist-att-edit>summary{ border-radius:10px; }
-.empty{ padding:18px 4px; text-align:center; }
-</style>
 
 {% endblock %}
