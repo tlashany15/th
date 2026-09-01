@@ -1,6 +1,13 @@
 {% extends "app_base.html" %}
 {% block content %}
 
+{% macro period_range(p) -%}
+{%- set days_in_month = {1:31,2:(29 if (p.y % 4 == 0 and (p.y % 100 != 0 or p.y % 400 == 0)) else 28),3:31,4:30,5:31,6:30,7:31,8:31,9:30,10:31,11:30,12:31} -%}
+{%- set start_day = 1 if p.half == 1 else 16 -%}
+{%- set end_day = 15 if p.half == 1 else days_in_month[p.m] -%}
+{{- start_day }}/{{ p.m }} - {{ end_day }}/{{ p.m }}/{{ p.y -}}
+{%- endmacro %}
+
 <!-- ===== HERO (مبسّط) ===== -->
 <section class="hero-admin">
   <div class="hero-mesh"></div>
@@ -10,21 +17,13 @@
     </div>
     <div style="min-width:0;flex:1;">
       <span class="hero-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 1115 0v.75H4.5v-.75z"/></svg>
         نصيب العامل
       </span>
       <h1 class="hero-h1 u-mt-6">{{ worker.full_name }}</h1>
     </div>
   </div>
 
-  {% if grand_pending_chicks > current_pending_chicks %}
-  <div class="wsw-note">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-    فيه مدد سابقة لسه مفتوحة — إجمالي غير المستلم
-    <b>{{ '{:,}'.format(grand_pending_chicks) }}</b> كتكوت
-    ({{ (grand_pending_money + grand_bonus - grand_deduct)|money_k }} ج)
-  </div>
-  {% endif %}
+
 </section>
 
 
@@ -42,7 +41,7 @@
         <span class="wsw-live"><i></i>جاري</span>
       </div>
       <div>
-        <div class="wsw-hero-lbl">الصافي — {{ p.label }}</div>
+        <div class="wsw-hero-lbl">الصافي — {{ period_range(p) }}</div>
         <div class="wsw-hero-val"><b data-countup="{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k_raw }}">0</b><small>جنيه</small></div>
         <div class="wsw-hero-sub">من {{ '{:,}'.format(p.pending_chicks) }} كتكوت لسه ما اتحاسبش عليهم</div>
       </div>
@@ -239,7 +238,7 @@
     {% for p in past_periods %}
     <div class="wsw-lrow">
       <div class="wsw-lrow-l">
-        <div class="wsw-lrow-label">{{ p.label }}</div>
+        <div class="wsw-lrow-label">{{ period_range(p) }}</div>
         <div class="wsw-lrow-meta">{{ '{:,}'.format(p.pending_chicks) }} كتكوت{% if p.bonus_total %} · مكافآت {{ p.bonus_total|money_k }}{% endif %}{% if p.deduct_total %} · خصومات {{ p.deduct_total|money_k }}{% endif %}</div>
       </div>
       <div class="wsw-lrow-v">{{ (p.pending_money + p.bonus_total - p.deduct_total)|money_k }} ج</div>
@@ -265,9 +264,6 @@
 <div class="card"><div class="empty">مفيش مدد فيها بيانات.</div></div>
 {% endif %}
 
-<div class="card u-center-text u-xs u-muted" style="padding:12px;margin-top:12px;">
-  المدة بتفضل ظاهرة لحد ما المسؤول يأكد استلام الأموال ويصفّرها — مفيش أي تصفير تلقائي.
-</div>
 
 <style>
 /* ================= ودجتس نصيب العامل (iOS style) ================= */
