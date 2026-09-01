@@ -11,11 +11,11 @@
 <!-- ===== HERO (مبسّط) ===== -->
 <section class="hero-admin">
   <div class="hero-mesh"></div>
-  <div class="hero-row u-center u-gap-14">
-    <div class="sidebar-avatar" style="width:56px;height:56px;font-size:24px;flex-shrink:0;">
+  <div class="hero-row u-center u-gap-14" style="flex-direction:column;text-align:center;">
+    <div class="sidebar-avatar" style="width:72px;height:72px;font-size:28px;flex-shrink:0;">
       {% if worker.avatar %}<img src="{{ worker.avatar }}" alt="">{% else %}{{ (worker.full_name or '?')[:1] }}{% endif %}
     </div>
-    <div style="min-width:0;flex:1;">
+    <div style="min-width:0;">
       <h1 class="hero-h1">{{ worker.full_name }}</h1>
     </div>
   </div>
