@@ -1,23 +1,47 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 
-<!-- ===== HERO ===== -->
-<section class="hero-admin">
-  <div class="hero-mesh"></div>
-  <div class="hero-row">
-    <div>
-      <span class="hero-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
-        إدارة المستخدمين
-      </span>
-      <p class="hero-sub">أضف، احذف، أو غيّر كلمات السر.</p>
-    </div>
-    <div class="hero-date">
-      <div class="hero-date-d">{{ users|length }}</div>
-      <div class="hero-date-m">مستخدم</div>
+{% set _admins_n = users|selectattr('role','equalto','admin')|list|length %}
+{% set _workers_n = users|length - _admins_n %}
+
+<!-- ============ COCKPIT STAGE ============ -->
+<section class="cp-stage">
+  <div class="cp-stage-top">
+    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> إدارة النظام</span>
+    <span class="cp-clock">{{ today[8:] }}/{{ today[5:7] }}/{{ today[:4] }}</span>
+  </div>
+  <h1 class="cp-title">إدارة المستخدمين</h1>
+  <p class="cp-subtitle">أضف، احذف، أو غيّر كلمات السر.</p>
+  <div class="cp-stage-body">
+    <div class="cp-stage-side">
+      <div class="cp-side-v">{{ users|length }}</div>
+      <div class="cp-side-l">إجمالي المستخدمين</div>
     </div>
   </div>
 </section>
+
+<div class="cp-float-strip">
+  <div class="cp-fs-item">
+    <div class="cp-fs-v">{{ _admins_n }}</div>
+    <div class="cp-fs-l">مسؤولون</div>
+  </div>
+  <div class="cp-fs-item">
+    <div class="cp-fs-v">{{ _workers_n }}</div>
+    <div class="cp-fs-l">عمال</div>
+  </div>
+  <div class="cp-fs-item">
+    <div class="cp-fs-v">{{ users|length }}</div>
+    <div class="cp-fs-l">الإجمالي</div>
+  </div>
+</div>
 
 <!-- زر الوصول لصفحة تعديل بياناتي -->
 <div class="page-actions">
@@ -205,4 +229,14 @@
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
 })();
 </script>
+
+<style>
+/* لمسة قمرة القيادة على صفوف المستخدمين — بدون تغيير أي منطق */
+#usersList .wcard{ position:relative; overflow:hidden; }
+#usersList .wcard::before{
+  content:""; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px;
+  background:var(--cp-accent, #17e0a0);
+}
+#usersList .wcard:has(.badge-gold)::before{ background:var(--cp-gold, #f0c168); }
+</style>
 {% endblock %}

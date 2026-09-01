@@ -1,20 +1,56 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 
-<section class="hero-admin">
-  <div class="hero-mesh"></div>
-  <div class="hero-row">
-    <div>
-      <span class="hero-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75"/></svg>إغلاق اليوم</span>
-      <p class="hero-sub">اقفل يوم {{ day }} في السجل.</p>
-    </div>
-    <div class="hero-date"><div class="hero-date-d">{{ day[8:] }}</div><div class="hero-date-m">{{ day[5:7] }}/{{ day[:4] }}</div><div class="hero-date-w">{{ day|weekday_ar }}</div></div>
+{% set _team_n = all_people|length %}
+{% set _att_pct = ((present_count / _team_n * 100) | round(0, 'floor') | int) if _team_n > 0 else 0 %}
+<section class="cp-stage">
+  <div class="cp-stage-top">
+    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> إغلاق اليوم</span>
+    <span class="cp-clock">{{ day[8:] }}/{{ day[5:7] }}/{{ day[:4] }} · {{ day|weekday_ar }}</span>
   </div>
-  <div class="kpi-grid kpi-grid-2">
-    <div class="kpi kpi-gold"><div class="kpi-v" id="kpiDayTotal">{{ '{:,}'.format(day_total or 0) }}</div><div class="kpi-l">إجمالي محفوظ</div></div>
-    <div class="kpi kpi-green"><div class="kpi-v" id="kpiPresentTop">{{ present_count }}</div><div class="kpi-l">الحاضرون</div></div>
+  <h1 class="cp-title">إغلاق اليوم</h1>
+  <p class="cp-subtitle">اقفل يوم {{ day }} في السجل.</p>
+  <div class="cp-stage-body">
+    <div class="cp-gauge" id="cpCloseGauge" data-pct="{{ _att_pct }}">
+      <svg viewBox="0 0 120 120">
+        <circle class="cp-gauge-track" cx="60" cy="60" r="52" stroke-width="10"/>
+        <circle class="cp-gauge-fill" id="cpCloseGaugeFill" cx="60" cy="60" r="52" stroke-width="10"
+                stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+      </svg>
+      <div class="cp-gauge-mid">
+        <div class="cp-gauge-v" id="kpiPresentTop">{{ present_count }}</div>
+        <div class="cp-gauge-l">حاضر من {{ _team_n }}</div>
+      </div>
+    </div>
+    <div class="cp-stage-side">
+      <div class="cp-side-v" id="kpiDayTotal">{{ '{:,}'.format(day_total or 0) }}</div>
+      <div class="cp-side-l">إجمالي محفوظ</div>
+    </div>
   </div>
 </section>
+
+<script>
+(function(){
+  var g = document.getElementById('cpCloseGauge');
+  var fill = document.getElementById('cpCloseGaugeFill');
+  if (g && fill){
+    var pct = parseFloat(g.dataset.pct || '0');
+    var C = 326.7;
+    var offset = C - (C * Math.min(100, Math.max(0, pct)) / 100);
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ fill.style.strokeDashoffset = offset; });
+    });
+  }
+})();
+</script>
 
 <div class="card">
   <div class="daynav">

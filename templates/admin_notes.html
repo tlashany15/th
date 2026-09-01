@@ -1,13 +1,28 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 
-<section class="hero-admin">
-  <div class="hero-mesh"></div>
-  <span class="hero-chip">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h11l5 5v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 4v6h6"/></svg>
-    ملاحظاتي
-  </span>
-  <p class="hero-sub">ملاحظاتك الخاصة، ما حدش يشوفها غيرك.</p>
+{% set _pinned_n = notes|selectattr('pinned')|list|length %}
+<section class="cp-stage">
+  <div class="cp-stage-top">
+    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> ملاحظاتي</span>
+    <span class="cp-clock">{{ today[8:] }}/{{ today[5:7] }}/{{ today[:4] }}</span>
+  </div>
+  <h1 class="cp-title">ملاحظاتي</h1>
+  <p class="cp-subtitle">ملاحظاتك الخاصة، ما حدش يشوفها غيرك.</p>
+  <div class="cp-stage-body">
+    <div class="cp-stage-side">
+      <div class="cp-side-v">{{ notes|length }}</div>
+      <div class="cp-side-l">{% if _pinned_n %}منها {{ _pinned_n }} مثبّتة{% else %}ملاحظة محفوظة{% endif %}</div>
+    </div>
+  </div>
 </section>
 
 <!-- زرار إضافة ملاحظة -->

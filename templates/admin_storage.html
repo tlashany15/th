@@ -1,35 +1,54 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 
-<section class="hero-admin">
-  <div class="hero-mesh"></div>
-  <div class="hero-row">
-    <div>
-      <span class="hero-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2 6a4 4 0 014-4h12a4 4 0 014 4v3a4 4 0 01-4 4H6a4 4 0 01-4-4V6zM2 15a4 4 0 014-4h12a4 4 0 014 4v3a4 4 0 01-4 4H6a4 4 0 01-4-4v-3z"/><circle cx="6" cy="7.5" r="1" fill="currentColor"/><circle cx="6" cy="16.5" r="1" fill="currentColor"/></svg>
-        إدارة المساحة
-      </span>
-      <p class="hero-sub">حجم الجداول، وحذف آمن مع نسخة احتياطية.</p>
-    </div>
+<section class="cp-stage">
+  <div class="cp-stage-top">
+    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> إدارة المساحة</span>
+    <span class="cp-clock">{{ today[8:] }}/{{ today[5:7] }}/{{ today[:4] }}</span>
   </div>
-  <div class="kpi-grid kpi-grid-2">
-    <div class="kpi kpi-gold">
-      <div class="kpi-v">{{ stats.db_size_h }}</div>
-      <div class="kpi-l">حجم الـ DB الحالي</div>
+  <h1 class="cp-title">إدارة المساحة</h1>
+  <p class="cp-subtitle">حجم الجداول، وحذف آمن مع نسخة احتياطية.</p>
+  <div class="cp-stage-body">
+    <div class="cp-gauge{% if usage_pct > 85 %} is-gold{% endif %}" id="cpStorageGauge" data-pct="{{ usage_pct }}">
+      <svg viewBox="0 0 120 120">
+        <circle class="cp-gauge-track" cx="60" cy="60" r="52" stroke-width="10"/>
+        <circle class="cp-gauge-fill" id="cpStorageGaugeFill" cx="60" cy="60" r="52" stroke-width="10"
+                stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+      </svg>
+      <div class="cp-gauge-mid">
+        <div class="cp-gauge-v">{{ usage_pct }}%</div>
+        <div class="cp-gauge-l">من الحد المسموح</div>
+      </div>
     </div>
-    <div class="kpi kpi-blue">
-      <div class="kpi-v">{{ limit_h }}</div>
-      <div class="kpi-l">حد الأرشيف التلقائي</div>
+    <div class="cp-stage-side">
+      <div class="cp-side-v">{{ stats.db_size_h }}</div>
+      <div class="cp-side-l">حجم الـ DB الحالي — الحد {{ limit_h }}</div>
     </div>
-  </div>
-
-  <div class="usage-bar" style="margin-top:12px;">
-    <div class="usage-bar-fill" style="width: {{ usage_pct }}%; background: {% if usage_pct > 85 %}#ff8a8f{% elif usage_pct > 60 %}#2f7dff{% else %}#38b26a{% endif %};"></div>
-  </div>
-  <div style="text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;">
-    {{ usage_pct }}% من الحد المسموح
   </div>
 </section>
+
+<script>
+(function(){
+  var g = document.getElementById('cpStorageGauge');
+  var fill = document.getElementById('cpStorageGaugeFill');
+  if (g && fill){
+    var pct = parseFloat(g.dataset.pct || '0');
+    var C = 326.7;
+    var offset = C - (C * Math.min(100, Math.max(0, pct)) / 100);
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ fill.style.strokeDashoffset = offset; });
+    });
+  }
+})();
+</script>
 
 <!-- ============ جداول قاعدة البيانات ============ -->
 <div class="card">
@@ -45,30 +64,34 @@
     </div>
   </div>
 
-  <div class="tbl-list">
+  {% set _max_tbl_sz = (stats.tables|map(attribute='size')|list + [0])|max %}
+  <div class="cp-telemetry">
     {% for t in stats.tables %}
-    <div class="tbl-row">
-      <div class="tbl-info">
-        <div class="tbl-label">{{ t.label }}</div>
-        <div class="tbl-sub">{{ t.count }} سطر · <strong>{{ t.size_h }}</strong></div>
+    {% set _th = (t.size * 100 / _max_tbl_sz) if _max_tbl_sz > 0 else 0 %}
+    <div class="cp-t-row">
+      <div class="cp-t-bar"><span style="height: {{ _th|round(0) }}%"></span></div>
+      <div class="cp-t-body">
+        <div class="cp-t-main">{{ t.label }}</div>
+        <div class="cp-t-sub">{{ t.count }} سطر</div>
       </div>
-      {% if t.date_col %}
-      <form method="post" action="{{ url_for('admin_storage_cleanup') }}" class="tbl-form js-cleanup-form">
-        <input type="hidden" name="table" value="{{ t.table }}">
-        <select name="days" class="tbl-select">
-          <option value="180">أقدم من 6 شهور</option>
-          <option value="90" selected>أقدم من 3 شهور</option>
-          <option value="60">أقدم من شهرين</option>
-          <option value="30">أقدم من شهر</option>
-          <option value="7">أقدم من أسبوع</option>
-          <option value="0">حذف الكل</option>
-        </select>
-        <button type="submit" class="btn btn-sm btn-danger">حذف مع أرشفة</button>
-      </form>
-      {% else %}
-      <span class="tbl-mute">لا يمكن الفلترة بالتاريخ</span>
-      {% endif %}
+      <div class="cp-t-val">{{ t.size_h }}</div>
     </div>
+    {% if t.date_col %}
+    <form method="post" action="{{ url_for('admin_storage_cleanup') }}" class="tbl-form js-cleanup-form" style="margin:-2px 0 4px;">
+      <input type="hidden" name="table" value="{{ t.table }}">
+      <select name="days" class="tbl-select">
+        <option value="180">أقدم من 6 شهور</option>
+        <option value="90" selected>أقدم من 3 شهور</option>
+        <option value="60">أقدم من شهرين</option>
+        <option value="30">أقدم من شهر</option>
+        <option value="7">أقدم من أسبوع</option>
+        <option value="0">حذف الكل</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-danger">حذف مع أرشفة</button>
+    </form>
+    {% else %}
+    <div class="tbl-mute" style="margin:-2px 0 6px;">لا يمكن الفلترة بالتاريخ</div>
+    {% endif %}
     {% endfor %}
   </div>
 </div>

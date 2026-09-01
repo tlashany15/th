@@ -1,10 +1,22 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 
-<!-- ==================== حسابي (v19) ==================== -->
+<!-- ==================== حسابي (v19 + قمرة القيادة) ==================== -->
 
 <!-- كارت الهوية -->
 <section class="ac19-id">
+  <div class="cp-stage-top" style="margin-bottom:10px;">
+    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> بياناتي</span>
+    <span class="cp-clock">{{ today[8:] }}/{{ today[5:7] }}/{{ today[:4] }}</span>
+  </div>
   <div class="ac19-id-row">
     <form id="avatarForm" method="post" action="{{ url_for('update_avatar') }}" enctype="multipart/form-data" style="display:contents">
       <label class="ac19-av" title="غيّر صورتك">
@@ -124,6 +136,14 @@
 </section>
 
 <script src="{{ url_for('static', filename='js/chat-helpers.js') }}"></script>
+<style>
+/* لمسة قمرة القيادة — بدون تغيير أي منطق */
+.ac19-sec{ position:relative; overflow:hidden; }
+.ac19-sec::before{
+  content:""; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px;
+  background:var(--cp-accent, #17e0a0);
+}
+</style>
 <script>
 (function(){
   var avFile = document.getElementById('avatarFile');
