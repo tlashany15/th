@@ -1,18 +1,20 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 {% with tab = 'gross' %}{% include '_tabs_counts.html' %}{% endwith %}
-<section class="hero-admin">
-  <div class="hero-mesh"></div>
-  <div class="hero-row">
-    <div>
-      <span class="hero-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
-        سجل مرجعي
-      </span>
-      <p class="hero-sub">للمراجعة فقط — مش داخلة في التوزيع.</p>
-    </div>
-  </div>
-</section>
+
+<!-- شريط مصغّر بدل الهيرو الكبير — الصفحة دي غرضها الكثافة المعلوماتية -->
+<div class="cp-bar-mini">
+  <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> سجل مرجعي</span>
+  <span class="cp-clock">للمراجعة فقط — مش داخلة في التوزيع</span>
+</div>
 
 <!-- ==== المدة الحالية ==== -->
 <div class="card">
@@ -99,17 +101,26 @@
   </div>
 
   {% if rows %}
-    <div class="gl-list">
+    {% set _nd_values = rows|map(attribute='no_deduct_total')|select('number')|list %}
+    {% set _max_nd = (_nd_values + [0])|max %}
+    <div class="cp-telemetry">
       {% for r in rows %}
-      <div class="gl-row">
-        <div class="gl-day">
-          <div class="gl-day-d">{{ r.day.isoformat()[8:] if r.day.__class__.__name__ != 'str' else r.day[8:] }}</div>
-          <div class="gl-day-m">{{ (r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day)[:7] }}</div>
+      {% set _rday = r.day.isoformat() if r.day.__class__.__name__ != 'str' else r.day %}
+      {% set _h = ((r.no_deduct_total or 0) * 100 / _max_nd) if _max_nd > 0 else 0 %}
+      {% if _rday == today %}
+      <div class="cp-day-sep">اليوم</div>
+      {% elif loop.first and _rday != today %}
+      <div class="cp-day-sep">{{ _rday[:7] }}</div>
+      {% elif not loop.first and _rday[:7] != (rows[loop.index0-1].day.isoformat() if rows[loop.index0-1].day.__class__.__name__ != 'str' else rows[loop.index0-1].day)[:7] %}
+      <div class="cp-day-sep">{{ _rday[:7] }}</div>
+      {% endif %}
+      <div class="cp-t-row">
+        <div class="cp-t-bar"><span style="height: {{ _h|round(0) }}%"></span></div>
+        <div class="cp-t-body">
+          <div class="cp-t-main">{{ _rday[8:] }}/{{ _rday[5:7] }} <span>{{ _rday[:4] }}</span></div>
+          <div class="cp-t-sub">إجمالي اليوم: {{ '{:,}'.format(r.total_count or 0) }}</div>
         </div>
-        <div class="gl-body">
-          <div class="gl-nd">{{ '{:,}'.format(r.no_deduct_total or 0) }} <span>بدون خصم</span></div>
-          <div class="gl-tot">إجمالي اليوم: <strong>{{ '{:,}'.format(r.total_count or 0) }}</strong></div>
-        </div>
+        <div class="cp-t-val">{{ '{:,}'.format(r.no_deduct_total or 0) }}<small>بدون خصم</small></div>
       </div>
       {% endfor %}
     </div>

@@ -1,92 +1,102 @@
 {% extends "app_base.html" %}
+
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cockpit.css') }}?v={{ ASSET_VER }}">
+{% endblock %}
+
 {% block content %}
 
-<!-- ============ HERO ============ -->
-<section class="ap-hero">
-  <div class="ap-hero-glow" aria-hidden="true"></div>
-  <div class="ap-hero-grain" aria-hidden="true"></div>
+{% set _wcount = workers|length %}
+{% set _present_pct = ((present_count / _wcount * 100) | round(0, 'floor') | int) if _wcount > 0 else 0 %}
 
-  <div class="ap-hero-top">
-    <span class="ap-eyebrow">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      لوحة المسؤول
-    </span>
-    <span class="ap-datepill">
-      <span class="ap-dp-d">{{ day[8:] }}</span>
-      <span class="ap-dp-sep">/</span>
-      <span class="ap-dp-m">{{ day[5:7] }}</span>
-      <span class="ap-dp-y">{{ day[:4] }}</span>
-    </span>
+<!-- ============ COCKPIT STAGE ============ -->
+<section class="cp-stage">
+  <div class="cp-stage-top">
+    <span class="cp-live"><span class="cp-live-dot" aria-hidden="true"></span> مباشر</span>
+    <span class="cp-clock">{{ day[8:] }}/{{ day[5:7] }}/{{ day[:4] }}</span>
   </div>
 
-  <h1 class="ap-title">تحكّم باليوم</h1>
-  <p class="ap-subtitle">تابع التحصين، حضِّر الفريق، واقفل اليوم بضغطة.</p>
+  <h1 class="cp-title">تحكّم باليوم</h1>
+  <p class="cp-subtitle">تابع التحصين، حضِّر الفريق، واقفل اليوم بضغطة.</p>
 
-  <div class="ap-kpis">
-    <div class="ap-kpi ap-kpi-gold">
-      <div class="ap-kpi-ic">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4M14 6l4 4M8.5 11.5l4 4M3 21l3-3m0 0l-2-2 9-9 4 4-9 9-2-2z"/></svg>
-      </div>
-      <div class="ap-kpi-body">
-        <div class="ap-kpi-v" data-count="{{ day_total }}" id="kpiTotal">0</div>
-        <div class="ap-kpi-l">إجمالي اليوم</div>
+  <div class="cp-stage-body">
+    <div class="cp-gauge" id="cpAttendanceGauge" data-pct="{{ _present_pct }}">
+      <svg viewBox="0 0 120 120">
+        <circle class="cp-gauge-track" cx="60" cy="60" r="52" stroke-width="10"/>
+        <circle class="cp-gauge-fill" id="cpGaugeFill" cx="60" cy="60" r="52" stroke-width="10"
+                stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+      </svg>
+      <div class="cp-gauge-mid">
+        <div class="cp-gauge-v">{{ _present_pct }}%</div>
+        <div class="cp-gauge-l">نسبة الحضور</div>
       </div>
     </div>
-    <div class="ap-kpi ap-kpi-green">
-      <div class="ap-kpi-ic">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0z"/></svg>
-      </div>
-      <div class="ap-kpi-body">
-        <div class="ap-kpi-v" data-count="{{ present_count }}" id="kpiPresent">0</div>
-        <div class="ap-kpi-l">الحاضرون</div>
-      </div>
+    <div class="cp-stage-side">
+      <div class="cp-side-v" data-count="{{ day_total }}" id="kpiTotal">0</div>
+      <div class="cp-side-l">إجمالي اليوم</div>
     </div>
   </div>
 </section>
 
-{% if is_real_super_admin %}
-<!-- ============ MAINTENANCE TOGGLE (المسؤول الرئيسي فقط) ============ -->
-<form method="post" action="{{ url_for('admin_toggle_maintenance') }}"
-      class="ap-card ap-maint {% if maintenance_on %}is-on{% endif %}"
-      id="maintForm"
-      data-mode="{% if maintenance_on %}on{% else %}off{% endif %}"
-      onsubmit="return __maintConfirm(event);">
-  <div class="ap-maint-ic" aria-hidden="true">
-    {% if maintenance_on %}
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.25v13.5l13.5-6.75L5.25 5.25z"/></svg>
-    {% else %}
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"/></svg>
-    {% endif %}
+<div class="cp-float-strip">
+  <div class="cp-fs-item">
+    <div class="cp-fs-v" id="kpiPresent" data-count="{{ present_count }}">0</div>
+    <div class="cp-fs-l">الحاضرون</div>
   </div>
-  <div class="ap-maint-body">
-    <div class="ap-maint-t">
-      {% if maintenance_on %}البرنامج متوقف للصيانة{% else %}إيقاف البرنامج للصيانة{% endif %}
-    </div>
+  <div class="cp-fs-item">
+    <div class="cp-fs-v">{{ entries|length }}</div>
+    <div class="cp-fs-l">عمليات اليوم</div>
   </div>
-  <button type="submit" class="ap-maint-btn">
-    {% if maintenance_on %}تشغيل البرنامج{% else %}إيقاف البرنامج{% endif %}
-  </button>
-</form>
+  <div class="cp-fs-item">
+    <div class="cp-fs-v">{{ _wcount }}</div>
+    <div class="cp-fs-l">أعضاء الفريق</div>
+  </div>
+</div>
 
-<style>
-.ap-maint{display:flex;align-items:center;gap:12px;padding:14px;margin:12px 0;border:1px solid var(--border,#f4f4f6);border-radius:16px;background:linear-gradient(135deg,#fff, #fff7ed);}
-.ap-maint.is-on{background:linear-gradient(135deg,#fff, #fef2f2);border-color:#fecaca;}
-.ap-maint-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#fde68a;color:#92400e;flex:none}
-.ap-maint.is-on .ap-maint-ic{background:#fecaca;color:#4a1f21}
-.ap-maint-ic svg{width:22px;height:22px}
-.ap-maint-body{flex:1;min-width:0}
-.ap-maint-t{font-weight:800;font-size:14.5px;color:#14161d}
-.ap-maint-s{font-size:12.5px;color:#4b5563;margin-top:2px;line-height:1.5}
-.ap-maint-btn{border:0;border-radius:12px;padding:10px 14px;font-weight:800;font-size:13.5px;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);box-shadow:0 8px 18px -8px rgba(234,88,12,.6);cursor:pointer;white-space:nowrap}
-.ap-maint.is-on .ap-maint-btn{background:linear-gradient(135deg,#00d68f,#15803d);box-shadow:0 8px 18px -8px rgba(22,163,74,.6)}
-.ap-maint-btn:hover{transform:translateY(-1px)}
-@media (max-width:520px){.ap-maint{flex-wrap:wrap}.ap-maint-btn{width:100%}}
-</style>
+<div class="cp-deck">
+  <a class="cp-card" href="{{ url_for('admin_range_report') }}">
+    <span class="cp-card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg></span>
+    <span class="cp-card-t">التقارير</span>
+    <span class="cp-card-s">تقارير فترات مخصّصة</span>
+    <span class="cp-card-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></span>
+  </a>
+  <a class="cp-card cp-gold" href="{{ url_for('admin_gross_log') }}">
+    <span class="cp-card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg></span>
+    <span class="cp-card-t">السجل</span>
+    <span class="cp-card-s">الأعداد بدون خصم</span>
+    <span class="cp-card-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></span>
+  </a>
+  <a class="cp-card" href="{{ url_for('admin_settings') }}">
+    <span class="cp-card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg></span>
+    <span class="cp-card-t">الإعدادات</span>
+    <span class="cp-card-s">حسابك وإعدادات النظام</span>
+    <span class="cp-card-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></span>
+  </a>
+  <a class="cp-card cp-red" href="{{ url_for('admin_close_page', day=day) }}">
+    <span class="cp-card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2"/></svg></span>
+    <span class="cp-card-t">إغلاق اليوم</span>
+    <span class="cp-card-s">{% if day_closed %}اليوم مغلق{% else %}تحضير + إغلاق{% endif %}</span>
+    <span class="cp-card-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></span>
+  </a>
+</div>
 
-{% endif %}
-
-
-
+<script>
+(function(){
+  var g = document.getElementById('cpAttendanceGauge');
+  var fill = document.getElementById('cpGaugeFill');
+  if (g && fill){
+    var pct = parseFloat(g.dataset.pct || '0');
+    var C = 326.7; // 2 * PI * 52
+    var offset = C - (C * Math.min(100, Math.max(0, pct)) / 100);
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ fill.style.strokeDashoffset = offset; });
+    });
+  }
+})();
+</script>
 
 {% if is_today and not admin_checked_in %}
 <!-- ============ ADMIN SELF CHECK-IN (يختفي بعد تسجيل الحضور) ============ -->
@@ -477,7 +487,7 @@
     }
     requestAnimationFrame(tick);
   }
-  document.querySelectorAll('.ap-kpi-v[data-count]').forEach(function(el){
+  document.querySelectorAll('#kpiTotal[data-count], #kpiPresent[data-count]').forEach(function(el){
     animateCount(el, el.dataset.count);
   });
 
@@ -547,85 +557,6 @@
       catch(_){ window.location.href = url; }
     });
   }
-})();
-</script>
-
-<!-- ============ MAINTENANCE MODAL ============ -->
-<div class="ap-modal" id="maintModal" aria-hidden="true">
-  <div class="ap-modal-backdrop" data-close="1"></div>
-  <div class="ap-modal-card" role="dialog" aria-modal="true">
-    <div class="ap-modal-ic">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437"/></svg>
-    </div>
-    <h3 class="ap-modal-t" id="maintModalTitle">إيقاف البرنامج للصيانة؟</h3>
-    <p class="ap-modal-s" id="maintModalDesc">لن يتم تسجيل خروج أي حد — بس مش هيقدروا يستخدموه لحد ما تشغّله تاني.</p>
-    <div class="ap-modal-actions">
-      <button type="button" class="ap-modal-btn ap-modal-cancel" data-close="1">إلغاء</button>
-      <button type="button" class="ap-modal-btn ap-modal-ok" id="maintModalOk">تأكيد</button>
-    </div>
-  </div>
-</div>
-
-<style>
-.ap-modal{position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; padding:16px;}
-.ap-modal.is-open{display:flex;}
-.ap-modal-backdrop{position:absolute; inset:0; background:rgba(6,10,20,.72); backdrop-filter:blur(6px);}
-.ap-modal-card{position:relative; width:100%; max-width:380px; background:linear-gradient(180deg, #131a2b, #0e1424); border:1px solid rgba(47,125,255,.28); border-radius:20px; padding:22px 20px 18px; box-shadow:0 30px 70px -20px rgba(0,0,0,.7); text-align:center; animation:apModalIn .18s ease-out;}
-@keyframes apModalIn{from{opacity:0; transform:translateY(8px) scale(.97);} to{opacity:1; transform:none;}}
-.ap-modal-ic{width:52px; height:52px; margin:0 auto 10px; display:grid; place-items:center; border-radius:16px; background:rgba(47,125,255,.14); color:var(--ap-gold2); border:1px solid rgba(47,125,255,.3);}
-.ap-modal-ic svg{width:26px; height:26px;}
-.ap-modal-t{margin:4px 0 6px; font-size:17px; font-weight:900; color:var(--text,#f4f4f6);}
-.ap-modal-s{margin:0 0 16px; font-size:13.5px; color:var(--text-3,#63667a); line-height:1.55;}
-.ap-modal-actions{display:flex; gap:10px;}
-.ap-modal-btn{flex:1; padding:11px 12px; border-radius:12px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; border:1px solid transparent; transition:.15s;}
-.ap-modal-cancel{background:transparent; color:var(--text-2,#a1a4b2); border-color:rgba(255,255,255,.14);}
-.ap-modal-cancel:hover{background:rgba(255,255,255,.06);}
-.ap-modal-ok{background:linear-gradient(135deg,var(--ap-gold2),var(--ap-gold)); color:#ffffff;}
-.ap-modal-ok:hover{filter:brightness(1.05);}
-</style>
-
-<script>
-(function(){
-  var modal = document.getElementById('maintModal');
-  var form  = document.getElementById('maintForm');
-  var okBtn = document.getElementById('maintModalOk');
-  var titleEl = document.getElementById('maintModalTitle');
-  var descEl  = document.getElementById('maintModalDesc');
-  if(!modal || !form) return;
-  var pending = false;
-  function open(){
-    var mode = form.dataset.mode;
-    if (mode === 'on'){
-      titleEl.textContent = 'تشغيل البرنامج من جديد؟';
-      descEl.textContent  = 'هيرجع البرنامج شغّال زي الأول للجميع.';
-    } else {
-      titleEl.textContent = 'إيقاف البرنامج للصيانة؟';
-      descEl.textContent  = 'لن يتم تسجيل خروج أي حد — بس مش هيقدروا يستخدموه لحد ما تشغّله تاني.';
-    }
-    modal.classList.add('is-open');
-    modal.setAttribute('aria-hidden','false');
-  }
-  function close(){
-    modal.classList.remove('is-open');
-    modal.setAttribute('aria-hidden','true');
-  }
-  window.__maintConfirm = function(ev){
-    if (pending) return true;
-    ev.preventDefault();
-    open();
-    return false;
-  };
-  okBtn.addEventListener('click', function(){
-    pending = true;
-    close();
-    form.submit();
-  });
-  modal.addEventListener('click', function(e){
-    if (e.target && e.target.getAttribute('data-close') === '1') close();
-  });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' && modal.classList.contains('is-open')) close();
-  });
 })();
 </script>
 
