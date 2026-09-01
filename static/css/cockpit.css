@@ -1,0 +1,318 @@
+/* ==========================================================================
+   cockpit.css — طبقة "قمرة القيادة" لصفحات الإدمن
+   طبقة إضافية فوق theme.css فقط — لا تُحمَّل إلا داخل الصفحات المستهدفة.
+   ========================================================================== */
+
+:root{
+  --cp-bg-deep:#04060a;
+  --cp-panel:#0d131a; --cp-panel-2:#121b24; --cp-panel-3:#182230; --cp-panel-4:#1e2a38;
+  --cp-line: rgba(255,255,255,.07); --cp-line-strong: rgba(255,255,255,.15);
+  --cp-text-2:#8b9aa8; --cp-text-3:#4e5c6a;
+  --cp-accent:#17e0a0; --cp-accent-glow: rgba(23,224,160,.4);
+  --cp-gold:#f0c168; --cp-gold-glow: rgba(240,193,104,.32);
+  --cp-red:#ff4d5e;
+  --cp-num-font:'Rajdhani',sans-serif;
+  --cp-r:18px;
+}
+
+/* ==========================================================================
+   1) .cp-stage — الهيرو العلوي (طبقة عميقة + توهّج + خطوط قطرية)
+   ========================================================================== */
+.cp-stage{
+  position:relative; overflow:hidden; z-index:0;
+  border-radius:26px;
+  padding:20px 18px 30px;
+  margin:8px 0 0;
+  background:
+    radial-gradient(90% 120% at 100% -10%, var(--cp-accent-glow), transparent 55%),
+    radial-gradient(90% 120% at -10% 110%, var(--cp-gold-glow), transparent 55%),
+    linear-gradient(180deg, var(--cp-panel-3) 0%, var(--cp-bg-deep) 100%);
+  border:1px solid var(--cp-line-strong);
+  box-shadow:0 24px 60px -30px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.cp-stage::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 1px, transparent 26px);
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.9), transparent 75%);
+}
+.cp-stage > *{position:relative; z-index:1}
+
+.cp-stage-top{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-bottom:14px; flex-wrap:wrap;
+}
+.cp-live{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:6px 12px; border-radius:999px;
+  font-size:11px; font-weight:800; letter-spacing:.04em;
+  color:var(--cp-accent);
+  background:rgba(23,224,160,.1);
+  border:1px solid rgba(23,224,160,.3);
+}
+.cp-live-dot{
+  width:7px; height:7px; border-radius:50%; background:var(--cp-accent); flex:none;
+  box-shadow:0 0 0 0 rgba(23,224,160,.6);
+  animation:cp-pulse 1.8s ease-out infinite;
+}
+@keyframes cp-pulse{
+  0%{box-shadow:0 0 0 0 rgba(23,224,160,.55)}
+  70%{box-shadow:0 0 0 8px rgba(23,224,160,0)}
+  100%{box-shadow:0 0 0 0 rgba(23,224,160,0)}
+}
+.cp-clock{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:7px 12px; border-radius:14px;
+  background:rgba(255,255,255,.04); border:1px solid var(--cp-line);
+  color:var(--cp-text-2); font-weight:800; font-size:12.5px;
+  font-family:var(--cp-num-font); letter-spacing:.03em;
+  font-variant-numeric:tabular-nums;
+}
+
+.cp-title{
+  margin:0; font-size:24px; line-height:1.2; font-weight:900;
+  color:#f4f7fa; letter-spacing:-.01em;
+}
+.cp-subtitle{
+  margin:6px 0 18px; color:var(--cp-text-2); font-size:13px;
+}
+
+.cp-stage-body{
+  display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
+}
+
+/* ==========================================================================
+   2) .cp-gauge — عداد دائري SVG
+   ========================================================================== */
+.cp-gauge{
+  position:relative; flex:none;
+  width:118px; height:118px;
+  display:flex; align-items:center; justify-content:center;
+}
+.cp-gauge svg{ width:100%; height:100%; transform:rotate(-90deg); }
+.cp-gauge-track{ fill:none; stroke:rgba(255,255,255,.08); }
+.cp-gauge-fill{
+  fill:none; stroke-linecap:round;
+  stroke:var(--cp-accent);
+  transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1);
+}
+.cp-gauge.is-gold .cp-gauge-fill{ stroke:var(--cp-gold); }
+.cp-gauge-mid{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+}
+.cp-gauge-v{
+  font-family:var(--cp-num-font); font-weight:700; font-size:26px; line-height:1;
+  color:#fff; font-variant-numeric:tabular-nums;
+}
+.cp-gauge-l{ font-size:9.5px; color:var(--cp-text-3); font-weight:800; margin-top:4px; letter-spacing:.02em; }
+
+.cp-stage-side{ flex:1; min-width:160px; }
+.cp-side-v{
+  font-family:var(--cp-num-font); font-weight:700; font-size:34px; color:var(--cp-gold);
+  line-height:1; font-variant-numeric:tabular-nums;
+}
+.cp-side-l{ font-size:12px; color:var(--cp-text-2); font-weight:700; margin-top:4px; }
+
+/* ==========================================================================
+   3) .cp-float-strip — شريط إحصائيات طايف بهامش سالب
+   ========================================================================== */
+.cp-float-strip{
+  position:relative; z-index:2;
+  margin:-46px 12px 16px; padding:14px 6px;
+  display:grid; grid-auto-flow:column; grid-auto-columns:1fr;
+  border-radius:20px;
+  background:linear-gradient(180deg, var(--cp-panel-2), var(--cp-panel));
+  border:1px solid var(--cp-line-strong);
+  box-shadow:0 18px 40px -22px rgba(0,0,0,.8);
+}
+.cp-fs-item{
+  text-align:center; padding:4px 6px;
+  border-inline-start:1px solid var(--cp-line);
+}
+.cp-fs-item:first-child{ border-inline-start:0; }
+.cp-fs-v{
+  font-family:var(--cp-num-font); font-weight:700; font-size:19px; color:#fff;
+  font-variant-numeric:tabular-nums;
+}
+.cp-fs-l{ font-size:10.5px; color:var(--cp-text-3); font-weight:700; margin-top:3px; }
+
+@media (max-width:420px){
+  .cp-float-strip{ margin-inline:6px; }
+  .cp-fs-v{ font-size:16.5px; }
+}
+
+/* ==========================================================================
+   4) .cp-deck / .cp-card — شبكة كروت 2×N
+   ========================================================================== */
+.cp-deck{
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  margin:0 0 14px;
+}
+.cp-card{
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:8px;
+  padding:16px 14px 14px 18px;
+  border-radius:16px;
+  background:linear-gradient(165deg, var(--cp-panel-3), var(--cp-panel));
+  border:1px solid var(--cp-line);
+  box-shadow:0 14px 30px -18px rgba(0,0,0,.7);
+  text-decoration:none;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.cp-card::before{
+  content:""; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px;
+  background:var(--cp-accent);
+}
+.cp-card:hover{ transform:translateY(-2px); border-color:var(--cp-line-strong); }
+.cp-card.cp-gold::before{ background:var(--cp-gold); }
+.cp-card.cp-red::before{ background:var(--cp-red); }
+.cp-card-ic{
+  width:38px; height:38px; border-radius:11px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(23,224,160,.12); color:var(--cp-accent);
+  border:1px solid rgba(23,224,160,.25);
+}
+.cp-card.cp-gold .cp-card-ic{ background:rgba(240,193,104,.14); color:var(--cp-gold); border-color:rgba(240,193,104,.3); }
+.cp-card.cp-red .cp-card-ic{ background:rgba(255,77,94,.14); color:#ff8f9a; border-color:rgba(255,77,94,.3); }
+.cp-card-ic svg{ width:19px; height:19px; }
+.cp-card-t{ font-size:14px; font-weight:900; color:#fff; }
+.cp-card-s{ font-size:11.5px; color:var(--cp-text-2); font-weight:600; line-height:1.4; }
+.cp-card-arrow{
+  margin-top:auto; align-self:flex-end;
+  color:var(--cp-text-3); transition:transform .18s ease, color .18s ease;
+}
+.cp-card:hover .cp-card-arrow{ color:var(--cp-accent); transform:translateX(-3px); }
+.cp-card.cp-gold:hover .cp-card-arrow{ color:var(--cp-gold); }
+.cp-card-arrow svg{ width:15px; height:15px; }
+
+@media (max-width:380px){
+  .cp-deck{ grid-template-columns:1fr; }
+}
+
+/* ==========================================================================
+   5) .cp-telemetry — صفوف بشريط ارتفاع جانبي بدل نقطة/أيقونة
+   ========================================================================== */
+.cp-telemetry{ display:flex; flex-direction:column; gap:7px; }
+.cp-t-row{
+  display:flex; align-items:center; gap:12px;
+  padding:11px 12px; border-radius:13px;
+  background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  border:1px solid var(--cp-line);
+  transition:border-color .15s ease, background .15s ease;
+}
+.cp-t-row:hover{ border-color:var(--cp-line-strong); background:rgba(255,255,255,.045); }
+.cp-t-bar{
+  width:5px; align-self:stretch; min-height:30px; border-radius:4px; flex:none;
+  background:rgba(255,255,255,.08); overflow:hidden; display:flex; align-items:flex-end;
+}
+.cp-t-bar span{
+  display:block; width:100%; border-radius:4px;
+  background:linear-gradient(180deg, var(--cp-accent), rgba(23,224,160,.35));
+  transition:height .5s ease;
+}
+.cp-t-row.cp-gold .cp-t-bar span{ background:linear-gradient(180deg, var(--cp-gold), rgba(240,193,104,.35)); }
+.cp-t-row.cp-red .cp-t-bar span{ background:linear-gradient(180deg, var(--cp-red), rgba(255,77,94,.35)); }
+.cp-t-body{ flex:1; min-width:0; }
+.cp-t-main{ font-size:13.5px; font-weight:800; color:#fff; }
+.cp-t-main span{ font-weight:600; color:var(--cp-text-2); font-size:11.5px; }
+.cp-t-sub{ font-size:11px; color:var(--cp-text-3); margin-top:2px; }
+.cp-t-val{
+  font-family:var(--cp-num-font); font-weight:700; font-size:17px; color:#fff;
+  flex:none; text-align:end; font-variant-numeric:tabular-nums;
+}
+.cp-t-val small{ display:block; font-family:var(--cp-num-font); font-size:10px; color:var(--cp-text-3); font-weight:600; }
+
+.cp-day-sep{
+  font-size:11px; font-weight:800; color:var(--cp-text-3);
+  padding:10px 4px 4px; letter-spacing:.03em;
+}
+
+/* ==========================================================================
+   6) .cp-close-band — شريط تنبيه/إجراء حرج
+   ========================================================================== */
+.cp-close-band{
+  display:flex; align-items:center; gap:12px;
+  padding:14px; border-radius:18px; margin:12px 0;
+  background:linear-gradient(180deg, rgba(255,77,94,.09), rgba(255,77,94,.02));
+  border:1px solid rgba(255,77,94,.28);
+}
+.cp-close-band.is-neutral{
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+  border-color:var(--cp-line-strong);
+}
+.cp-cb-ic{
+  width:44px; height:44px; border-radius:13px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,77,94,.16); color:#ff8f9a; border:1px solid rgba(255,77,94,.32);
+}
+.cp-close-band.is-neutral .cp-cb-ic{ background:rgba(255,255,255,.06); color:var(--cp-text-2); border-color:var(--cp-line-strong); }
+.cp-cb-ic svg{ width:21px; height:21px; }
+.cp-cb-body{ flex:1; min-width:0; }
+.cp-cb-t{ font-size:14px; font-weight:900; color:#fff; }
+.cp-cb-s{ font-size:11.5px; color:var(--cp-text-2); margin-top:2px; }
+.cp-cb-btn{
+  border:0; border-radius:12px; padding:10px 16px; font-weight:800; font-size:13px;
+  color:#fff; cursor:pointer; white-space:nowrap;
+  background:linear-gradient(135deg,#00d68f,#128c7e);
+  box-shadow:0 8px 18px -8px rgba(0,214,143,.55);
+}
+.cp-close-band.is-on .cp-cb-btn{
+  background:linear-gradient(135deg,#f97316,#ea580c);
+  box-shadow:0 8px 18px -8px rgba(234,88,12,.55);
+}
+
+/* ==========================================================================
+   7) .cp-bottom-nav — كبسولة عائمة (لو احتاجت صفحة إدمن تنقّل سفلي خاص)
+   ========================================================================== */
+.cp-bottom-nav{
+  display:flex; align-items:center; justify-content:space-around; gap:4px;
+  padding:8px; border-radius:22px;
+  background:var(--cp-panel-2); border:1px solid var(--cp-line-strong);
+  box-shadow:0 -10px 30px -14px rgba(0,0,0,.6);
+}
+
+/* ==========================================================================
+   شريط مصغّر (لصفحات لا تحتاج هيرو كبير — مثل السجل)
+   ========================================================================== */
+.cp-bar-mini{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  flex-wrap:wrap; margin:8px 0 14px;
+}
+
+/* ==========================================================================
+   رسم بياني بالأعمدة بسيط (لعرض بيانات حقيقية فقط)
+   ========================================================================== */
+.cp-bars{
+  display:flex; align-items:flex-end; gap:8px;
+  height:110px; padding:10px 6px 0;
+}
+.cp-bars-col{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;
+  min-width:0;
+}
+.cp-bars-track{
+  width:100%; max-width:34px; height:78px; border-radius:8px 8px 4px 4px;
+  background:rgba(255,255,255,.05); display:flex; align-items:flex-end; overflow:hidden;
+}
+.cp-bars-track span{
+  display:block; width:100%; min-height:3px; border-radius:8px 8px 4px 4px;
+  background:linear-gradient(180deg, var(--cp-accent), rgba(23,224,160,.3));
+  transition:height .6s ease;
+}
+.cp-bars-col.is-max .cp-bars-track span{
+  background:linear-gradient(180deg, var(--cp-gold), rgba(240,193,104,.35));
+}
+.cp-bars-lbl{ font-size:9.5px; color:var(--cp-text-3); font-weight:700; text-align:center; }
+.cp-bars-val{ font-family:var(--cp-num-font); font-size:10.5px; color:var(--cp-text-2); font-weight:700; }
+
+/* ==========================================================================
+   RTL + إتاحة
+   ========================================================================== */
+[dir="rtl"] .cp-gauge svg{ transform:rotate(-90deg) scaleX(1); }
+
+@media (prefers-reduced-motion: reduce){
+  .cp-live-dot{ animation:none; }
+  .cp-gauge-fill{ transition:none; }
+  .cp-t-bar span, .cp-bars-track span{ transition:none; }
+}
