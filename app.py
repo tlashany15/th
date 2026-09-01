@@ -2966,13 +2966,6 @@ def admin_tomorrow_page():
 
 
 
-# ---- صفحة الإعدادات (هَب) — مجرد تجميع لروابط صفحات الإعدادات الحالية ----
-@app.route("/admin/settings")
-@admin_required
-def admin_settings():
-    return render_template("admin_settings.html", maintenance_on=_maintenance_on())
-
-
 # ---- بروفايل المسؤول: تغيير الاسم / كلمة السر ----
 @app.route("/admin/profile", methods=["GET", "POST"])
 @admin_required
