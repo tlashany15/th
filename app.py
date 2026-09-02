@@ -3232,12 +3232,7 @@ def admin_range_report():
                     target_kind = "worker"; target_id = pid
                     target_label = f"نصيب: {pr['full_name']}"
 
-        cur.execute(
-            "INSERT INTO range_reports(admin_id, start_day, end_day, total, days_count, note, distributed_total, target_kind, target_id, target_label, chick_count) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-            (u["id"], s_iso, e_iso, total, days_count, note, s_dist, target_kind, target_id, target_label, chick_count),
-        )
-        db.commit()
+        # مفيش حفظ للتقرير — الحساب بيتعرض على الشاشة بس
         result = {
             "start": s_iso, "end": e_iso,
             "start_display": f"{start_d.day}/{start_d.month}/{start_d.year}",
@@ -3252,17 +3247,11 @@ def admin_range_report():
             "deduct_money": deduct_money,
             "is_money": target_kind in ("worker", "admin"),
         }
-        flash(f"تم حساب التقرير ({target_label}) وحفظه", "success")
+        flash(f"تم حساب التقرير ({target_label})", "success")
 
-    cur.execute(
-        "SELECT id, start_day, end_day, total, days_count, note, created_at, "
-        "distributed_total, target_kind, target_label, chick_count "
-        "FROM range_reports ORDER BY created_at DESC LIMIT 100"
-    )
-    reports = cur.fetchall()
     cur.close()
     return render_template("admin_range_report.html",
-                           result=result, reports=reports,
+                           result=result, reports=[],
                            people_list=people_list,
                            workers_list=workers_list, admins_list=admins_list)
 
