@@ -23,7 +23,7 @@
   .wg-cell:active{ transform:scale(.975); }
 
   /* الكارت الكبير الطولاني: حالة الإغلاق */
-  .wg-hero{ grid-column:1; grid-row:1 / span 2; padding:15px 14px; justify-content:space-between; min-height:186px;
+  .wg-hero{ grid-column:1; grid-row:1 / span 2; padding:15px 14px; justify-content:flex-start; gap:14px; min-height:186px;
     background:radial-gradient(120% 90% at 80% 0%, rgba(227,185,107,.30) 0%, rgba(227,185,107,.06) 55%, transparent 100%),
       linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
     border-color:rgba(227,185,107,.22); }
@@ -33,7 +33,7 @@
     background:rgba(227,185,107,.20); color:var(--wg-gold); border:1px solid rgba(227,185,107,.26); }
   .wg-hero.is-open .wg-hero-ic{ background:rgba(74,163,255,.18); color:#8cc6ff; border-color:rgba(74,163,255,.26); }
   .wg-hero-ic svg{ width:19px; height:19px; }
-  .wg-hello{ font-size:12px; font-weight:700; color:var(--wg-dim); margin:12px 0 2px; }
+  .wg-hello{ font-size:12px; font-weight:700; color:var(--wg-dim); margin:0 0 2px; }
   .wg-name{ font-size:18px; font-weight:900; line-height:1.25; margin:0 0 10px; }
   .wg-hero-date{ display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:6px 9px;
     border-radius:10px; background:rgba(255,255,255,.055); border:1px solid var(--wg-line);
@@ -44,13 +44,13 @@
   .wg-sum strong{ color:var(--wg-txt); font-weight:900; }
 
   /* الكارتين الصغيرين */
-  .wg-stat{ grid-column:2; padding:13px 13px 12px; justify-content:space-between; min-height:87px; background:var(--wg-card-2); }
+  .wg-stat{ grid-column:2; padding:13px 13px 12px; justify-content:center; align-items:center; text-align:center; gap:6px; min-height:87px; background:var(--wg-card-2); }
   .wg-stat-1{ grid-row:1; } .wg-stat-2{ grid-row:2; }
-  .wg-stat-ic{ width:26px; height:26px; display:grid; place-items:center; }
+  .wg-stat-ic{ width:26px; height:26px; display:grid; place-items:center; margin:0 auto; }
   .wg-stat-ic svg{ width:19px; height:19px; }
   .wg-c-green{ color:var(--wg-green); } .wg-c-blue{ color:var(--wg-blue); } .wg-c-gold{ color:var(--wg-gold); }
-  .wg-num{ font-size:23px; font-weight:900; line-height:1; margin-top:8px; font-variant-numeric:tabular-nums; }
-  .wg-lbl{ font-size:11px; font-weight:700; color:var(--wg-dim); margin-top:4px; }
+  .wg-num{ font-size:23px; font-weight:900; line-height:1; margin-top:8px; font-variant-numeric:tabular-nums; text-align:center; }
+  .wg-lbl{ font-size:11px; font-weight:700; color:var(--wg-dim); margin-top:4px; text-align:center; }
 
   /* ودجت عريض */
   .wg-wide{ grid-column:1 / -1; padding:11px 12px; min-height:70px; }
