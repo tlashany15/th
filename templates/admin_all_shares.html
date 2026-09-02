@@ -2,123 +2,288 @@
 {% block content %}
 {% with tab = 'shares' %}{% include '_tabs_reports.html' %}{% endwith %}
 
-<!-- ===== HERO (نفس نظام باقي الصفحات) ===== -->
-<section class="hero-admin">
-  <div class="hero-mesh"></div>
-  <div class="hero-row">
-    <div>
-      <span class="hero-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        حساب سريع
-      </span>
+<!-- ================= نصيب كل الفريق — نظام الودجت ================= -->
+<div class="wsw-wrap">
+  <div class="wsw-grid">
+
+    <!-- ودجت عريض: إجمالي فلوس المدة -->
+    <div class="wsw-cell wsw-hero">
+      <div class="wsw-hero-top">
+        <span class="wsw-hero-lbl">إجمالي المدة</span>
+        <span class="wsw-hero-date">{{ period_label }}</span>
+      </div>
+      <div class="wsw-hero-mid">
+        <div class="wsw-hero-val">
+          <b data-countup="{{ totals.money|money_k_raw }}">0</b><small>جنيه</small>
+        </div>
+        <div class="wsw-hero-note">{{ start_day }} ← {{ end_day }} · سعر الكتكوت {{ price }} ج</div>
+      </div>
     </div>
-  </div>
-</section>
 
-<!-- ===== اختيار المدة ===== -->
-<form class="card" method="get" action="{{ url_for('admin_all_shares') }}">
-  <div class="field dmy-field">
-    <label>من تاريخ</label>
-    <input type="text" class="dmy-input" id="asStartView" inputmode="numeric" autocomplete="off" placeholder="01/07/2026">
-    <input type="hidden" name="start_day" id="asStart" value="{{ start_day }}">
-    <input type="date" class="dmy-native" id="asStartNative" tabindex="-1" aria-hidden="true">
-    <button type="button" class="dmy-pick" data-pick="asStart" aria-label="اختر التاريخ من التقويم">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
-    </button>
-  </div>
-  <div class="field dmy-field">
-    <label>إلى تاريخ</label>
-    <input type="text" class="dmy-input" id="asEndView" inputmode="numeric" autocomplete="off" placeholder="01/07/2026">
-    <input type="hidden" name="end_day" id="asEnd" value="{{ end_day }}">
-    <input type="date" class="dmy-native" id="asEndNative" tabindex="-1" aria-hidden="true">
-    <button type="button" class="dmy-pick" data-pick="asEnd" aria-label="اختر التاريخ من التقويم">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
-    </button>
-  </div>
-  <button class="btn btn-primary btn-sm" type="submit" style="width:100%">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-    احسب
-  </button>
-</form>
+    <!-- ودجت صغير: عدد الشغالين -->
+    <div class="wsw-cell wsw-stat">
+      <span class="wsw-stat-ic" style="color:#8cc6ff" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1.5A3.5 3.5 0 0 0 12.5 14h-5A3.5 3.5 0 0 0 4 17.5V19"/><circle cx="10" cy="8" r="3.2"/><path d="M20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.5 5.2a3.2 3.2 0 0 1 0 5.6"/></svg>
+      </span>
+      <div>
+        <div class="wsw-stat-num" data-countup="{{ totals.people }}">0</div>
+        <div class="wsw-stat-lbl">شغلوا في المدة</div>
+      </div>
+    </div>
 
-<!-- ===== إرسال الحساب ===== -->
-<form method="post" action="{{ url_for('admin_all_shares_send') }}" class="card"
-      onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
-        (window.appConfirm?window.appConfirm('هيتبعت لكل واحد حسابه في رسالة خاصة من حساب خدمة العمال.',{title:'إرسال الحساب للكل؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال الحساب للكل؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
-  <input type="hidden" name="start_day" value="{{ start_day }}">
-  <input type="hidden" name="end_day" value="{{ end_day }}">
-  <button class="btn btn-ghost btn-sm" type="submit" style="width:100%">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.27 3.9a.6.6 0 01.82-.73l16.2 7.55a.6.6 0 010 1.09L4.09 19.36a.6.6 0 01-.82-.73L6 12zm0 0h7"/></svg>
-    إرسال الحساب للكل
-  </button>
-</form>
+    <!-- ودجت صغير: إجمالي الكتاكيت -->
+    <div class="wsw-cell wsw-stat">
+      <span class="wsw-stat-ic" style="color:#7fe7b4" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="13" rx="6.5" ry="8"/></svg>
+      </span>
+      <div>
+        <div class="wsw-stat-num" data-countup="{{ totals.chicks }}">0</div>
+        <div class="wsw-stat-lbl">إجمالي الكتاكيت</div>
+      </div>
+    </div>
 
-<!-- ===== إرسال تقرير المدة لقناة تليجرام ===== -->
-<form method="post" action="{{ url_for('admin_all_shares_send_telegram') }}" class="card"
-      onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
-        (window.appConfirm?window.appConfirm('هيتبعت تقرير الإجمالي بدون خصم وحساب كل واحد لقناة تليجرام.',{title:'إرسال لقناة تليجرام؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال لقناة تليجرام؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
-  <input type="hidden" name="start_day" value="{{ start_day }}">
-  <input type="hidden" name="end_day" value="{{ end_day }}">
-  <button class="btn btn-ghost btn-sm" type="submit" style="width:100%">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 4.5l-19 7.6 6 2.2m13-9.8l-3.3 16-9.7-6.2m13-9.8L11.2 14.5"/></svg>
-    إرسال تقرير المدة لقناة تليجرام
-  </button>
-</form>
-
-<!-- ===== قائمة الفريق ===== -->
-<div class="card">
-
-  {% if rows|length > 9 %}
-  <div class="list-search">
-    <input type="search" id="sharesSearch" placeholder="ابحث باسم العامل…" autocomplete="off">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-  </div>
-  {% endif %}
-
-  <div class="wlist" id="sharesList">
-    {% for r in rows %}
-    <div class="wcard stagger-in {% if r.days == 0 %}is-zero{% endif %}"
-         style="--i:{{ loop.index0 }};{% if r.days == 0 %}opacity:.55;{% endif %}"
-         data-name="{{ r.full_name }}">
-      <div class="wcard-l">
-        <div class="wavatar wavatar-{{ (r.id % 5) }}">{% if r.avatar %}<img src="{{ r.avatar }}" alt="">{% else %}{{ (r.full_name or '?')[:1] }}{% endif %}</div>
-        <div class="wcard-info">
-          <div class="wcard-name">{{ r.full_name }}</div>
-          <div class="wcard-meta">
-            {{ r.days }} يوم · {{ "{:,}".format(r.chicks) }} كتكوت{% if r.bonus %} · إضافي {{ "{:,}".format(r.bonus) }} ج{% endif %}{% if r.deduct %} · خصم {{ "{:,}".format(r.deduct) }} ج{% endif %}
+    <!-- ودجت عريض: اختيار المدة -->
+    <div class="wsw-cell wsw-form">
+      <form method="get" action="{{ url_for('admin_all_shares') }}">
+        <div class="wsw-dates">
+          <div class="wsw-date">
+            <label for="asStartView">من</label>
+            <input type="text" class="wsw-date-input" id="asStartView" inputmode="numeric" autocomplete="off" placeholder="01/07/2026">
+            <input type="hidden" name="start_day" id="asStart" value="{{ start_day }}">
+            <input type="date" class="wsw-date-native" id="asStartNative" tabindex="-1" aria-hidden="true">
+            <button type="button" class="wsw-date-ico" data-pick="asStart" aria-label="اختر التاريخ من التقويم">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="wsw-date">
+            <label for="asEndView">إلى</label>
+            <input type="text" class="wsw-date-input" id="asEndView" inputmode="numeric" autocomplete="off" placeholder="01/07/2026">
+            <input type="hidden" name="end_day" id="asEnd" value="{{ end_day }}">
+            <input type="date" class="wsw-date-native" id="asEndNative" tabindex="-1" aria-hidden="true">
+            <button type="button" class="wsw-date-ico" data-pick="asEnd" aria-label="اختر التاريخ من التقويم">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+            </button>
           </div>
         </div>
+        <button type="submit" class="wsw-submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          احسب
+        </button>
+      </form>
+    </div>
+
+    <!-- ودجت: إرسال الحساب للكل -->
+    <form method="post" action="{{ url_for('admin_all_shares_send') }}" class="wsw-cell wsw-act"
+          onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
+            (window.appConfirm?window.appConfirm('هيتبعت لكل واحد حسابه في رسالة خاصة من حساب خدمة العمال.',{title:'إرسال الحساب للكل؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال الحساب للكل؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+      <input type="hidden" name="start_day" value="{{ start_day }}">
+      <input type="hidden" name="end_day" value="{{ end_day }}">
+      <button type="submit" class="wsw-act-btn">
+        <span class="wsw-act-ic gold" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.27 3.9a.6.6 0 01.82-.73l16.2 7.55a.6.6 0 010 1.09L4.09 19.36a.6.6 0 01-.82-.73L6 12zm0 0h7"/></svg>
+        </span>
+        <span class="wsw-act-lbl">إرسال الحساب للكل</span>
+      </button>
+    </form>
+
+    <!-- ودجت: إرسال لقناة تليجرام -->
+    <form method="post" action="{{ url_for('admin_all_shares_send_telegram') }}" class="wsw-cell wsw-act wsw-act-tg"
+          onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault();
+            (window.appConfirm?window.appConfirm('هيتبعت تقرير الإجمالي بدون خصم وحساب كل واحد لقناة تليجرام.',{title:'إرسال لقناة تليجرام؟',okText:'إرسال'}):Promise.resolve(confirm('إرسال لقناة تليجرام؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;">
+      <input type="hidden" name="start_day" value="{{ start_day }}">
+      <input type="hidden" name="end_day" value="{{ end_day }}">
+      <button type="submit" class="wsw-act-btn">
+        <span class="wsw-act-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M21.5 4.5l-19 7.6 6 2.2m13-9.8l-3.3 16-9.7-6.2m13-9.8L11.2 14.5"/></svg>
+        </span>
+        <span class="wsw-act-lbl">تقرير المدة لتليجرام</span>
+      </button>
+    </form>
+
+    <!-- ودجت عريض: قائمة الفريق -->
+    <div class="wsw-cell wsw-list">
+      <div class="wsw-list-head">
+        <div class="wsw-list-t">نصيب كل واحد</div>
+        <span class="wsw-list-count">{{ rows|length }}</span>
       </div>
-      <div class="wcard-r">
-        <span class="badge badge-gold sm">{{ "{:,}".format(r.money) }} ج</span>
-        <a class="icon-btn" href="{{ url_for('worker_stats', worker_id=r.id) }}"
-           aria-label="عرض نصيب {{ r.full_name }}" title="عرض النصيب">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        </a>
+
+      {% if rows|length > 9 %}
+      <div class="wsw-search-box">
+        <input type="search" class="wsw-search" id="sharesSearch" placeholder="ابحث باسم العامل…" autocomplete="off">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
+      </div>
+      {% endif %}
+
+      <div class="wsw-ledger" id="sharesList">
+        {% for r in rows %}
+        <div class="wsw-lrow{% if r.days == 0 %} is-zero{% endif %}" data-name="{{ r.full_name }}">
+          <div class="wsw-avatar">
+            {% if r.avatar %}<img src="{{ r.avatar }}" alt="" loading="lazy">{% else %}{{ (r.full_name or '?')[:1] }}{% endif %}
+          </div>
+          <div class="wsw-lrow-l">
+            <div class="wsw-lrow-label">{{ r.full_name }}</div>
+            <div class="wsw-lrow-meta">
+              {{ r.days }} يوم · {{ '{:,}'.format(r.chicks) }} كتكوت{% if r.bonus %} · إضافي {{ r.bonus|money_k }}{% endif %}{% if r.deduct %} · خصم {{ r.deduct|money_k }}{% endif %}
+            </div>
+          </div>
+          <div class="wsw-lrow-v">{{ r.money|money_k }} ج</div>
+          <a class="wsw-lrow-btn" href="{{ url_for('worker_stats', worker_id=r.id) }}"
+             aria-label="عرض نصيب {{ r.full_name }}" title="عرض النصيب">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </a>
+        </div>
+        {% else %}
+        <div class="wsw-empty">مفيش بيانات في المدة دي.</div>
+        {% endfor %}
       </div>
     </div>
-    {% else %}
-    <div class="empty">مفيش بيانات في المدة دي.</div>
-    {% endfor %}
+
   </div>
 </div>
 
+<style>
+/* ================= ودجتس نصيب كل الفريق (نفس نظام نصيبي — تقسيمة مختلفة) ================= */
+.wsw-wrap{ display:flex; flex-direction:column; gap:11px; margin-top:12px; }
+.wsw-wrap *{ box-sizing:border-box; }
+.wsw-grid{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+
+.wsw-cell{
+  position:relative; overflow:hidden; border-radius:22px;
+  background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.07);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  color:var(--text,#f2f5fa); display:flex; flex-direction:column;
+}
+
+/* هيرو عريض فوق */
+.wsw-hero{
+  grid-column:1 / -1; padding:15px 15px 17px; min-height:132px;
+  background:
+    radial-gradient(120% 100% at 88% -20%, rgba(224,180,88,.30) 0%, rgba(224,180,88,.06) 55%, transparent 100%),
+    linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  border-color:rgba(224,180,88,.24);
+}
+.wsw-hero-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.wsw-hero-lbl{ font-size:11.5px; font-weight:900; color:#f7e2b3; }
+.wsw-hero-date{ font-size:11px; font-weight:800; color:#f0d59a; }
+.wsw-hero-mid{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-top:10px; }
+.wsw-hero-val{ display:flex; align-items:baseline; gap:6px; }
+.wsw-hero-val b{ font-size:34px; font-weight:900; line-height:1; color:#f7e2b3; font-variant-numeric:tabular-nums; }
+.wsw-hero-val small{ font-size:13px; font-weight:800; color:#f0d59a; }
+.wsw-hero-note{ font-size:10.5px; font-weight:700; color:var(--text-3); margin-top:7px; direction:ltr; text-align:right; }
+
+/* ودجتين صغيرين جنب بعض */
+.wsw-stat{ padding:13px; min-height:96px; justify-content:space-between; align-items:center; text-align:center; background:rgba(255,255,255,.028); }
+.wsw-stat-ic{ width:26px; height:26px; display:grid; place-items:center; }
+.wsw-stat-ic svg{ width:19px; height:19px; }
+.wsw-stat-num{ font-size:22px; font-weight:900; line-height:1; margin-top:8px; font-variant-numeric:tabular-nums; }
+.wsw-stat-lbl{ font-size:10.5px; font-weight:700; color:var(--text-3); margin-top:4px; }
+
+/* فورم المدة */
+.wsw-form{ grid-column:1 / -1; padding:16px 13px 14px; }
+.wsw-form form{ margin:0; display:flex; flex-direction:column; gap:11px; }
+.wsw-dates{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+@media (max-width:360px){ .wsw-dates{ grid-template-columns:1fr; } }
+.wsw-date{ position:relative; min-width:0; }
+.wsw-date label{
+  position:absolute; top:-7px; inset-inline-start:12px; font-size:10px; font-weight:800; color:#f0d59a;
+  padding:0 6px; background:#141821; border-radius:6px; z-index:2;
+}
+.wsw-date-input{
+  width:100%; padding:12px 12px 12px 38px; border-radius:14px;
+  background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+  color:#fff; font-size:15px; font-weight:800; outline:none; direction:ltr; text-align:left;
+  min-height:46px; -webkit-appearance:none; appearance:none;
+}
+.wsw-date-input.is-invalid{ border-color:#ff6f75; }
+.wsw-date-ico{
+  position:absolute; top:50%; left:5px; transform:translateY(-50%); width:30px; height:30px;
+  color:#f0d59a; display:grid; place-items:center; border:0; background:transparent; cursor:pointer; z-index:2;
+}
+.wsw-date-ico svg{ width:17px; height:17px; }
+.wsw-date-native{ position:absolute; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; border:0; color-scheme:dark; }
+.wsw-submit{
+  all:unset; box-sizing:border-box; width:100%; cursor:pointer; text-align:center;
+  padding:13px; border-radius:16px; font-size:13.5px; font-weight:900; color:#241a08;
+  background:linear-gradient(135deg,#f0d59a,#e0b458);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.wsw-submit svg{ width:16px; height:16px; }
+
+/* ودجتس الأزرار */
+.wsw-act{ padding:0; min-height:92px; }
+.wsw-act-btn{
+  all:unset; box-sizing:border-box; cursor:pointer; width:100%; height:100%; min-height:92px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center;
+}
+.wsw-act-ic{ width:34px; height:34px; display:grid; place-items:center; color:#f0d59a; }
+.wsw-act-ic svg{ width:21px; height:21px; }
+.wsw-act-lbl{ font-size:12px; font-weight:800; }
+.wsw-act-tg{ background:linear-gradient(135deg, rgba(60,160,255,.22), rgba(60,160,255,.05)); border-color:rgba(60,160,255,.24); }
+.wsw-act-tg .wsw-act-ic{ color:#a8d8ff; }
+
+/* ودجت القائمة */
+.wsw-list{ grid-column:1 / -1; padding:14px 14px 8px; }
+.wsw-list-head{ display:flex; align-items:center; gap:9px; margin-bottom:8px; }
+.wsw-list-t{ flex:1; font-size:13.5px; font-weight:900; }
+.wsw-list-count{ font-size:11px; font-weight:800; color:#f0d59a; background:rgba(224,180,88,.14); border-radius:99px; padding:3px 9px; }
+.wsw-search-box{ position:relative; margin-bottom:6px; }
+.wsw-search{
+  width:100%; padding:11px 38px 11px 12px; border-radius:14px;
+  background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+  color:#fff; font-size:13.5px; font-weight:700; outline:none;
+}
+.wsw-search-box svg{ position:absolute; top:50%; inset-inline-end:12px; transform:translateY(-50%); width:16px; height:16px; color:#f0d59a; }
+
+.wsw-empty{ text-align:center; padding:20px 10px; color:var(--text-3); font-size:12.5px; }
+.wsw-ledger{ display:flex; flex-direction:column; }
+.wsw-lrow{ display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid rgba(255,255,255,.06); }
+.wsw-lrow:last-child{ border-bottom:none; }
+.wsw-lrow.is-zero{ opacity:.55; }
+.wsw-avatar{ width:36px; height:36px; flex:0 0 36px; border-radius:50%; display:grid; place-items:center; overflow:hidden;
+  font-weight:900; font-size:13px; color:#04150f; background:linear-gradient(135deg,#e0b458,#00d68f); }
+.wsw-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+.wsw-lrow-l{ flex:1; min-width:0; }
+.wsw-lrow-label{ font-size:13px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wsw-lrow-meta{ font-size:11px; color:var(--text-3); margin-top:2px; }
+.wsw-lrow-v{ font-size:15px; font-weight:900; color:#f0d59a; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.wsw-lrow-btn{ all:unset; cursor:pointer; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  color:#7ff3cd; background:rgba(0,214,143,.14); border:1px solid rgba(0,214,143,.30); flex-shrink:0; }
+.wsw-lrow-btn svg{ width:15px; height:15px; }
+
+@media (max-width:340px){ .wsw-hero-val b{ font-size:28px; } }
+</style>
+
 <script>
 (function(){
+  /* ===== عدّاد ===== */
+  function ease(t){ return 1 - Math.pow(1 - t, 3); }
+  function run(el){
+    var target = parseInt(el.getAttribute('data-countup')||'0', 10);
+    if (!target || target < 1) { el.textContent = (target||0).toLocaleString('en-US'); return; }
+    var dur = 700, start = performance.now();
+    function tick(now){
+      var p = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(ease(p) * target).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if (e.isIntersecting){ run(e.target); io.unobserve(e.target); } });
+  }, { threshold: 0.4 });
+  document.querySelectorAll('[data-countup]').forEach(function(el){ io.observe(el); });
+
+  /* ===== بحث ===== */
   var box = document.getElementById('sharesSearch');
-  if (!box) return;
-  box.addEventListener('input', function(){
+  if (box) box.addEventListener('input', function(){
     var q = box.value.trim().toLowerCase();
-    document.querySelectorAll('#sharesList .wcard').forEach(function(row){
+    document.querySelectorAll('#sharesList .wsw-lrow').forEach(function(row){
       var n = (row.dataset.name || '').toLowerCase();
       row.style.display = (!q || n.indexOf(q) !== -1) ? '' : 'none';
     });
   });
-})();
-</script>
 
-<script>
-(function(){
+  /* ===== تواريخ dd/mm/yyyy ===== */
   var pad=function(n){return String(n).padStart(2,'0')};
   function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
   function dmy(d){return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()}
@@ -137,7 +302,7 @@
     if(hid.value){ var p=hid.value.split('-').map(Number); if(p.length===3) set(new Date(p[0],p[1]-1,p[2],12,0,0,0)); }
     view.addEventListener('input',function(){ view.classList.remove('is-invalid') });
     view.addEventListener('blur',function(){ var d=parseDmy(view.value); if(d) set(d); else if(view.value) view.classList.add('is-invalid') });
-    var btn=document.querySelector('.dmy-pick[data-pick="'+ids[0]+'"]');
+    var btn=document.querySelector('.wsw-date-ico[data-pick="'+ids[0]+'"]');
     if(btn&&nat){
       btn.addEventListener('click',function(e){
         e.preventDefault(); nat.value=hid.value||''; nat.style.pointerEvents='auto';
@@ -147,15 +312,10 @@
       });
       nat.addEventListener('change',function(){
         if(!nat.value) return; var p=nat.value.split('-').map(Number);
-        var d=new Date(p[0],p[1]-1,p[2],12,0,0,0); if(!isNaN(d.getTime())) set(d);
+        var d=new Date(p[0],p[1]-1,p[2],12,0,0,0);
+        if(!isNaN(d.getTime())) set(d);
       });
     }
-    var form=view.closest('form');
-    if(form) form.addEventListener('submit',function(e){
-      var d=parseDmy(view.value);
-      if(!d){ e.preventDefault(); view.classList.add('is-invalid'); (window.appAlert||alert)('اكتب التاريخ بالشكل ده: 01/07/2026','error'); return; }
-      set(d);
-    });
   });
 })();
 </script>

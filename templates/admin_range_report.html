@@ -10,23 +10,22 @@
     <!-- ودجت كبير: الإجمالي -->
     <div class="wsw-cell wsw-hero">
       <div class="wsw-hero-top">
-        <span class="wsw-hero-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></svg>
-        </span>
         {% if result %}
-        <span class="wsw-hero-date">{{ result.days }} يوم</span>
+        <span class="wsw-hero-date">{{ result.start_display or result.start }} ← {{ result.end_display or result.end }}</span>
+        <span class="wsw-hero-days">{{ result.days }} يوم</span>
+        {% else %}
+        <span class="wsw-hero-date">اختار المدة</span>
         {% endif %}
       </div>
+
       <div class="wsw-hero-mid" style="align-items:center;text-align:center;">
         {% if result %}
         <div class="wsw-hero-val">
           <b data-countup="{{ result.total }}">0</b>
           {% if result.is_money %}<small>جنيه</small>{% endif %}
         </div>
-        <div class="wsw-hero-note">
-          {{ result.target_label }}<br>
-          {{ result.start_display or result.start }} ← {{ result.end_display or result.end }}
-        </div>
+        <div class="wsw-hero-note">{{ result.target_label }}</div>
+
         {% else %}
         <div class="wsw-hero-val"><b>—</b></div>
         <div class="wsw-hero-note">اختار المدة واضغط احسب</div>
@@ -143,43 +142,7 @@
     </div>
     {% endif %}
 
-    <!-- ودجت عريض: سجل التقارير -->
-    <div class="wsw-cell wsw-hist">
-      <div class="wsw-hist-head">
-        <span class="wsw-hist-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></svg>
-        </span>
-        <div class="wsw-hist-t">سجل التقارير المحفوظة</div>
-        <span class="wsw-hist-count">{{ reports|length }}</span>
-      </div>
 
-      {% if not reports %}
-        <div class="wsw-empty">مفيش تقارير محفوظة لسه.</div>
-      {% else %}
-      <div class="wsw-ledger">
-        {% for r in reports %}
-        <div class="wsw-lrow">
-          <div class="wsw-lrow-l">
-            <div class="wsw-lrow-label">
-              {{ r.start_day.day }}/{{ r.start_day.month }} → {{ r.end_day.day }}/{{ r.end_day.month }}
-              <span class="wsw-lrow-days">{{ r.days_count }} يوم</span>
-            </div>
-            <div class="wsw-lrow-meta">
-              {{ r.target_label or 'إجمالي بدون خصم' }}{% if r.target_kind in ('worker', 'admin') %} · {{ '{:,}'.format(r.chick_count) }} كتكوت{% endif %}
-            </div>
-          </div>
-          <div class="wsw-lrow-v">{{ '{:,}'.format(r.total) }}{% if r.target_kind in ('worker', 'admin') %} ج{% endif %}</div>
-          <form method="post" action="{{ url_for('admin_range_report_delete', rid=r.id) }}"
-                onsubmit="var f=this; if(f.dataset.ok==='1') return true; event.preventDefault(); (window.appConfirm?window.appConfirm('تحذف التقرير ده؟',{danger:true,okText:'حذف'}):Promise.resolve(confirm('تحذف التقرير ده؟'))).then(function(ok){ if(ok){ f.dataset.ok='1'; f.submit(); } }); return false;" style="margin:0;">
-            <button type="submit" class="wsw-lrow-del" aria-label="حذف">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-            </button>
-          </form>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-    </div>
 
   </div>
 </div>
@@ -205,11 +168,9 @@
     linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
   border-color:rgba(224,180,88,.24);
 }
-.wsw-hero-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.wsw-hero-date{ font-size:11px; font-weight:800; color:#f0d59a; }
-.wsw-hero-ic{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center;
-  background:rgba(224,180,88,.20); color:#f0d59a; border:1px solid rgba(224,180,88,.26); }
-.wsw-hero-ic svg{ width:18px; height:18px; }
+.wsw-hero-top{ display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:6px; }
+.wsw-hero-date{ font-size:11px; font-weight:800; color:#f0d59a; direction:ltr; }
+.wsw-hero-days{ font-size:10px; font-weight:800; color:var(--text-3); background:rgba(255,255,255,.06); border-radius:99px; padding:3px 7px; }
 .wsw-hero-mid{ flex:1; display:flex; flex-direction:column; justify-content:center; }
 .wsw-hero-val{ display:flex; align-items:baseline; justify-content:center; gap:5px; margin-top:3px; }
 .wsw-hero-val b{ font-size:30px; font-weight:900; line-height:1; color:#f7e2b3; font-variant-numeric:tabular-nums; }
@@ -302,28 +263,6 @@
 .wsw-act-wa{ background:linear-gradient(135deg,#00d68f,#128c7e); border-color:transparent; }
 .wsw-act-wa .wsw-act-ic{ color:#fff; }
 .wsw-act-wa .wsw-act-lbl{ color:#fff; }
-
-/* history widget */
-.wsw-hist{ grid-column:1 / -1; padding:14px 14px 8px; }
-.wsw-hist-head{ display:flex; align-items:center; gap:9px; margin-bottom:6px; }
-.wsw-hist-ic{ width:32px; height:32px; border-radius:11px; display:grid; place-items:center; color:#7fe7b4; background:rgba(0,214,143,.14); }
-.wsw-hist-ic svg{ width:17px; height:17px; }
-.wsw-hist-t{ flex:1; font-size:13.5px; font-weight:900; }
-.wsw-hist-count{ font-size:11px; font-weight:800; color:#f0d59a; background:rgba(224,180,88,.14); border-radius:99px; padding:3px 9px; }
-.wsw-empty{ text-align:center; padding:20px 10px; color:var(--text-3); font-size:12.5px; }
-.wsw-ledger{ display:flex; flex-direction:column; }
-.wsw-lrow{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid rgba(255,255,255,.06); }
-.wsw-lrow:last-child{ border-bottom:none; }
-.wsw-lrow-l{ flex:1; min-width:0; }
-.wsw-lrow-label{ font-size:12.5px; font-weight:800; color:var(--text); }
-.wsw-lrow-days{ font-size:10.5px; font-weight:700; color:var(--text-3); margin-inline-start:6px; }
-.wsw-lrow-meta{ font-size:11px; color:var(--text-3); margin-top:2px; }
-.wsw-lrow-v{ font-size:14.5px; font-weight:900; color:#f0d59a; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.wsw-lrow-del{
-  all:unset; cursor:pointer; width:30px; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-  color:#ffb1b1; background:rgba(255,111,117,.14); border:1px solid rgba(255,111,117,.26); flex-shrink:0;
-}
-.wsw-lrow-del svg{ width:14px; height:14px; }
 
 @media (max-width:340px){ .wsw-hero-val b{ font-size:25px; } }
 </style>
