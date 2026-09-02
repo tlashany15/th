@@ -147,21 +147,25 @@
 .wsw-form form{ margin:0; display:flex; flex-direction:column; gap:11px; }
 .wsw-dates{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 @media (max-width:360px){ .wsw-dates{ grid-template-columns:1fr; } }
-.wsw-date{ position:relative; min-width:0; }
+.wsw-date{
+  position:relative; min-width:0; display:flex; align-items:center; gap:4px;
+  border-radius:14px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+  min-height:46px; padding:0 8px; transition:border-color .15s;
+}
+.wsw-date.is-invalid{ border-color:#ff6f75; }
 .wsw-date label{
   position:absolute; top:-7px; inset-inline-start:12px; font-size:10px; font-weight:800; color:#f0d59a;
   padding:0 6px; background:#141821; border-radius:6px; z-index:2;
 }
 .wsw-date-input{
-  width:100%; padding:12px 12px 12px 38px; border-radius:14px;
-  background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+  flex:1 1 auto; min-width:0; width:auto; padding:12px 4px; border:0; border-radius:14px;
+  background:transparent;
   color:#fff; font-size:15px; font-weight:800; outline:none; direction:ltr; text-align:left;
-  min-height:46px; -webkit-appearance:none; appearance:none;
+  -webkit-appearance:none; appearance:none;
 }
-.wsw-date-input.is-invalid{ border-color:#ff6f75; }
 .wsw-date-ico{
-  position:absolute; top:50%; left:5px; transform:translateY(-50%); width:30px; height:30px;
-  color:#f0d59a; display:grid; place-items:center; border:0; background:transparent; cursor:pointer; z-index:2;
+  all:unset; box-sizing:border-box; flex:0 0 28px; width:28px; height:28px;
+  color:#f0d59a; display:grid; place-items:center; cursor:pointer;
 }
 .wsw-date-ico svg{ width:17px; height:17px; }
 .wsw-date-native{ position:absolute; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; border:0; color-scheme:dark; }
@@ -262,10 +266,10 @@
   [['asStart','asStartView','asStartNative'],['asEnd','asEndView','asEndNative']].forEach(function(ids){
     var hid=document.getElementById(ids[0]), view=document.getElementById(ids[1]), nat=document.getElementById(ids[2]);
     if(!hid||!view) return;
-    function set(d){ hid.value=iso(d); view.value=dmy(d); view.classList.remove('is-invalid'); }
+    function set(d){ hid.value=iso(d); view.value=dmy(d); view.closest('.wsw-date').classList.remove('is-invalid'); }
     if(hid.value){ var p=hid.value.split('-').map(Number); if(p.length===3) set(new Date(p[0],p[1]-1,p[2],12,0,0,0)); }
-    view.addEventListener('input',function(){ view.classList.remove('is-invalid') });
-    view.addEventListener('blur',function(){ var d=parseDmy(view.value); if(d) set(d); else if(view.value) view.classList.add('is-invalid') });
+    view.addEventListener('input',function(){ view.closest('.wsw-date').classList.remove('is-invalid') });
+    view.addEventListener('blur',function(){ var d=parseDmy(view.value); if(d) set(d); else if(view.value) view.closest('.wsw-date').classList.add('is-invalid') });
     var btn=document.querySelector('.wsw-date-ico[data-pick="'+ids[0]+'"]');
     if(btn&&nat){
       btn.addEventListener('click',function(e){

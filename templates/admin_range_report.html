@@ -126,14 +126,14 @@
 }
 
 .wsw-hero{
-  grid-column:2; grid-row:1 / span 2;
-  padding:15px 14px; justify-content:flex-start; min-height:186px;
+  grid-column:1 / -1; grid-row:auto;
+  padding:15px 14px; justify-content:flex-start; min-height:150px;
   background:
     radial-gradient(120% 90% at 85% -10%, rgba(224,180,88,.30) 0%, rgba(224,180,88,.06) 55%, transparent 100%),
     linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
   border-color:rgba(224,180,88,.24);
 }
-.wsw-hero-top{ display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:6px; }
+.wsw-hero-top{ display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:6px; }
 .wsw-hero-date{ font-size:11px; font-weight:800; color:#f0d59a; direction:ltr; }
 .wsw-hero-days{ font-size:10px; font-weight:800; color:var(--text-3); background:rgba(255,255,255,.06); border-radius:99px; padding:3px 7px; }
 .wsw-hero-mid{ flex:1; display:flex; flex-direction:column; justify-content:center; }
@@ -184,21 +184,25 @@
 
 .wsw-dates{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 @media (max-width:360px){ .wsw-dates{ grid-template-columns:1fr; } }
-.wsw-date{ position:relative; min-width:0; }
+.wsw-date{
+  position:relative; min-width:0; display:flex; align-items:center; gap:4px;
+  border-radius:14px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+  min-height:46px; padding:0 8px; transition:border-color .15s;
+}
+.wsw-date.is-invalid{ border-color:#ff6f75; }
 .wsw-date label{
   position:absolute; top:-7px; inset-inline-start:12px; font-size:10px; font-weight:800; color:#f0d59a;
   padding:0 6px; background:#141821; border-radius:6px; z-index:2;
 }
 .wsw-date-input{
-  width:100%; padding:12px 12px 12px 38px; border-radius:14px;
-  background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+  flex:1 1 auto; min-width:0; width:auto; padding:12px 4px; border:0; border-radius:14px;
+  background:transparent;
   color:#fff; font-size:15px; font-weight:800; outline:none; direction:ltr; text-align:left;
-  min-height:46px; -webkit-appearance:none; appearance:none;
+  -webkit-appearance:none; appearance:none;
 }
-.wsw-date-input.is-invalid{ border-color:#ff6f75; }
 .wsw-date-ico{
-  position:absolute; top:50%; left:5px; transform:translateY(-50%); width:30px; height:30px;
-  color:#f0d59a; display:grid; place-items:center; border:0; background:transparent; cursor:pointer; z-index:2;
+  all:unset; box-sizing:border-box; flex:0 0 28px; width:28px; height:28px;
+  color:#f0d59a; display:grid; place-items:center; cursor:pointer;
 }
 .wsw-date-ico svg{ width:17px; height:17px; }
 .wsw-date-native{ position:absolute; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; border:0; color-scheme:dark; }
@@ -310,17 +314,18 @@
     return d;
   }
   function setDatePair(hidden, visible, date){
-    hidden.value = fmtIso(date); visible.value = fmtDisplay(date); visible.classList.remove('is-invalid');
+    hidden.value = fmtIso(date); visible.value = fmtDisplay(date);
+    visible.closest('.wsw-date').classList.remove('is-invalid');
   }
   function syncDate(hidden, visible){
     const d = parseDisplayDate(visible.value);
-    if (!d) { hidden.value = ''; visible.classList.add('is-invalid'); return false; }
+    if (!d) { hidden.value = ''; visible.closest('.wsw-date').classList.add('is-invalid'); return false; }
     setDatePair(hidden, visible, d); return true;
   }
   [sdView, edView].forEach((input, i) => {
     const hidden = i === 0 ? sd : ed;
     input.addEventListener('blur', () => syncDate(hidden, input));
-    input.addEventListener('input', () => input.classList.remove('is-invalid'));
+    input.addEventListener('input', () => input.closest('.wsw-date').classList.remove('is-invalid'));
   });
 
   const sdNative = document.getElementById('start_day_native');
