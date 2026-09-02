@@ -49,13 +49,6 @@
   {% endif %}
 </div>
 
-<!-- ==== إجمالي عام ==== -->
-<div class="gl2-grand">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 6-6"/></svg>
-  <span>الإجمالي منذ بداية السجل</span>
-  <b>{{ '{:,}'.format(grand) }}</b>
-</div>
-
 <!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
 {% if past_periods %}
 <div class="card gl2-card">
@@ -144,7 +137,7 @@
 
 <style>
 .gl2-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
-.gl2-split-i{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.gl2-split-i{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 .gl2-split-i span{font-size:11px;opacity:.75}
 .gl2-split-i b{font-size:16px;font-weight:800}
 .gl2-split-t b{color:var(--gold)}
@@ -163,19 +156,15 @@
 .gl2-total-days{ font-size:20px; font-weight:900; color:var(--text); text-align:end; line-height:1; }
 .gl2-total-days span{ display:block; font-size:11px; font-weight:700; color:var(--text-3); margin-top:6px; }
 
-/* grand total strip */
-.gl2-grand{ display:flex; align-items:center; gap:8px; padding:10px 14px; margin-bottom:14px; border-radius:12px; background:rgba(217,177,104,.06); border:1px solid var(--gold-line); font-size:12.5px; color:var(--text-2); font-weight:700; }
-.gl2-grand svg{ width:16px; height:16px; color:var(--gold); flex-shrink:0; }
-.gl2-grand b{ margin-inline-start:auto; font-size:15px; color:var(--gold-2); }
 
 /* past periods ledger rows */
 .gl2-ledger{ display:flex; flex-direction:column; }
-.gl2-lrow{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); }
+.gl2-lrow{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:12px 2px; border-bottom:1px solid var(--line); }
 .gl2-lrow:last-child{ border-bottom:none; }
-.gl2-lrow-l{ flex:1; min-width:0; }
+.gl2-lrow-l{ width:100%; min-width:0; text-align:center; }
 .gl2-lrow-label{ font-size:13px; font-weight:700; color:var(--text); }
 .gl2-lrow-days{ font-size:11px; color:var(--text-3); margin-top:2px; }
-.gl2-lrow-v{ font-size:15px; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums; }
+.gl2-lrow-v{ font-size:17px; text-align:center; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums; }
 .gl2-lrow-clear{ all:unset; cursor:pointer; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--red-2); background:var(--red-soft); border:1px solid rgba(255,111,117,.25); flex-shrink:0; }
 .gl2-lrow-clear svg{ width:14px; height:14px; }
 
