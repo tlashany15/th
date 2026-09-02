@@ -33,28 +33,6 @@
       </div>
     </div>
 
-    <!-- ودجت صغير: الخصم -->
-    <div class="wsw-cell wsw-stat wsw-stat-1">
-      <span class="wsw-stat-ic" style="color:#ffb1b1" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 9.5h.01M14.5 14.5h.01"/></svg>
-      </span>
-      <div>
-        <div class="wsw-stat-num" data-countup="{{ result.deduct_money if result else 0 }}">0</div>
-        <div class="wsw-stat-lbl">خصم</div>
-      </div>
-    </div>
-
-    <!-- ودجت صغير: الكتاكيت -->
-    <div class="wsw-cell wsw-stat wsw-stat-2">
-      <span class="wsw-stat-ic" style="color:#7fe7b4" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="13" rx="6.5" ry="8"/></svg>
-      </span>
-      <div>
-        <div class="wsw-stat-num" data-countup="{{ result.chick_count if result else 0 }}">0</div>
-        <div class="wsw-stat-lbl">كتكوت</div>
-      </div>
-    </div>
-
     <!-- ودجت عريض: فورم الحساب -->
     <div class="wsw-cell wsw-form">
       <form method="post" id="rrForm">
@@ -113,19 +91,6 @@
     </div>
 
     {% if result %}
-    <!-- ودجت عريض: تفاصيل الحساب -->
-    <div class="wsw-cell wsw-details">
-      <div class="wsw-drow"><span>بدون خصم</span><b>{{ '{:,}'.format(result.no_deduct_total) }}</b></div>
-      <div class="wsw-drow"><span>بعد الخصم</span><b>{{ '{:,}'.format(result.distributed_total) }}</b></div>
-      {% if result.is_money %}
-      <div class="wsw-drow"><span>الكتاكيت</span><b>{{ '{:,}'.format(result.chick_count) }} × 55 ج</b></div>
-      {% if result.extra_chicks %}<div class="wsw-drow"><span>إضافي موزَّع</span><b>{{ '{:,}'.format(result.extra_chicks) }} كتكوت</b></div>{% endif %}
-      {% if result.bonus_money %}<div class="wsw-drow"><span>إضافي مالي</span><b class="pos">+{{ '{:,}'.format(result.bonus_money) }} ج</b></div>{% endif %}
-      {% if result.deduct_money %}<div class="wsw-drow"><span>خصم</span><b class="neg">−{{ '{:,}'.format(result.deduct_money) }} ج</b></div>{% endif %}
-      {% endif %}
-      <div class="wsw-drow wsw-drow-sum"><span>الإجمالي</span><b>{{ '{:,}'.format(result.total) }}{% if result.is_money %} ج{% endif %}</b></div>
-    </div>
-
     <!-- ودجتين: طباعة / واتساب -->
     <div class="wsw-cell wsw-act" onclick="window.print()" role="button" tabindex="0">
       <span class="wsw-act-ic gold" aria-hidden="true">

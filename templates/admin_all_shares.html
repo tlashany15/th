@@ -6,42 +6,6 @@
 <div class="wsw-wrap">
   <div class="wsw-grid">
 
-    <!-- ودجت عريض: إجمالي فلوس المدة -->
-    <div class="wsw-cell wsw-hero">
-      <div class="wsw-hero-top">
-        <span class="wsw-hero-lbl">إجمالي المدة</span>
-        <span class="wsw-hero-date">{{ period_label }}</span>
-      </div>
-      <div class="wsw-hero-mid">
-        <div class="wsw-hero-val">
-          <b data-countup="{{ totals.money|money_k_raw }}">0</b><small>جنيه</small>
-        </div>
-        <div class="wsw-hero-note">{{ start_day }} ← {{ end_day }} · سعر الكتكوت {{ price }} ج</div>
-      </div>
-    </div>
-
-    <!-- ودجت صغير: عدد الشغالين -->
-    <div class="wsw-cell wsw-stat">
-      <span class="wsw-stat-ic" style="color:#8cc6ff" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1.5A3.5 3.5 0 0 0 12.5 14h-5A3.5 3.5 0 0 0 4 17.5V19"/><circle cx="10" cy="8" r="3.2"/><path d="M20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.5 5.2a3.2 3.2 0 0 1 0 5.6"/></svg>
-      </span>
-      <div>
-        <div class="wsw-stat-num" data-countup="{{ totals.people }}">0</div>
-        <div class="wsw-stat-lbl">شغلوا في المدة</div>
-      </div>
-    </div>
-
-    <!-- ودجت صغير: إجمالي الكتاكيت -->
-    <div class="wsw-cell wsw-stat">
-      <span class="wsw-stat-ic" style="color:#7fe7b4" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="13" rx="6.5" ry="8"/></svg>
-      </span>
-      <div>
-        <div class="wsw-stat-num" data-countup="{{ totals.chicks }}">0</div>
-        <div class="wsw-stat-lbl">إجمالي الكتاكيت</div>
-      </div>
-    </div>
-
     <!-- ودجت عريض: اختيار المدة -->
     <div class="wsw-cell wsw-form">
       <form method="get" action="{{ url_for('admin_all_shares') }}">
