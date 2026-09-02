@@ -51,7 +51,7 @@
 
 <!-- ==== مدد سابقة لسه ما اتصفرتش ==== -->
 {% if past_periods %}
-<div class="card gl2-card">
+<div class="card gl2-card gl2-past-card">
   <div class="sec-head">
     <div class="sec-h-l">
       <div class="sec-h-ico">
@@ -156,6 +156,11 @@
 .gl2-total-days{ font-size:20px; font-weight:900; color:var(--text); text-align:end; line-height:1; }
 .gl2-total-days span{ display:block; font-size:11px; font-weight:700; color:var(--text-3); margin-top:6px; }
 
+
+/* past periods header centered */
+.gl2-past-card .sec-head{ justify-content:center; }
+.gl2-past-card .sec-h-l{ justify-content:center; width:100%; }
+.gl2-past-card .sec-h-l > div:last-child{ text-align:center; }
 
 /* past periods ledger rows */
 .gl2-ledger{ display:flex; flex-direction:column; }
