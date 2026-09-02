@@ -37,7 +37,7 @@
   .wg-name{ font-size:18px; font-weight:900; line-height:1.25; margin:0 0 10px; }
   .wg-hero-date{ display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:6px 9px;
     border-radius:10px; background:rgba(255,255,255,.055); border:1px solid var(--wg-line);
-    color:var(--wg-dim); font-size:10.5px; font-weight:800; line-height:1.35; }
+    color:var(--wg-dim); font-size:10.5px; font-weight:800; line-height:1.35; margin-top:auto; align-self:flex-start; }
   .wg-hero-date svg{ width:13px; height:13px; flex:0 0 auto; color:var(--wg-gold); }
   .wg-hero.is-open .wg-hero-date svg{ color:#8cc6ff; }
   .wg-sum{ font-size:11.5px; color:var(--wg-dim); line-height:1.75; }
@@ -87,10 +87,10 @@
       <div>
         <div class="wg-hello">إغلاق اليوم</div>
         <div class="wg-name" id="closedHeroTitle">{% if day_closed %}اليوم مغلق{% else %}اليوم مفتوح{% endif %}</div>
-        <div class="wg-hero-date">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.75 3v2.25M17.25 3v2.25M3.75 9h16.5M5.25 5.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25A2.25 2.25 0 0 1 18.75 21H5.25A2.25 2.25 0 0 1 3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25Z"/></svg>
-          <span>{{ day }} · {{ day|weekday_ar }}</span>
-        </div>
+      </div>
+      <div class="wg-hero-date">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.75 3v2.25M17.25 3v2.25M3.75 9h16.5M5.25 5.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25A2.25 2.25 0 0 1 18.75 21H5.25A2.25 2.25 0 0 1 3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25Z"/></svg>
+        <span>{{ day }} · {{ day|weekday_ar }}</span>
       </div>
     </section>
 
