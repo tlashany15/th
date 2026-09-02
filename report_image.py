@@ -45,7 +45,8 @@ BLUE        = (91, 169, 255)
 ORANGE      = (255, 148, 96)
 PURPLE      = (176, 148, 255)
 
-W = 1240  # عرض الصورة ثابت — الطول بيتحسب على حسب عدد الأسماء
+W = 1240   # عرض الصورة ثابت — الطول بيتحسب على حسب المحتوى
+PAD = 44   # الهامش الجانبي الموحّد
 
 
 # ===================== أدوات النص العربي =====================
@@ -85,22 +86,51 @@ def _num(v):
 
 
 def _text_w(d, txt, font):
-    return d.textbbox((0, 0), txt, font=font)[2]
+    b = d.textbbox((0, 0), txt, font=font)
+    return b[2] - b[0]
 
 
-def _rtl(d, x_right, y, txt, font, fill=TEXT):
-    """يكتب نص محدد من اليمين (x_right = الحد اليمين للنص)."""
+def _draw(d, x, y, txt, font, fill=TEXT, anchor="mm"):
+    """
+    رسم نص بنقطة ارتساء (anchor) — ده اللي بيخلّي كل النصوص متظبطة
+    رأسيًا وأفقيًا من غير أي تخمين في المسافات.
+    anchor: mm = متمركز، rm = محدد من اليمين، lm = من الشمال.
+    """
+    d.text((x, y), _shape(txt), font=font, fill=fill, anchor=anchor)
+
+
+def _center(d, cx, cy, txt, font, fill=TEXT):
+    _draw(d, cx, cy, txt, font, fill, "mm")
+
+
+def _rtl(d, x_right, cy, txt, font, fill=TEXT):
+    _draw(d, x_right, cy, txt, font, fill, "rm")
+
+
+def _ltr(d, x_left, cy, txt, font, fill=TEXT):
+    _draw(d, x_left, cy, txt, font, fill, "lm")
+
+
+def _fit_font(d, txt, max_w, size, weight="Bold", min_size=18):
+    """يصغّر حجم الخط لحد ما النص يدخل في العرض المتاح (منع التداخل)."""
     s = _shape(txt)
-    d.text((x_right - _text_w(d, s, font), y), s, font=font, fill=fill)
+    while size > min_size:
+        f = _font(size, weight)
+        if _text_w(d, s, f) <= max_w:
+            return f
+        size -= 1
+    return _font(min_size, weight)
 
 
-def _ltr(d, x_left, y, txt, font, fill=TEXT):
-    d.text((x_left, y), _shape(txt), font=font, fill=fill)
-
-
-def _center(d, cx, y, txt, font, fill=TEXT):
+def _ellipsize(d, txt, max_w, font):
+    """يقصّ النص الطويل بنقط لو مش داخل في العمود."""
     s = _shape(txt)
-    d.text((cx - _text_w(d, s, font) / 2, y), s, font=font, fill=fill)
+    if _text_w(d, s, font) <= max_w:
+        return str(txt)
+    t = str(txt)
+    while len(t) > 1 and _text_w(d, _shape(t + "…"), font) > max_w:
+        t = t[:-1]
+    return t + "…"
 
 
 def _gradient_bg(h):
@@ -118,119 +148,156 @@ def _card(d, box, fill=CARD, radius=26, outline=LINE, width=2):
     d.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
 
 
-def _accent_bar(d, box, color, radius=26):
-    """شريط لون رقيق على يمين الكارت."""
+def _accent_top(d, box, color):
+    """شريط لون رفيع فوق الكارت في النص — أنضف من الشريط الجانبي."""
     x0, y0, x1, y1 = box
-    d.rounded_rectangle((x1 - 10, y0 + 8, x1 - 4, y1 - 8), radius=4, fill=color)
+    cx = (x0 + x1) / 2
+    d.rounded_rectangle((cx - 34, y0 + 10, cx + 34, y0 + 16), radius=3, fill=color)
+
+
+# ===================== الهيدر =====================
+HEADER_TOP = 36
+HEADER_H = 196
+CONTENT_Y = HEADER_TOP + HEADER_H + 34   # 266
 
 
 def _header(d, title, subtitle, badge=None):
-    _card(d, (40, 36, W - 40, 210), fill=CARD_SOFT, radius=32)
+    box = (PAD, HEADER_TOP, W - PAD, HEADER_TOP + HEADER_H)
+    _card(d, box, fill=CARD_SOFT, radius=32)
     cx = W / 2
-    _center(d, cx, 56, title, _font(52, "Bold"), TEXT)
-    _center(d, cx, 126, subtitle, _font(30, "Regular"), MUTED)
-    d.rounded_rectangle((cx - 80, 178, cx + 80, 184), radius=3, fill=GOLD)
-    if badge and _shape(badge) != _shape(subtitle):
-        bs = _shape(badge)
-        bf = _font(24, "SemiBold")
-        bw = _text_w(d, bs, bf) + 40
-        d.rounded_rectangle((cx - bw / 2, 160, cx + bw / 2, 206), radius=23, fill=(38, 58, 90))
-        d.text((cx - _text_w(d, bs, bf) / 2, 168), bs, font=bf, fill=BLUE)
+    tf = _fit_font(d, title, W - PAD * 2 - 80, 52, "Bold", 34)
+    _center(d, cx, HEADER_TOP + 62, title, tf, TEXT)
+
+    sub = str(subtitle or "")
+    bad = str(badge or "")
+    line = sub if (not bad or _shape(bad) == _shape(sub)) else f"{sub}  •  {bad}"
+    lf = _fit_font(d, line, W - PAD * 2 - 120, 28, "SemiBold", 20)
+    lw = _text_w(d, _shape(line), lf) + 56
+    cy = HEADER_TOP + 142
+    d.rounded_rectangle((cx - lw / 2, cy - 26, cx + lw / 2, cy + 26), radius=26,
+                        fill=(38, 58, 90))
+    _center(d, cx, cy, line, lf, BLUE)
 
 
+# ===================== الودجت =====================
 def _stat_tile(d, box, label, value, color, note=None):
     _card(d, box, fill=CARD, radius=24)
-    _accent_bar(d, box, color)
+    _accent_top(d, box, color)
     x0, y0, x1, y1 = box
     cx = (x0 + x1) / 2
-    _center(d, cx, y0 + 20, label, _font(27, "SemiBold"), MUTED)
-    _center(d, cx, y0 + 60, value, _font(46, "Bold"), color)
+    inner = (x1 - x0) - 40
+    lf = _fit_font(d, label, inner, 26, "SemiBold", 17)
+    vf = _fit_font(d, value, inner, 46, "Bold", 26)
     if note:
-        _center(d, cx, y0 + 120, note, _font(23, "Regular"), MUTED)
+        _center(d, cx, y0 + 48, label, lf, MUTED)
+        _center(d, cx, y0 + 96, value, vf, color)
+        _center(d, cx, y0 + 136, note, _font(22, "Regular"), MUTED)
+    else:
+        _center(d, cx, y0 + 52, label, lf, MUTED)
+        _center(d, cx, y0 + 108, value, vf, color)
 
 
-def _stats_grid(d, y, tiles, tile_h=160, gap=22):
+def _stats_grid(d, y, tiles, tile_h=166, gap=22):
     """شبكة عمودين (من اليمين للشمال)."""
-    col_w = (W - 80 - gap) // 2
+    col_w = (W - PAD * 2 - gap) / 2
     for i, t in enumerate(tiles):
-        r = i // 2
-        c = i % 2
-        x1 = (W - 40) - c * (col_w + gap)
+        r, c = divmod(i, 2)
+        x1 = (W - PAD) - c * (col_w + gap)
         x0 = x1 - col_w
         y0 = y + r * (tile_h + gap)
-        _stat_tile(d, (x0, y0, x1, y0 + tile_h), t[0], t[1], t[2], t[3] if len(t) > 3 else None)
+        _stat_tile(d, (x0, y0, x1, y0 + tile_h), t[0], t[1], t[2],
+                   t[3] if len(t) > 3 else None)
     rows = (len(tiles) + 1) // 2
-    return y + rows * (tile_h + gap)
+    return y + rows * (tile_h + gap) - gap
 
 
 def _section_title(d, y, txt, color=GOLD):
-    _rtl(d, W - 44, y, txt, _font(34, "Bold"), TEXT)
-    d.rounded_rectangle((W - 200, y + 52, W - 40, y + 57), radius=3, fill=color)
-    return y + 78
+    """عنوان القسم في النص."""
+    cx = W / 2
+    _center(d, cx, y + 24, txt, _font(34, "Bold"), TEXT)
+    d.rounded_rectangle((cx - 70, y + 62, cx + 70, y + 67), radius=3, fill=color)
+    return y + 94
 
 
-def _people_table(d, y, people, cols, row_h=74):
+# ===================== الجدول =====================
+HEAD_H = 62
+ROW_H = 74
+
+
+def _table_h(n_rows):
+    return HEAD_H + max(1, n_rows) * ROW_H + 12
+
+
+def _people_table(d, y, people, cols):
     """
     جدول نصيب كل واحد.
-    people: list of dict — الأعمدة بتتحدد من cols = [(العنوان, key, لون, نسبة العرض)]
+    cols = [(العنوان, key, لون, نسبة العرض)]
     """
-    pad = 40
-    table_w = W - pad * 2
-    head_h = 58
-    total_h = head_h + max(1, len(people)) * row_h + 14
-    _card(d, (pad, y, W - pad, y + total_h), fill=CARD, radius=26)
+    table_w = W - PAD * 2
+    total_h = _table_h(len(people))
+    _card(d, (PAD, y, W - PAD, y + total_h), fill=CARD, radius=26)
 
-    # حساب حدود الأعمدة من اليمين للشمال
-    widths = [int(table_w * c[3]) for c in cols]
+    # حدود الأعمدة من اليمين للشمال
+    widths = [table_w * c[3] for c in cols]
     edges = []
-    x_right = W - pad
+    x_right = W - PAD
     for wd in widths:
         edges.append((x_right - wd, x_right))
         x_right -= wd
 
     # رأس الجدول
-    d.rounded_rectangle((pad + 2, y + 2, W - pad - 2, y + head_h), radius=24, fill=(33, 50, 78))
-    d.rectangle((pad + 2, y + head_h - 22, W - pad - 2, y + head_h), fill=(33, 50, 78))
+    d.rounded_rectangle((PAD + 2, y + 2, W - PAD - 2, y + HEAD_H), radius=24, fill=(33, 50, 78))
+    d.rectangle((PAD + 2, y + HEAD_H - 24, W - PAD - 2, y + HEAD_H), fill=(33, 50, 78))
     for (cx0, cx1), c in zip(edges, cols):
-        _center(d, (cx0 + cx1) / 2, y + head_h / 2 - 20, c[0], _font(26, "Bold"), MUTED)
+        _center(d, (cx0 + cx1) / 2, y + HEAD_H / 2, c[0], _font(25, "Bold"), MUTED)
+    # فواصل رأسية خفيفة
+    for (cx0, _cx1) in edges[1:]:
+        d.line((cx0, y + HEAD_H + 6, cx0, y + total_h - 10), fill=(38, 56, 84), width=1)
 
-    ry = y + head_h
+    ry = y + HEAD_H
     for i, p in enumerate(people):
         if i % 2 == 1:
-            d.rectangle((pad + 3, ry, W - pad - 3, ry + row_h), fill=(28, 43, 67))
-        else:
-            d.line((pad + 24, ry, W - pad - 24, ry), fill=LINE, width=1)
+            d.rectangle((PAD + 3, ry, W - PAD - 3, ry + ROW_H), fill=(28, 43, 67))
+        elif i:
+            d.line((PAD + 26, ry, W - PAD - 26, ry), fill=LINE, width=1)
+        mid = ry + ROW_H / 2
         for j, ((cx0, cx1), c) in enumerate(zip(edges, cols)):
-            val = p.get(c[1], "")
-            fnt = _font(29, "Bold" if j > 0 else "SemiBold")
-            if j == 0:  # عمود الاسم — محدد من اليمين
-                # رقم الترتيب
-                nf = _font(22, "Bold")
-                d.ellipse((cx1 - 44, ry + row_h / 2 - 17, cx1 - 10, ry + row_h / 2 + 17),
-                          fill=(40, 60, 92))
-                _center(d, cx1 - 27, ry + row_h / 2 - 17, str(i + 1), nf, GOLD)
-                _rtl(d, cx1 - 58, ry + row_h / 2 - 21, val, fnt, TEXT)
+            val = str(p.get(c[1], "") or "")
+            if j == 0:  # عمود الاسم: رقم ترتيب + الاسم من اليمين
+                d.ellipse((cx1 - 62, mid - 17, cx1 - 28, mid + 17), fill=(40, 60, 92))
+                _center(d, cx1 - 45, mid + 1, str(i + 1), _font(21, "Bold"), GOLD)
+                nf = _font(28, "SemiBold")
+                avail = (cx1 - 78) - (cx0 + 16)
+                _rtl(d, cx1 - 78, mid, _ellipsize(d, val, avail, nf), nf, TEXT)
             else:
-                _center(d, (cx0 + cx1) / 2, ry + row_h / 2 - 21, val, fnt, c[2])
-        ry += row_h
+                f = _fit_font(d, val, (cx1 - cx0) - 20, 28, "Bold", 18)
+                _center(d, (cx0 + cx1) / 2, mid, val, f, c[2])
+        ry += ROW_H
 
     if not people:
-        _center(d, W / 2, y + head_h + 18, "مفيش حضور مسجّل", _font(28, "Regular"), MUTED)
+        _center(d, W / 2, y + HEAD_H + ROW_H / 2, "مفيش حضور مسجّل",
+                _font(28, "Regular"), MUTED)
 
     return y + total_h
 
 
+# ===================== الإجمالي والفوتر =====================
+TOTAL_H = 122
+
+
 def _total_bar(d, y, label, value, color=GREEN):
-    _card(d, (40, y, W - 40, y + 118), fill=(26, 46, 44) if color is GREEN else CARD_SOFT,
+    box = (PAD, y, W - PAD, y + TOTAL_H)
+    _card(d, box, fill=(26, 46, 44) if color is GREEN else CARD_SOFT,
           radius=28, outline=color, width=2)
-    _rtl(d, W - 76, y + 34, label, _font(32, "Bold"), TEXT)
-    _ltr(d, 76, y + 24, value, _font(52, "Bold"), color)
-    return y + 118
+    mid = y + TOTAL_H / 2
+    _rtl(d, W - PAD - 34, mid, label, _font(31, "Bold"), TEXT)
+    _ltr(d, PAD + 34, mid, value, _font(48, "Bold"), color)
+    return y + TOTAL_H
 
 
 def _footer(d, y, txt):
-    _center(d, W / 2, y + 16, txt, _font(24, "Regular"), MUTED)
-    return y + 60
+    _center(d, W / 2, y + 34, txt, _font(23, "Regular"), MUTED)
+    return y + 66
 
 
 def _finish(img):
@@ -251,14 +318,16 @@ def render_day_report(day, no_deduct_tasmeen, no_deduct_bayad,
     af_t = int(tasmeen_after or 0)
     af_b = int(bayad_after or 0)
 
-    rows = max(1, len(people))
-    h = 250 + 3 * 182 + 78 + (58 + rows * 74 + 14) + 20 + 118 + 70
-    img = _gradient_bg(h)
+    tile_h, gap = 166, 22
+    grid_h = 3 * (tile_h + gap) - gap
+    h = (CONTENT_Y + grid_h + 26 + 94 + _table_h(len(people))
+         + 24 + TOTAL_H + 66 + 20)
+    img = _gradient_bg(int(h))
     d = ImageDraw.Draw(img)
 
     _header(d, "تقرير إغلاق اليوم", day_label or str(day), badge=str(day))
 
-    y = 250
+    y = CONTENT_Y
     y = _stats_grid(d, y, [
         ("بياض بدون خصم",  _num(nd_b), BLUE),
         ("تسمين بدون خصم", _num(nd_t), PURPLE),
@@ -266,9 +335,9 @@ def render_day_report(day, no_deduct_tasmeen, no_deduct_bayad,
         ("تسمين بعد الخصم", _num(af_t), ORANGE),
         ("إجمالي بدون خصم", _num(nd_t + nd_b), GOLD),
         ("إجمالي بعد الخصم", _num(af_t + af_b), GREEN),
-    ], tile_h=160)
+    ], tile_h=tile_h, gap=gap)
 
-    y = _section_title(d, y + 6, f"نصيب كل واحد ({len(people)})")
+    y = _section_title(d, y + 26, f"نصيب كل واحد ({len(people)})")
     y = _people_table(d, y, [
         {
             "name": p["name"],
@@ -283,7 +352,7 @@ def render_day_report(day, no_deduct_tasmeen, no_deduct_bayad,
         ("النصيب", "money", GOLD, 0.22),
     ])
 
-    y = _total_bar(d, y + 20, "إجمالي نصيب الفريق اليوم", total_money_label)
+    y = _total_bar(d, y + 24, "إجمالي نصيب الفريق اليوم", total_money_label)
     _footer(d, y, "التقرير بيتبعت تلقائي بعد إغلاق اليوم")
     return _finish(img)
 
@@ -294,22 +363,24 @@ def render_period_report(label, no_deduct_total, total_chicks, chick_price,
     """
     people: [{"name":..., "days":int, "chicks":int, "money":str}]
     """
-    rows = max(1, len(people))
-    h = 250 + 2 * 182 + 78 + (58 + rows * 74 + 14) + 20 + 118 + 70
-    img = _gradient_bg(h)
+    tile_h, gap = 166, 22
+    grid_h = 2 * (tile_h + gap) - gap
+    h = (CONTENT_Y + grid_h + 26 + 94 + _table_h(len(people))
+         + 24 + TOTAL_H + 66 + 20)
+    img = _gradient_bg(int(h))
     d = ImageDraw.Draw(img)
 
     _header(d, "حساب نصيب كل الفريق", label, badge=range_label)
 
-    y = 250
+    y = CONTENT_Y
     y = _stats_grid(d, y, [
         ("الإجمالي بدون خصم في المدة", _num(no_deduct_total), GOLD),
         ("إجمالي كتاكيت الفريق", _num(total_chicks), BLUE),
         ("سعر الألف كتكوت", _num(chick_price), PURPLE),
         ("عدد المستحقين", _num(len(people)), GREEN),
-    ], tile_h=160)
+    ], tile_h=tile_h, gap=gap)
 
-    y = _section_title(d, y + 6, f"نصيب كل واحد ({len(people)})")
+    y = _section_title(d, y + 26, f"نصيب كل واحد ({len(people)})")
     y = _people_table(d, y, [
         {
             "name": p["name"],
@@ -324,6 +395,6 @@ def render_period_report(label, no_deduct_total, total_chicks, chick_price,
         ("الحساب", "money", GOLD, 0.24),
     ])
 
-    y = _total_bar(d, y + 20, "إجمالي حساب الفريق في المدة", total_money_label)
+    y = _total_bar(d, y + 24, "إجمالي حساب الفريق في المدة", total_money_label)
     _footer(d, y, "التقرير بيتبعت من صفحة نصيب كل الفريق")
     return _finish(img)
