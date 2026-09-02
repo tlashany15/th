@@ -1,58 +1,118 @@
 {% extends "app_base.html" %}
 {% block content %}
-{% with tab = 'range' %}{% include '_tabs_reports.html' %}{% endwith %}
 
 <style>
-/* ============ Range Report — Receipt UI ============ */
-.rc-hero{
-  position:relative;overflow:hidden;border-radius:22px;
-  padding:20px 18px 22px;margin-bottom:14px;
-  background: linear-gradient(180deg, rgba(15,21,36,.9), rgba(11,15,23,.95));
-  border:1px solid var(--gold-line);
+/* ============ Range Report — Widget UI ============ */
+.wg{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:26px;
+  padding:12px;
+  display:flex;flex-direction:column;gap:10px;
+  margin-bottom:14px;
 }
-.rc-badge{
-  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
-  padding:6px 12px;border-radius:999px;color:var(--gold-2);
-  background:var(--gold-soft);border:1px solid var(--gold-line);letter-spacing:.3px;
+.wg-badge-row{display:flex;justify-content:flex-start}
+.wg-badge{
+  display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;
+  padding:8px 14px;border-radius:999px;color:var(--gold-2);
+  background:var(--gold-soft);border:1px solid var(--gold-line);
 }
-.rc-hero-sub{font-size:12.5px;color:var(--text-3);margin:10px 0 0}
+.wg-badge svg{width:15px;height:15px}
 
-/* form card */
-.rc-form-card{
-  background:var(--surface-2);border:1px solid var(--line);
-  border-radius:20px;padding:16px;margin-bottom:14px;
+/* inner tiles */
+.wg-tile{
+  background:rgba(0,0,0,.28);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:16px;
 }
+
+/* hero total tile */
+.wg-hero{
+  border-color:var(--gold-line);
+  text-align:center;padding:22px 16px;
+}
+.wg-hero-ico{width:30px;height:30px;color:var(--gold);margin:0 auto 12px;display:block}
+.wg-hero-v{font-size:38px;font-weight:900;color:var(--gold-2);line-height:1;font-variant-numeric:tabular-nums}
+.wg-hero-u{font-size:17px;color:var(--gold);font-weight:800;margin-inline-end:4px}
+.wg-hero-sub{font-size:12px;color:var(--text-3);margin-top:10px;font-weight:600}
+
+/* stats grid */
+.wg-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wg-stat{text-align:center;padding:18px 10px}
+.wg-stat svg{width:24px;height:24px;margin:0 auto 12px;display:block}
+.wg-stat-v{font-size:19px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums}
+.wg-stat-l{font-size:11.5px;color:var(--text-3);margin-top:5px;font-weight:700}
+.wg-stat.is-red svg{color:var(--red)}
+.wg-stat.is-green svg{color:var(--accent-2)}
+
+/* form tile */
+.wg-form{display:flex;flex-direction:column;gap:10px}
+
+/* presets */
+.rc-presets{
+  display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;
+  overflow-x:auto;scrollbar-width:none;padding-bottom:2px;
+}
+.rc-presets::-webkit-scrollbar{display:none}
+.rc-preset{
+  all:unset;cursor:pointer;font-size:12px;font-weight:800;white-space:nowrap;
+  padding:9px 16px;border-radius:999px;color:var(--text-2);
+  background:rgba(255,255,255,.04);
+}
+.rc-preset:hover{background:rgba(255,255,255,.08);color:#fff}
+.rc-preset.active{background:var(--gold);color:#241a08}
+
+/* dates */
+.rc-dates{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;min-width:0}
+.rc-date{position:relative;min-width:0}
+.rc-date label{
+  position:absolute;top:-8px;inset-inline-start:14px;font-size:10.5px;font-weight:800;color:var(--gold);
+  padding:0 6px;background:#0b0f16;border-radius:6px;z-index:2;
+}
+.rc-date-input{
+  width:100%;max-width:100%;padding:14px 14px 14px 38px;border-radius:16px;
+  background:rgba(0,0,0,.45);border:1px solid var(--line);
+  color:#fff;font-size:15px;font-weight:800;outline:none;box-sizing:border-box;
+  direction:ltr;text-align:center;cursor:text;min-width:0;line-height:1.2;
+  -webkit-appearance:none;appearance:none;min-height:48px;unicode-bidi:plaintext;
+}
+.rc-date-input::placeholder{color:rgba(255,255,255,.35);font-weight:700}
+.rc-date-input:focus{border-color:var(--gold-line)}
+.rc-date-input.is-invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,111,117,.16)}
+.rc-date-ico{
+  position:absolute;top:50%;left:5px;transform:translateY(-50%);width:30px;height:30px;color:var(--gold);z-index:2;
+  display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;background:transparent;border:0;padding:0;
+}
+.rc-date-ico svg{width:17px;height:17px}
+.rc-date-btn:hover{background:rgba(255,255,255,.05);color:#fff}
+.rc-date-native{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0;margin:0;color-scheme:dark}
 
 /* segmented target */
 .rc-seg{
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
-  background:rgba(0,0,0,.3);padding:5px;border-radius:14px;
-  border:1px solid var(--line);margin-bottom:12px;
+  background:rgba(0,0,0,.45);padding:5px;border-radius:16px;border:1px solid var(--line);
 }
 .rc-seg button{
   all:unset;text-align:center;cursor:pointer;font-size:12.5px;font-weight:800;
-  padding:10px 8px;border-radius:10px;color:var(--text-2);transition:.2s;
-  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:11px 6px;border-radius:12px;color:var(--text-2);transition:.2s;
+  display:flex;align-items:center;justify-content:center;
 }
-.rc-seg button svg{width:14px;height:14px}
-.rc-seg button.active{ background:var(--accent);color:#04150f; }
-.rc-seg button:not(.active):hover{background:rgba(255,255,255,.04);color:#fff}
+.rc-seg button.active{background:var(--accent);color:#04150f}
+.rc-seg button:not(.active):hover{background:rgba(255,255,255,.05);color:#fff}
 
 /* person picker */
-.rc-person-wrap{position:relative;margin-bottom:12px}
+.rc-person-wrap{position:relative}
 .rc-person-wrap.hidden{display:none}
 .rc-search{
-  width:100%;padding:12px 40px 12px 14px;border-radius:14px;
-  background:rgba(0,0,0,.35);border:1px solid var(--line-strong);
+  width:100%;padding:13px 40px 13px 14px;border-radius:16px;
+  background:rgba(0,0,0,.45);border:1px solid var(--line);
   color:#fff;font-size:14px;font-weight:600;outline:none;box-sizing:border-box;
 }
-.rc-search:focus{border-color:var(--accent)}
-.rc-search-ico{ position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%); width:16px;height:16px;color:var(--gold);pointer-events:none; }
-.rc-persons{
-  margin-top:8px;max-height:220px;overflow:auto;
-  border:1px solid var(--line);border-radius:14px; background:rgba(0,0,0,.3);
-}
-.rc-person{ display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer; border-bottom:1px solid var(--line); }
+.rc-search:focus{border-color:var(--gold-line)}
+.rc-search-ico{position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%);width:16px;height:16px;color:var(--gold);pointer-events:none}
+.rc-persons{margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:rgba(0,0,0,.35)}
+.rc-person{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line)}
 .rc-person:last-child{border-bottom:0}
 .rc-person:hover{background:rgba(255,255,255,.03)}
 .rc-person.sel{background:var(--accent-soft)}
@@ -61,118 +121,50 @@
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   font-weight:900;font-size:14px;color:#04150f;
   background:linear-gradient(135deg,var(--gold),var(--accent));
-  border:2px solid var(--line-strong);
 }
 .rc-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .rc-pname{flex:1;font-size:13.5px;font-weight:700;color:#fff;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc-pcheck{width:18px;height:18px;color:var(--accent-2);opacity:0}
 .rc-person.sel .rc-pcheck{opacity:1}
 
-/* presets */
-.rc-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.rc-preset{
-  all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
-  padding:7px 12px;border-radius:999px;color:var(--text-2);
-  background:rgba(255,255,255,.03);border:1px solid var(--line);
-}
-.rc-preset:hover{background:rgba(255,255,255,.06);color:#fff}
-.rc-preset.active{background:var(--gold);color:#241a08;border-color:transparent}
-
-/* dates */
-.rc-dates{ display:grid;grid-template-columns:1fr; gap:10px;margin-bottom:14px;min-width:0; }
-@media (min-width:420px){ .rc-dates{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} }
-.rc-date{position:relative;min-width:0}
-.rc-date label{
-  position:absolute;top:-8px;inset-inline-start:12px; font-size:10.5px;font-weight:800;color:var(--gold);
-  padding:0 6px;background:#14161d;border-radius:6px;z-index:2;
-}
-.rc-date-input{
-  width:100%;max-width:100%;padding:13px 14px 13px 40px;border-radius:12px;
-  background:rgba(0,0,0,.35);border:1px solid var(--line-strong);
-  color:#fff;font-size:16px;font-weight:800;outline:none;box-sizing:border-box;
-  direction:ltr;text-align:left;cursor:text;min-width:0;line-height:1.2;
-  -webkit-appearance:none;appearance:none;min-height:46px;unicode-bidi:plaintext;
-}
-.rc-date-input::placeholder{color:rgba(255,255,255,.4);font-weight:700}
-.rc-date-input:focus{border-color:var(--accent)}
-.rc-date-input.is-invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,111,117,.16)}
-.rc-date-ico{
-  position:absolute;top:50%;left:6px;transform:translateY(-50%); width:32px;height:32px;color:var(--gold);z-index:2;
-  display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;background:transparent;border:0;padding:0;
-}
-.rc-date-ico svg{width:18px;height:18px}
-.rc-date-btn:hover{background:rgba(255,255,255,.05);color:#fff}
-.rc-date-native{ position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0;margin:0;color-scheme:dark; }
-
 /* submit */
 .rc-submit{
   all:unset;box-sizing:border-box;width:100%;text-align:center;cursor:pointer;
-  padding:12px;border-radius:14px;font-size:13px;font-weight:800;color:#04150f;
-  background:var(--grad-accent); display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:15px;border-radius:16px;font-size:14px;font-weight:900;color:#241a08;
+  background:var(--gold);display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .rc-submit:hover{filter:brightness(1.06)}
 .rc-submit svg{width:16px;height:16px}
 
-.rc-placeholder{ display:flex;flex-direction:column;align-items:center;gap:8px; padding:34px 14px; color:var(--text-3); font-size:12.5px; text-align:center; border:1px dashed var(--line-strong); border-radius:18px; margin-bottom:14px; }
-.rc-placeholder svg{width:26px;height:26px;color:var(--text-3)}
+/* action tiles */
+.wg-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wg-act{
+  all:unset;box-sizing:border-box;cursor:pointer;text-align:center;
+  padding:18px 10px;border-radius:20px;font-size:12.5px;font-weight:800;
+  background:rgba(0,0,0,.28);border:1px solid var(--line);color:var(--text-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+.wg-act svg{width:24px;height:24px;color:var(--gold)}
+.wg-act:hover{background:rgba(255,255,255,.05);color:#fff}
+.wg-act.is-wa{background:#0f9d8b;border-color:transparent;color:#fff}
+.wg-act.is-wa svg{color:#fff}
+.wg-act.is-wa:hover{filter:brightness(1.08);background:#0f9d8b;color:#fff}
 
-/* ===== the receipt ===== */
-.rc-receipt-wrap{ margin-bottom:14px; animation:rc-pop .45s cubic-bezier(.2,.9,.3,1.3); }
-@keyframes rc-pop{ from{opacity:0;transform:translateY(10px) scale(.98)} }
-.rc-receipt{
-  position:relative; background:#0c1218; border:1px solid var(--line-strong);
-  border-radius:4px; padding:22px 20px 18px; font-family:var(--font-ui);
-}
-.rc-receipt::before,.rc-receipt::after{
-  content:""; position:absolute; left:14px; right:14px; height:11px;
-  background: radial-gradient(circle at 9px 0, transparent 7px, #0c1218 7.5px) 0 0/18px 100% repeat-x;
-}
-.rc-receipt::before{ top:-6px; }
-.rc-receipt::after{ bottom:-6px; transform:rotate(180deg); }
-.rc-r-head{ text-align:center; border-bottom:1px dashed var(--line-strong); padding-bottom:12px; margin-bottom:12px; }
-.rc-r-brand{ font-size:11px; letter-spacing:1px; color:var(--text-3); font-weight:800; }
-.rc-r-label{
-  display:inline-block; margin-top:8px; font-size:11.5px; font-weight:800; color:#04150f;
-  padding:4px 12px; border-radius:999px; background:var(--grad-gold);
-}
-.rc-r-range{ font-size:12.5px; color:var(--text-2); margin-top:8px; }
-.rc-r-range b{ color:var(--text); }
-.rc-r-total{ text-align:center; padding:16px 0; }
-.rc-r-total-v{ font-size:36px; font-weight:900; color:var(--gold-2); line-height:1; font-variant-numeric:tabular-nums; }
-.rc-r-total-u{ font-size:14px; color:var(--gold); font-weight:800; margin-inline-start:4px; }
-.rc-r-total-l{ font-size:11.5px; color:var(--text-3); margin-top:8px; font-weight:700; }
-.rc-r-lines{ border-top:1px dashed var(--line-strong); padding-top:10px; }
-.rc-r-line{ display:flex; justify-content:space-between; font-size:12.5px; padding:5px 0; color:var(--text-2); }
-.rc-r-line b{ color:var(--text); font-weight:800; font-variant-numeric:tabular-nums; }
-.rc-r-line.rc-r-sum{ border-top:1px dashed var(--line-strong); margin-top:4px; padding-top:9px; font-size:13.5px; }
-.rc-r-line.rc-r-sum b{ color:var(--gold-2); font-size:15px; }
-.rc-r-foot{ text-align:center; margin-top:14px; padding-top:12px; border-top:1px dashed var(--line-strong); }
-.rc-barcode{ height:26px; margin:0 auto 8px; max-width:220px; background:repeating-linear-gradient(90deg, var(--text) 0 2px, transparent 2px 5px); opacity:.45; border-radius:2px; }
-.rc-r-foot-t{ font-size:10.5px; color:var(--text-3); letter-spacing:.4px; }
+/* details lines */
+.wg-lines{display:flex;flex-direction:column;gap:2px}
+.wg-line{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;color:var(--text-2)}
+.wg-line b{color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+.wg-line.is-sum{border-top:1px dashed var(--line-strong);margin-top:4px;padding-top:10px;font-size:13.5px}
+.wg-line.is-sum b{color:var(--gold-2);font-size:15px}
 
-.rc-actions{ display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
-.rc-act{
-  all:unset;box-sizing:border-box;cursor:pointer;flex:1 1 auto;min-width:0;text-align:center;
-  padding:10px 8px;border-radius:12px;font-size:12px;font-weight:800;
-  border:1px solid var(--line-strong);color:var(--gold);background:rgba(0,0,0,.3);
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.rc-act svg{width:14px;height:14px;flex-shrink:0}
-.rc-act:hover{background:rgba(255,255,255,.05);color:#fff}
-.rc-act.primary{ background:linear-gradient(135deg,#00d68f,#128c7e);color:#fff;border-color:transparent; }
-.rc-act.primary:hover{filter:brightness(1.1);color:#fff}
-
-/* history as small receipt stubs */
-.rc-hist-card{ background:var(--surface-2);border:1px solid var(--line); border-radius:20px;padding:16px;margin-bottom:14px; }
-.rc-hist-head{ display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px; }
-.rc-hist-t{font-weight:900;font-size:15px;color:#fff}
-.rc-hist{display:flex;flex-direction:column;gap:8px}
-.rc-stub{
-  display:flex;align-items:stretch;border-radius:10px;overflow:hidden;
-  border:1px solid var(--line); background:rgba(255,255,255,.015);
-}
-.rc-stub-notch{ width:6px; flex-shrink:0; background:repeating-linear-gradient(180deg, transparent 0 5px, var(--line-strong) 5px 6px); background-color:#0c1218; }
-.rc-stub-b{ flex:1; min-width:0; padding:10px 12px; }
+/* history widget */
+.wg-hist{text-align:center;padding:18px 14px}
+.wg-hist svg{width:24px;height:24px;color:var(--accent-2);margin:0 auto 10px;display:block}
+.wg-hist-t{font-size:13.5px;font-weight:800;color:#fff}
+.wg-hist-s{font-size:11.5px;color:var(--text-3);margin-top:5px;font-weight:600}
+.wg-hist-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;text-align:start}
+.rc-stub{display:flex;align-items:stretch;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+.rc-stub-b{flex:1;min-width:0;padding:10px 12px}
 .rc-stub-range{font-size:12.5px;font-weight:800;color:#fff}
 .rc-stub-range small{color:var(--text-3);font-weight:600;margin-inline-start:6px}
 .rc-stub-meta{font-size:11.5px;color:var(--text-3);margin-top:2px}
@@ -184,164 +176,155 @@
   background:var(--red-soft);border:1px solid rgba(255,111,117,.25);
 }
 .rc-stub-del svg{width:13px;height:13px}
-.rc-empty{ text-align:center;padding:30px 12px;color:var(--text-3);font-size:13px; border:1px dashed var(--line-strong);border-radius:14px; }
+.rc-empty{text-align:center;padding:20px 12px;color:var(--text-3);font-size:12.5px}
+@media print{ .wg-actions,.rc-presets,.rc-seg,.rc-dates,.rc-submit,.wg-hist{display:none!important} }
 </style>
 
-<section class="rc-hero">
-  <span class="rc-badge">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
-    تقرير فترة مخصّصة
-  </span>
-  <p class="rc-hero-sub">اختار المدة وهيتحسب زي إيصال جاهز للمشاركة أو الطباعة.</p>
-</section>
+<div class="wg">
 
-<div class="rc-form-card">
-  <form method="post" id="rrForm">
+  <div class="wg-badge-row">
+    <span class="wg-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+      تقرير فترة مخصّصة
+    </span>
+  </div>
 
-    <div class="rc-seg" role="tablist">
-      <button type="button" data-mode="no_deduct" class="active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
-        بدون خصم
-      </button>
-      <button type="button" data-mode="after_deduct">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        بعد الخصم
-      </button>
-      <button type="button" data-mode="person">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
-        شخص محدد
-      </button>
+  {% if result %}
+  <div class="wg-tile wg-hero">
+    <svg class="wg-hero-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+    <div>
+      <span class="wg-hero-v" id="rrTotalNum">{{ '{:,}'.format(result.total) }}</span>{% if result.is_money %}<span class="wg-hero-u">ج</span>{% endif %}
     </div>
-    <input type="hidden" name="target" id="rrTarget" value="no_deduct">
-
-    <div class="rc-person-wrap hidden" id="rrPersonWrap">
-      <div style="position:relative">
-        <input type="text" class="rc-search" id="rrSearch" placeholder="ابحث بالاسم…" autocomplete="off">
-        <svg class="rc-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
-      </div>
-      <div class="rc-persons" id="rrPersons">
-        {% for p in people_list %}
-        <div class="rc-person" data-id="{{ p.id }}" data-name="{{ p.full_name }}">
-          <div class="rc-avatar">
-            {% if p.avatar %}
-              <img src="{{ p.avatar }}" alt="" loading="lazy">
-            {% else %}
-              {{ p.full_name[:1] }}
-            {% endif %}
-          </div>
-          <div class="rc-pname">{{ p.full_name }}</div>
-          <svg class="rc-pcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="rc-presets" id="rrPresets">
-      <button type="button" class="rc-preset" data-preset="today">اليوم</button>
-      <button type="button" class="rc-preset" data-preset="yesterday">أمس</button>
-      <button type="button" class="rc-preset" data-preset="7">آخر 7 أيام</button>
-      <button type="button" class="rc-preset" data-preset="30">آخر 30 يوم</button>
-      <button type="button" class="rc-preset" data-preset="month">الشهر الحالي</button>
-      <button type="button" class="rc-preset" data-preset="prev_month">الشهر السابق</button>
-    </div>
-
-    <div class="rc-dates">
-      <div class="rc-date">
-        <label for="start_day">من</label>
-        <input class="rc-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
-        <input type="hidden" id="start_day" name="start_day">
-        <input type="date" class="rc-date-native" id="start_day_native" aria-hidden="true" tabindex="-1">
-        <button type="button" class="rc-date-ico rc-date-btn" id="start_day_btn" aria-label="اختر التاريخ من التقويم">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-      <div class="rc-date">
-        <label for="end_day">إلى</label>
-        <input class="rc-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
-        <input type="hidden" id="end_day" name="end_day">
-        <input type="date" class="rc-date-native" id="end_day_native" aria-hidden="true" tabindex="-1">
-        <button type="button" class="rc-date-ico rc-date-btn" id="end_day_btn" aria-label="اختر التاريخ من التقويم">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <button type="submit" class="rc-submit">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-      اطبع الإيصال
-    </button>
-  </form>
-</div>
-
-{% if not result %}
-<div class="rc-placeholder">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 6-7"/><path d="M3 21h18"/></svg>
-  اختار المدة واضغط «اطبع الإيصال»
-</div>
-{% endif %}
-
-{% if result %}
-<div class="rc-receipt-wrap">
-  <div class="rc-receipt">
-    <div class="rc-r-head">
-      <div class="rc-r-brand">فريق التحصين · إيصال تقرير</div>
-      <span class="rc-r-label">{{ result.target_label }}</span>
-      <div class="rc-r-range"><b>{{ result.start_display or result.start }}</b> ← <b>{{ result.end_display or result.end }}</b> · {{ result.days }} يوم</div>
-    </div>
-
-    <div class="rc-r-total">
-      <span class="rc-r-total-v" id="rrTotalNum">{{ '{:,}'.format(result.total) }}</span>
-      {% if result.is_money %}<span class="rc-r-total-u">ج.م</span>{% endif %}
-      <div class="rc-r-total-l">{{ result.target_label }}</div>
-    </div>
-
-    <div class="rc-r-lines">
-      {% if result.is_money %}
-      <div class="rc-r-line"><span>عدد الكتاكيت</span><b>{{ '{:,}'.format(result.chick_count) }} × 55 ج</b></div>
-      {% if result.extra_chicks %}<div class="rc-r-line"><span>منها إضافي موزَّع</span><b>{{ '{:,}'.format(result.extra_chicks) }} كتكوت</b></div>{% endif %}
-      {% if result.bonus_money %}<div class="rc-r-line"><span>إضافي مالي</span><b>+{{ '{:,}'.format(result.bonus_money) }} ج</b></div>{% endif %}
-      {% if result.deduct_money %}<div class="rc-r-line"><span>خصم</span><b>−{{ '{:,}'.format(result.deduct_money) }} ج</b></div>{% endif %}
-      {% endif %}
-      <div class="rc-r-line"><span>بدون خصم</span><b>{{ '{:,}'.format(result.no_deduct_total) }}</b></div>
-      <div class="rc-r-line"><span>بعد الخصم</span><b>{{ '{:,}'.format(result.distributed_total) }}</b></div>
-      <div class="rc-r-line rc-r-sum"><span>الإجمالي</span><b>{{ '{:,}'.format(result.total) }}{% if result.is_money %} ج{% endif %}</b></div>
-    </div>
-
-    <div class="rc-r-foot">
-      <div class="rc-barcode"></div>
-      <div class="rc-r-foot-t">شكرًا ليك</div>
+    <div class="wg-hero-sub">
+      {{ result.target_label }} · {{ result.start_display or result.start }} ← {{ result.end_display or result.end }} · {{ result.days }} أيام
     </div>
   </div>
 
-  <div class="rc-actions">
-    <button type="button" class="rc-act primary" id="rrShareWA">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.5A10 10 0 1 0 12.04 2zm5.83 14.2c-.25.7-1.44 1.32-2 1.4-.5.08-1.15.11-1.85-.12-.43-.14-1-.32-1.7-.63-3-1.3-4.95-4.4-5.1-4.6-.15-.2-1.2-1.6-1.2-3.05 0-1.45.76-2.17 1.03-2.47.27-.3.6-.37.8-.37h.57c.2 0 .45-.07.7.53.27.65.9 2.23.98 2.4.08.16.13.35.03.55-.1.2-.15.32-.3.5-.15.16-.32.37-.45.5-.15.15-.3.32-.13.6.17.28.75 1.24 1.62 2.02 1.12 1 2.06 1.3 2.35 1.45.28.15.45.13.62-.08.17-.2.72-.83.9-1.13.2-.28.4-.23.66-.13.28.1 1.77.83 2.07.98.3.15.5.22.58.35.07.15.07.83-.2 1.6z"/></svg>
-      شارك واتساب
-    </button>
-    <button type="button" class="rc-act" id="rrCopy">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-      نسخ
-    </button>
-    <button type="button" class="rc-act" onclick="window.print()">
+  <div class="wg-stats">
+    <div class="wg-tile wg-stat is-red">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l2.2 1.6 2.7-.3 1 2.5 2.4 1.3-.7 2.6.7 2.6-2.4 1.3-1 2.5-2.7-.3L12 18l-2.2-1.6-2.7.3-1-2.5L3.7 13l.7-2.6-.7-2.6 2.4-1.3 1-2.5 2.7.3z"/><path d="M9.5 9.5h.01M14.5 14.5h.01M15 9l-6 6"/></svg>
+      <div class="wg-stat-v">{{ '{:,}'.format(result.deduct_money or 0) }}</div>
+      <div class="wg-stat-l">خصم</div>
+    </div>
+    <div class="wg-tile wg-stat is-green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="13" rx="6.5" ry="8.5"/></svg>
+      <div class="wg-stat-v">{{ '{:,}'.format(result.chick_count) }}</div>
+      <div class="wg-stat-l">كتكوت</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="wg-tile wg-form">
+    <form method="post" id="rrForm" style="display:flex;flex-direction:column;gap:12px;margin:0">
+
+      <div class="rc-presets" id="rrPresets">
+        <button type="button" class="rc-preset" data-preset="prev_month">الشهر السابق</button>
+        <button type="button" class="rc-preset" data-preset="month">الشهر</button>
+        <button type="button" class="rc-preset" data-preset="30">30 يوم</button>
+        <button type="button" class="rc-preset" data-preset="7">7 أيام</button>
+        <button type="button" class="rc-preset" data-preset="yesterday">أمس</button>
+        <button type="button" class="rc-preset active" data-preset="today">اليوم</button>
+      </div>
+
+      <div class="rc-dates">
+        <div class="rc-date">
+          <label for="start_day_display">من</label>
+          <input class="rc-date-input" type="text" id="start_day_display" inputmode="numeric" autocomplete="off" placeholder="01/07/2026" required>
+          <input type="hidden" id="start_day" name="start_day">
+          <input type="date" class="rc-date-native" id="start_day_native" aria-hidden="true" tabindex="-1">
+          <button type="button" class="rc-date-ico rc-date-btn" id="start_day_btn" aria-label="اختر التاريخ من التقويم">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="rc-date">
+          <label for="end_day_display">إلى</label>
+          <input class="rc-date-input" type="text" id="end_day_display" inputmode="numeric" autocomplete="off" placeholder="07/07/2026" required>
+          <input type="hidden" id="end_day" name="end_day">
+          <input type="date" class="rc-date-native" id="end_day_native" aria-hidden="true" tabindex="-1">
+          <button type="button" class="rc-date-ico rc-date-btn" id="end_day_btn" aria-label="اختر التاريخ من التقويم">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="rc-seg" role="tablist">
+        <button type="button" data-mode="no_deduct" class="active">بدون خصم</button>
+        <button type="button" data-mode="after_deduct">بعد الخصم</button>
+        <button type="button" data-mode="person">شخص</button>
+      </div>
+      <input type="hidden" name="target" id="rrTarget" value="no_deduct">
+
+      <div class="rc-person-wrap hidden" id="rrPersonWrap">
+        <div style="position:relative">
+          <input type="text" class="rc-search" id="rrSearch" placeholder="ابحث بالاسم…" autocomplete="off">
+          <svg class="rc-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
+        </div>
+        <div class="rc-persons" id="rrPersons">
+          {% for p in people_list %}
+          <div class="rc-person" data-id="{{ p.id }}" data-name="{{ p.full_name }}">
+            <div class="rc-avatar">
+              {% if p.avatar %}
+                <img src="{{ p.avatar }}" alt="" loading="lazy">
+              {% else %}
+                {{ p.full_name[:1] }}
+              {% endif %}
+            </div>
+            <div class="rc-pname">{{ p.full_name }}</div>
+            <svg class="rc-pcheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="rc-submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        احسب واطبع الإيصال
+      </button>
+    </form>
+  </div>
+
+  {% if result %}
+  <div class="wg-tile wg-lines">
+    {% if result.is_money %}
+    <div class="wg-line"><span>عدد الكتاكيت</span><b>{{ '{:,}'.format(result.chick_count) }} × 55 ج</b></div>
+    {% if result.extra_chicks %}<div class="wg-line"><span>منها إضافي موزَّع</span><b>{{ '{:,}'.format(result.extra_chicks) }} كتكوت</b></div>{% endif %}
+    {% if result.bonus_money %}<div class="wg-line"><span>إضافي مالي</span><b>+{{ '{:,}'.format(result.bonus_money) }} ج</b></div>{% endif %}
+    {% if result.deduct_money %}<div class="wg-line"><span>خصم</span><b>−{{ '{:,}'.format(result.deduct_money) }} ج</b></div>{% endif %}
+    {% endif %}
+    <div class="wg-line"><span>بدون خصم</span><b>{{ '{:,}'.format(result.no_deduct_total) }}</b></div>
+    <div class="wg-line"><span>بعد الخصم</span><b>{{ '{:,}'.format(result.distributed_total) }}</b></div>
+    <div class="wg-line is-sum"><span>الإجمالي</span><b>{{ '{:,}'.format(result.total) }}{% if result.is_money %} ج{% endif %}</b></div>
+  </div>
+
+  <div class="wg-actions">
+    <button type="button" class="wg-act" onclick="window.print()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
       طباعة
     </button>
+    <button type="button" class="wg-act is-wa" id="rrShareWA">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.5A10 10 0 1 0 12.04 2zm5.83 14.2c-.25.7-1.44 1.32-2 1.4-.5.08-1.15.11-1.85-.12-.43-.14-1-.32-1.7-.63-3-1.3-4.95-4.4-5.1-4.6-.15-.2-1.2-1.6-1.2-3.05 0-1.45.76-2.17 1.03-2.47.27-.3.6-.37.8-.37h.57c.2 0 .45-.07.7.53.27.65.9 2.23.98 2.4.08.16.13.35.03.55-.1.2-.15.32-.3.5-.15.16-.32.37-.45.5-.15.15-.3.32-.13.6.17.28.75 1.24 1.62 2.02 1.12 1 2.06 1.3 2.35 1.45.28.15.45.13.62-.08.17-.2.72-.83.9-1.13.2-.28.4-.23.66-.13.28.1 1.77.83 2.07.98.3.15.5.22.58.35.07.15.07.83-.2 1.6z"/></svg>
+      واتساب
+    </button>
   </div>
-</div>
-{% endif %}
+  <button type="button" class="wg-act" id="rrCopy" style="width:100%">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+    نسخ نص التقرير
+  </button>
+  {% endif %}
 
-<div class="rc-hist-card">
-  <div class="rc-hist-head">
-    <div class="rc-hist-t">سجل التقارير</div>
-  </div>
+  <details class="wg-tile wg-hist">
+    <summary style="list-style:none;cursor:pointer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></svg>
+      <div class="wg-hist-t">سجل التقارير المحفوظة</div>
+      <div class="wg-hist-s">{{ reports|length }} تقارير سابقة</div>
+    </summary>
 
-  {% if not reports %}
-    <div class="rc-empty">مفيش تقارير محفوظة لسه.</div>
-  {% else %}
-    <div class="rc-hist">
+    {% if not reports %}
+      <div class="rc-empty">مفيش تقارير محفوظة لسه.</div>
+    {% else %}
+    <div class="wg-hist-list">
       {% for r in reports %}
       <div class="rc-stub">
-        <div class="rc-stub-notch"></div>
         <div class="rc-stub-b">
           <div class="rc-stub-range">
             {{ r.start_day.day }}/{{ r.start_day.month }}/{{ r.start_day.year }} → {{ r.end_day.day }}/{{ r.end_day.month }}/{{ r.end_day.year }}
@@ -369,9 +352,10 @@
       </div>
       {% endfor %}
     </div>
-  {% endif %}
-</div>
+    {% endif %}
+  </details>
 
+</div>
 <script>
 (function(){
   const form = document.getElementById('rrForm');
