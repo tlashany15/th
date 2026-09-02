@@ -45,7 +45,7 @@ BLUE        = (91, 169, 255)
 ORANGE      = (255, 148, 96)
 PURPLE      = (176, 148, 255)
 
-W = 1080  # عرض الصورة ثابت — الطول بيتحسب على حسب عدد الأسماء
+W = 1240  # عرض الصورة ثابت — الطول بيتحسب على حسب عدد الأسماء
 
 
 # ===================== أدوات النص العربي =====================
@@ -126,25 +126,27 @@ def _accent_bar(d, box, color, radius=26):
 
 def _header(d, title, subtitle, badge=None):
     _card(d, (40, 36, W - 40, 210), fill=CARD_SOFT, radius=32)
-    d.rounded_rectangle((W - 60, 60, W - 50, 186), radius=6, fill=GOLD)
-    _rtl(d, W - 84, 62, title, _font(52, "Bold"), TEXT)
-    _rtl(d, W - 84, 132, subtitle, _font(30, "Regular"), MUTED)
-    if badge:
+    cx = W / 2
+    _center(d, cx, 56, title, _font(52, "Bold"), TEXT)
+    _center(d, cx, 126, subtitle, _font(30, "Regular"), MUTED)
+    d.rounded_rectangle((cx - 80, 178, cx + 80, 184), radius=3, fill=GOLD)
+    if badge and _shape(badge) != _shape(subtitle):
         bs = _shape(badge)
-        bf = _font(26, "SemiBold")
-        bw = _text_w(d, bs, bf) + 44
-        d.rounded_rectangle((60, 118, 60 + bw, 172), radius=27, fill=(38, 58, 90))
-        d.text((60 + 22, 126), bs, font=bf, fill=BLUE)
+        bf = _font(24, "SemiBold")
+        bw = _text_w(d, bs, bf) + 40
+        d.rounded_rectangle((cx - bw / 2, 160, cx + bw / 2, 206), radius=23, fill=(38, 58, 90))
+        d.text((cx - _text_w(d, bs, bf) / 2, 168), bs, font=bf, fill=BLUE)
 
 
 def _stat_tile(d, box, label, value, color, note=None):
     _card(d, box, fill=CARD, radius=24)
     _accent_bar(d, box, color)
     x0, y0, x1, y1 = box
-    _rtl(d, x1 - 30, y0 + 20, label, _font(27, "SemiBold"), MUTED)
-    _rtl(d, x1 - 30, y0 + 60, value, _font(46, "Bold"), color)
+    cx = (x0 + x1) / 2
+    _center(d, cx, y0 + 20, label, _font(27, "SemiBold"), MUTED)
+    _center(d, cx, y0 + 60, value, _font(46, "Bold"), color)
     if note:
-        _rtl(d, x1 - 30, y0 + 120, note, _font(23, "Regular"), MUTED)
+        _center(d, cx, y0 + 120, note, _font(23, "Regular"), MUTED)
 
 
 def _stats_grid(d, y, tiles, tile_h=160, gap=22):
