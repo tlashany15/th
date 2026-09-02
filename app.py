@@ -1865,6 +1865,51 @@ def _send_telegram_message(text):
         return False
 
 
+def _send_telegram_photo(png_bytes, caption=""):
+    """يبعت صورة (PNG) لقناة تليجرام مع كابشن قصير. بيرجّع True/False."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not png_bytes:
+        return False
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    boundary = "----thbnd" + os.urandom(8).hex()
+    def _part(name, value):
+        return (f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n'
+                f'{value}\r\n').encode("utf-8")
+    body = b""
+    body += _part("chat_id", TELEGRAM_CHAT_ID)
+    if caption:
+        body += _part("caption", caption)
+        body += _part("parse_mode", "HTML")
+    body += (f'--{boundary}\r\nContent-Disposition: form-data; name="photo"; '
+             f'filename="report.png"\r\nContent-Type: image/png\r\n\r\n').encode("utf-8")
+    body += png_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+    req = urllib.request.Request(url, data=body, headers={
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "Content-Length": str(len(body)),
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            resp.read()
+        return True
+    except urllib.error.HTTPError as e:
+        try:
+            print("telegram sendPhoto HTTPError:", e.read())
+        except Exception:
+            print("telegram sendPhoto HTTPError:", e)
+        return False
+    except Exception as e:
+        print("telegram sendPhoto error:", e)
+        return False
+
+
+def _ar_day_label(day_iso):
+    """يرجّع (اليوم بالعربي + التاريخ) — مثال: الأربعاء 2 سبتمبر 2026."""
+    try:
+        d = datetime.strptime(str(day_iso), "%Y-%m-%d").date()
+        return f"{_AR_WEEKDAYS[d.weekday()]} {d.day} {AR_MONTHS_LIST[d.month-1]} {d.year}"
+    except Exception:
+        return str(day_iso)
+
+
 def _esc_html(s):
     return (str(s or "")
             .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
@@ -1875,11 +1920,12 @@ def _money_k(v):
     return int(int(v or 0) // 1000)
 
 
-def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_deduct_total):
+def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_deduct_total,
+                                    no_deduct_tasmeen=None, no_deduct_bayad=None):
     """
-    بعد ما المسؤول يقفل اليوم، بيبعت تقرير كامل لقناة تليجرام:
-    أسماء الحضور، العدد قبل الخصم وبعده، وفلوس كل واحد في اليوم ده.
-    لو حصل أي مشكلة في التطبيق يبقى معاك نسخة محفوظة على تليجرام.
+    بعد ما المسؤول يقفل اليوم، بيبعت تقرير على شكل صورة منسّقة لقناة تليجرام:
+    الأعداد (بياض/تسمين قبل وبعد الخصم + الإجمالي) ونصيب كل واحد في اليوم ده.
+    لو رسم الصورة فشل لأي سبب → بيرجع للرسالة النصية زي الأول.
     """
     try:
         cur.execute(
@@ -1892,26 +1938,64 @@ def _send_close_day_telegram_report(cur, day, tasmeen_after, bayad_after, no_ded
         day_rows = _compute_shares_range(cur, day, day)
         money_map = {r["id"]: r for r in day_rows}
 
+        nd_total = int(no_deduct_total or 0)
+        if no_deduct_tasmeen is None or no_deduct_bayad is None:
+            cur.execute("""SELECT COALESCE(no_deduct_tasmeen,0) AS t, COALESCE(no_deduct_bayad,0) AS b
+                             FROM day_closures WHERE day=%s""", (day,))
+            _r = cur.fetchone() or {}
+            no_deduct_tasmeen = int(_r.get("t") or 0)
+            no_deduct_bayad = int(_r.get("b") or 0)
+        nd_t = int(no_deduct_tasmeen or 0)
+        nd_b = int(no_deduct_bayad or 0)
+        if nd_t == 0 and nd_b == 0 and nd_total:
+            nd_t = nd_total  # توافق مع الأيام القديمة اللي كانت بتسجّل الإجمالي بس
+
         total_after = int(tasmeen_after or 0) + int(bayad_after or 0)
+        people = []
+        for p in attendees:
+            r = money_map.get(p["id"])
+            people.append({
+                "name": p["full_name"],
+                "farm": "تسمين" if p["farm"] == "tasmeen" else ("بياض" if p["farm"] == "bayad" else "—"),
+                "extra": bool(p["extra"]),
+                "chicks": int(r["chicks"]) if r else 0,
+                "money": f"{_money_k(r['money']):,} ج" if r else "—",
+            })
+        total_money = sum((r["money"] for r in day_rows), 0)
+
+        try:
+            from report_image import render_day_report
+            png = render_day_report(
+                day=day,
+                no_deduct_tasmeen=nd_t,
+                no_deduct_bayad=nd_b,
+                tasmeen_after=int(tasmeen_after or 0),
+                bayad_after=int(bayad_after or 0),
+                people=people,
+                total_money_label=f"{_money_k(total_money):,} ج",
+                day_label=_ar_day_label(day),
+            )
+            if _send_telegram_photo(png, caption=f"🗓 <b>تقرير إغلاق يوم {_esc_html(day)}</b>"):
+                return
+        except Exception as _img_e:
+            print("telegram day report image error:", _img_e)
+
+        # ==== خطة بديلة: الرسالة النصية القديمة ====
         lines = []
         lines.append(f"<b>تقرير إغلاق يوم {_esc_html(day)}</b>")
         lines.append("")
         lines.append("— الأعداد —")
-        lines.append(f"قبل الخصم: <b>{int(no_deduct_total or 0):,}</b>")
+        lines.append(f"قبل الخصم: <b>{nd_t + nd_b:,}</b>")
         lines.append(f"بعد الخصم: <b>{total_after:,}</b>")
         lines.append(f"تسمين: {int(tasmeen_after or 0):,} · بياض: {int(bayad_after or 0):,}")
         lines.append("")
-        lines.append(f"— الحضور ({len(attendees)}) —")
-        if attendees:
-            for idx, p in enumerate(attendees, 1):
-                farm_lbl = "تسمين" if p["farm"] == "tasmeen" else ("بياض" if p["farm"] == "bayad" else "—")
+        lines.append(f"— الحضور ({len(people)}) —")
+        if people:
+            for idx, p in enumerate(people, 1):
                 extra_lbl = " (إضافي)" if p["extra"] else ""
-                r = money_map.get(p["id"])
-                money_lbl = f"{_money_k(r['money']):,} ج" if r else "—"
-                lines.append(f"{idx}. {_esc_html(p['full_name'])} — {farm_lbl}{extra_lbl} — {money_lbl}")
+                lines.append(f"{idx}. {_esc_html(p['name'])} — {p['farm']}{extra_lbl} — {p['money']}")
         else:
             lines.append("مفيش حضور مسجّل اليوم.")
-        total_money = sum((r["money"] for r in day_rows), 0)
         lines.append("")
         lines.append(f"إجمالي فلوس اليوم للفريق: <b>{_money_k(total_money):,} ج</b>")
         _send_telegram_message("\n".join(lines))
@@ -1943,17 +2027,39 @@ def _send_period_telegram_report(cur, s_iso, e_iso, label, rows=None):
         lines.append(f"📊 <b>تقرير حساب {_esc_html(label)}</b>")
         lines.append("")
         lines.append(f"الإجمالي بدون خصم في المدة: <b>{no_deduct_total:,}</b>")
-        lines.append(f"إجمالي كتاكيت الفريق: <b>{total_chicks:,}</b> × {CHICK_PRICE} = <b>{total_money:,} ج</b>")
+        lines.append(f"إجمالي كتاكيت الفريق: <b>{total_chicks:,}</b> (الألف بـ {CHICK_PRICE}) = <b>{_money_k(total_money):,} ج</b>")
         lines.append("")
         lines.append("👷 <b>حساب كل واحد:</b>")
         if active:
             for r in active:
                 lines.append(
                     f"• {_esc_html(r['full_name'])} — {r['days']} يوم — "
-                    f"{r['chicks']:,} × {CHICK_PRICE} = <b>{r['money']:,} ج</b>"
+                    f"{r['chicks']:,} (الألف بـ {CHICK_PRICE}) = <b>{_money_k(r['money']):,} ج</b>"
                 )
         else:
             lines.append("مفيش حساب مسجّل في المدة دي.")
+
+        try:
+            from report_image import render_period_report
+            png = render_period_report(
+                label=label,
+                no_deduct_total=no_deduct_total,
+                total_chicks=total_chicks,
+                chick_price=CHICK_PRICE,
+                total_money_label=f"{_money_k(total_money):,} ج",
+                people=[{
+                    "name": r["full_name"],
+                    "days": r["days"],
+                    "chicks": r["chicks"],
+                    "money": f"{_money_k(r['money']):,} ج",
+                } for r in active],
+                range_label=f"{s_iso}  ·  {e_iso}",
+            )
+            if _send_telegram_photo(png, caption=f"📊 <b>تقرير حساب {_esc_html(label)}</b>"):
+                return
+        except Exception as _img_e:
+            print("telegram period report image error:", _img_e)
+
         _send_telegram_message("\n".join(lines))
     except Exception as e:
         # مش هنكسر عملية إرسال الحساب لو تليجرام فشل لأي سبب
@@ -2252,7 +2358,8 @@ def admin_close_day():
     # ==== تقرير تليجرام تلقائي بعد إغلاق اليوم ====
     try:
         _tg_cur = db.cursor()
-        _send_close_day_telegram_report(_tg_cur, day, tasmeen_after, bayad_after, no_deduct_total)
+        _send_close_day_telegram_report(_tg_cur, day, tasmeen_after, bayad_after, no_deduct_total,
+                                        no_deduct_tasmeen, no_deduct_bayad)
         _tg_cur.close()
     except Exception as _e:
         print("telegram close-day dispatch error:", _e)
