@@ -65,7 +65,9 @@
 
         {% if closed_days %}
         <div class="hist-days">
-          {% for d in closed_days %}
+          {# الأحدث فوق، الأقدم تحت — نعكس ترتيب الأيام المغلقة في العرض بس
+             (من غير ما نلمس ترتيب الفترة ولا حسابات الملخص/التصفير) #}
+          {% for d in closed_days|reverse %}
           <article class="hist-day-card ticket-stub" id="day-{{ d.date }}">
             {% set tasmeen_names = [] %}
             {% set bayad_names = [] %}
