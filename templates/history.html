@@ -94,29 +94,35 @@
               <div class="tkt-receipt">
                 <div class="tkt-receipt-head">
                   <span class="tkt-iso u-mono">{{ d.date }}</span>
-                  <span class="badge badge-green sm hist-day-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                    مغلق
-                  </span>
                 </div>
 
-                {# ---- الأرقام: تايلين متساويين (تسمين / بياض) والإضافي جوّه التايل ---- #}
+                {# ---- الأرقام: تسمين / بياض بعد الخصم ----
+                     لو الحضور كان في جهة واحدة والقيمة بعد الخصم راجعة صفر،
+                     بنعرض إجمالي اليوم في خانة الجهة اللي فيها حضور بدل ما
+                     يظهر في الإجمالي بس. #}
+                {% set t_after = d.tasmeen_after or 0 %}
+                {% set b_after = d.bayad_after or 0 %}
+                {% if (t_after + b_after) == 0 and d.total %}
+                  {% if tasmeen_names and not bayad_names %}{% set t_after = d.total %}
+                  {% elif bayad_names and not tasmeen_names %}{% set b_after = d.total %}{% endif %}
+                {% endif %}
                 <div class="tkt-nums">
                   <div class="tkt-num tkt-num-t">
-                    <div class="tkt-num-v u-mono">{{ '{:,}'.format(d.tasmeen_after) }}</div>
+                    <div class="tkt-num-v u-mono">{{ '{:,}'.format(t_after) }}</div>
                     <div class="tkt-num-l">تسمين</div>
                     {% if d.extra_tasmeen %}
                     <div class="tkt-num-x u-mono">+{{ '{:,}'.format(d.extra_tasmeen) }} إضافي</div>
                     {% endif %}
                   </div>
                   <div class="tkt-num tkt-num-b">
-                    <div class="tkt-num-v u-mono">{{ '{:,}'.format(d.bayad_after) }}</div>
+                    <div class="tkt-num-v u-mono">{{ '{:,}'.format(b_after) }}</div>
                     <div class="tkt-num-l">بياض</div>
                     {% if d.extra_bayad %}
                     <div class="tkt-num-x u-mono">+{{ '{:,}'.format(d.extra_bayad) }} إضافي</div>
                     {% endif %}
                   </div>
                 </div>
+
 
                 {# ---- شريط الإجمالي منفصل بخط متقطع دهبي ---- #}
                 <div class="tkt-total">
@@ -222,9 +228,9 @@
 .tkt-hole-b{ bottom:-8px; }
 
 .tkt-receipt{ flex:1 1 auto; min-width:0; padding:12px 13px; }
-.tkt-receipt-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
-.tkt-iso{ font-size:11px; color:var(--text-3); letter-spacing:.4px; }
-.hist-day-badge{ align-self:start; flex-shrink:0; }
+.tkt-receipt-head{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; }
+.tkt-iso{ font-size:11px; color:var(--text-3); letter-spacing:.4px; text-align:center; }
+
 
 /* ---- حاوية الأرقام: تايلين متساويين، الرقم كبير وواضح ---- */
 .tkt-nums{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
