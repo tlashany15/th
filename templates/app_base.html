@@ -77,36 +77,29 @@
 
   <nav class="sidebar-nav">
     {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('admin_panel') }}" class="snav-admin-btn">
-      <span class="snav-ico">{{ snav_icon('dashboard') }}</span>
-      <span class="snav-admin-txt">
-        <b>لوحة التحكم</b>
-        <small>إدارة الفريق والأعداد</small>
-      </span>
-      <svg class="snav-admin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </a>
-
-    <div class="snav-group">اليومي</div>
     <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية (الحضور)</span></a>
 
+    <details class="snav-acc">
+      <summary><span class="snav-ico">{{ snav_icon('range') }}</span><span>الفريق والتقارير</span><span class="snav-acc-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+      <div class="snav-acc-body">
+        <a href="{{ url_for('admin_close_page', day=nav_day) }}">{{ snav_icon('close') }}<span>إغلاق اليوم</span></a>
+        <a href="{{ url_for('history') }}">{{ snav_icon('history') }}<span>الأعداد</span></a>
+        <a href="{{ url_for('admin_range_report') }}">{{ snav_icon('range') }}<span>التقارير</span></a>
+        {% if is_super_admin %}
+        <a href="{{ url_for('admin_users') }}">{{ snav_icon('users') }}<span>إدارة المستخدمين</span></a>
+        <a href="{{ url_for('admin_storage') }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/></svg><span>إدارة المساحة</span></a>
+        {% endif %}
+      </div>
+    </details>
 
-
-    <a href="{{ url_for('admin_close_page', day=nav_day) }}"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
-
-    <div class="snav-group">السجلات والتقارير</div>
-    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>الأعداد</span></a>
-    <a href="{{ url_for('admin_range_report') }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>التقارير</span></a>
-
-    <div class="snav-group">التواصل</div>
-    <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
-    <a href="{{ url_for('admin_notify') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></span><span>إرسال إشعار</span></a>
-    <a href="{{ url_for('admin_notes') }}"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظاتي</span></a>
-
-    {% if is_super_admin %}
-    <div class="snav-group">إدارة النظام</div>
-    <a href="{{ url_for('admin_users') }}"><span class="snav-ico">{{ snav_icon('users') }}</span><span>إدارة المستخدمين</span></a>
-    <a href="{{ url_for('admin_storage') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/></svg></span><span>إدارة المساحة</span></a>
-    {% endif %}
+    <details class="snav-acc">
+      <summary><span class="snav-ico">{{ snav_icon('chat') }}</span><span>التواصل</span><span class="snav-acc-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+      <div class="snav-acc-body">
+        <a href="{{ url_for('chats_list') }}">{{ snav_icon('chat') }}<span>الدردشة</span></a>
+        <a href="{{ url_for('admin_notify') }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg><span>إرسال إشعار</span></a>
+        <a href="{{ url_for('admin_notes') }}">{{ snav_icon('note') }}<span>ملاحظاتي</span></a>
+      </div>
+    </details>
 
     <div class="snav-group">حسابي</div>
     <a href="{{ url_for('admin_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
@@ -118,6 +111,15 @@
     <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
     {% endif %}
     <a href="{{ url_for('muslim_page') }}"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg></span><span>مسلم</span></a>
+
+    {% if is_real_super_admin %}
+    <form method="post" action="{{ url_for('admin_toggle_maintenance') }}" class="snav-maint-form" onsubmit="return confirm('{% if maintenance_on %}هل تريد تشغيل البرنامج تاني؟{% else %}هل تريد إيقاف البرنامج للصيانة؟{% endif %}');">
+      <button type="submit" class="snav-maint-btn {% if maintenance_on %}is-on{% endif %}">
+        <span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 5.25v13.5l13.5-6.75L5.25 5.25z"/></svg></span>
+        <span>{% if maintenance_on %}البرنامج متوقف — تشغيل{% else %}إيقاف البرنامج للصيانة{% endif %}</span>
+      </button>
+    </form>
+    {% endif %}
 
     <a href="#" id="sidebarThemeLink"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.7 0 2-1.4 1-2.4-.8-.8-.3-2.6 1-2.6h2a5 5 0 005-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/></svg></span><span>مظهر الدردشة</span></a>
     <a href="{{ url_for('logout') }}" class="sidebar-danger"><span class="snav-ico">{{ snav_icon('logout') }}</span><span>تسجيل الخروج</span></a>
