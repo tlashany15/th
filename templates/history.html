@@ -66,25 +66,7 @@
         {% if closed_days %}
         <div class="hist-days">
           {% for d in closed_days %}
-          <article class="hist-day-card" id="day-{{ d.date }}">
-            <header class="hist-day-head">
-              <div class="hist-day-date">
-                <div class="hist-day-num">{{ d.day_num }}</div>
-                <div class="hist-day-wd">{{ d.weekday }}</div>
-              </div>
-              <div class="hist-day-title">
-                <div class="hist-day-total">
-                  <span class="v">{{ '{:,}'.format(d.total) }}</span>
-                  <span class="l">إجمالي كتاكيت</span>
-                </div>
-                <div class="hist-day-iso u-mono">{{ d.date }}</div>
-              </div>
-              <span class="badge badge-green sm hist-day-badge">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                مغلق
-              </span>
-            </header>
-
+          <article class="hist-day-card ticket-stub" id="day-{{ d.date }}">
             {% set tasmeen_names = [] %}
             {% set bayad_names = [] %}
             {% if d.names %}
@@ -95,104 +77,173 @@
               {% endfor %}
             {% endif %}
 
-            {% if is_admin %}
-              {# ==== تعديل الأعداد — تسمين و بياض كودجتين جنب بعض + الإضافي تحتهم ==== #}
-              <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid2 js-hist-edit" data-day="{{ d.date }}">
-                <input type="hidden" name="day" value="{{ d.date }}">
-                <div class="hist-col hist-col-t">
-                  <div class="hist-col-head">
-                    <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg> تسمين</span>
-                    <span class="cnt">{{ tasmeen_names|length }}</span>
-                  </div>
-                  <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
-                  <label class="hist-extra-lbl">إضافي تسمين</label>
-                  <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="0">
-                  {% if tasmeen_names %}
-                    <div class="hist-col-names">
-                      {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
-                    </div>
-                  {% endif %}
-                </div>
-                <div class="hist-col hist-col-b">
-                  <div class="hist-col-head">
-                    <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.3 0 6 4.6 6 9a6 6 0 0 1-12 0c0-4.4 2.7-9 6-9z"/></svg> بياض</span>
-                    <span class="cnt">{{ bayad_names|length }}</span>
-                  </div>
-                  <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
-                  <label class="hist-extra-lbl">إضافي بياض</label>
-                  <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="0">
-                  {% if bayad_names %}
-                    <div class="hist-col-names">
-                      {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
-                    </div>
-                  {% endif %}
-                </div>
-                <button type="submit" class="hist-edit-save" title="حفظ التعديل">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                  <span class="hist-edit-lbl">حفظ</span>
-                </button>
-              </form>
-
-            {% else %}
-              {% if d.names %}
-              <div class="hist-att">
-                <div class="hist-att-two">
-                  <div class="hist-att-col hist-att-col-b">
-                    <div class="hist-att-col-h">بياض ({{ bayad_names|length }})</div>
-                    <div class="hist-att-list">
-                      {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
-                    </div>
-                  </div>
-                  <div class="hist-att-col hist-att-col-t">
-                    <div class="hist-att-col-h">تسمين ({{ tasmeen_names|length }})</div>
-                    <div class="hist-att-list">
-                      {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
-                    </div>
-                  </div>
-                </div>
+            <div class="tkt-row">
+              {# ==== جذمة التذكرة: رقم اليوم + اسم الأسبوع ==== #}
+              <div class="tkt-stub">
+                <div class="tkt-stub-num">{{ d.day_num }}</div>
+                <div class="tkt-stub-wd">{{ d.weekday }}</div>
+                <div class="tkt-stub-status" aria-hidden="true">CLOSED</div>
               </div>
-              {% endif %}
-            {% endif %}
 
-            {% if is_admin and all_workers %}
-            <details class="hist-att-edit">
-              <summary>تعديل الحضور</summary>
-              <div class="hist-att-editor">
-                {% for w in all_workers %}
-                  {% set present = w.id in d.attendee_ids %}
-                  {% set idx = d.attendee_ids.index(w.id) if present else -1 %}
-                  {% set my_farm = d.attendee_farms[idx] if present and d.attendee_farms and idx < d.attendee_farms|length else '' %}
-                  <div class="hist-att-row {% if present %}is-on{% endif %}">
-                    <span class="hist-att-name">{{ w.full_name }}</span>
-                    <div class="hist-att-actions">
-                      <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
-                        <input type="hidden" name="day" value="{{ d.date }}">
-                        <input type="hidden" name="user_id" value="{{ w.id }}">
-                        <input type="hidden" name="farm" value="tasmeen">
-                        <input type="hidden" name="next" value="history">
-                        <button type="submit" class="hist-att-chip is-t {% if present and my_farm == 'tasmeen' %}is-active{% endif %}"
-                                title="حضور تسمين">تسمين</button>
-                      </form>
-                      <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
-                        <input type="hidden" name="day" value="{{ d.date }}">
-                        <input type="hidden" name="user_id" value="{{ w.id }}">
-                        <input type="hidden" name="farm" value="bayad">
-                        <input type="hidden" name="next" value="history">
-                        <button type="submit" class="hist-att-chip is-b {% if present and my_farm == 'bayad' %}is-active{% endif %}"
-                                title="حضور بياض">بياض</button>
-                      </form>
-                      {% if present %}
-                      <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
-                        <input type="hidden" name="day" value="{{ d.date }}">
-                        <input type="hidden" name="user_id" value="{{ w.id }}">
-                        <input type="hidden" name="farm" value="{{ my_farm or 'tasmeen' }}">
-                        <input type="hidden" name="next" value="history">
-                        <button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور" aria-label="إلغاء الحضور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-                      </form>
-                      {% endif %}
+              {# ==== الخط المنقّط + ثقبين زي تذاكر السينما ==== #}
+              <div class="tkt-perf" aria-hidden="true">
+                <span class="tkt-hole tkt-hole-t"></span>
+                <span class="tkt-hole tkt-hole-b"></span>
+              </div>
+
+              {# ==== جسم الإيصال: أرقام بخط مطبعي وخطوط منقّطة زي إيصال البقالة ==== #}
+              <div class="tkt-receipt">
+                <div class="tkt-receipt-head">
+                  <span class="tkt-iso u-mono">{{ d.date }}</span>
+                  <span class="badge badge-green sm hist-day-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                    مغلق
+                  </span>
+                </div>
+
+                <div class="tkt-line">
+                  <span class="tkt-k">تسمين بعد الخصم</span><span class="tkt-dots"></span><span class="tkt-v u-mono">{{ '{:,}'.format(d.tasmeen_after) }}</span>
+                </div>
+                {% if d.extra_tasmeen %}
+                <div class="tkt-line tkt-line-sub">
+                  <span class="tkt-k">إضافي تسمين</span><span class="tkt-dots"></span><span class="tkt-v u-mono">{{ '{:,}'.format(d.extra_tasmeen) }}</span>
+                </div>
+                {% endif %}
+                <div class="tkt-line">
+                  <span class="tkt-k">بياض بعد الخصم</span><span class="tkt-dots"></span><span class="tkt-v u-mono">{{ '{:,}'.format(d.bayad_after) }}</span>
+                </div>
+                {% if d.extra_bayad %}
+                <div class="tkt-line tkt-line-sub">
+                  <span class="tkt-k">إضافي بياض</span><span class="tkt-dots"></span><span class="tkt-v u-mono">{{ '{:,}'.format(d.extra_bayad) }}</span>
+                </div>
+                {% endif %}
+                <div class="tkt-line tkt-line-total">
+                  <span class="tkt-k">إجمالي كتاكيت</span><span class="tkt-dots"></span>
+                  <span class="hist-day-total"><span class="v u-mono">{{ '{:,}'.format(d.total) }}</span></span>
+                </div>
+
+                {% if is_admin %}
+                  {% if tasmeen_names or bayad_names %}
+                  <div class="tkt-names">
+                    {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                    {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                  </div>
+                  {% endif %}
+                {% else %}
+                  {% if d.names %}
+                  <div class="hist-att">
+                    <div class="hist-att-two">
+                      <div class="hist-att-col hist-att-col-b">
+                        <div class="hist-att-col-h">بياض ({{ bayad_names|length }})</div>
+                        <div class="hist-att-list">
+                          {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                        </div>
+                      </div>
+                      <div class="hist-att-col hist-att-col-t">
+                        <div class="hist-att-col-h">تسمين ({{ tasmeen_names|length }})</div>
+                        <div class="hist-att-list">
+                          {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                {% endfor %}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+
+            {% if is_admin %}
+            {# ==== خط قص + كوبونة "فتح للتعديل" منفصلة زي الإيصال ==== #}
+            <div class="tkt-cut" aria-hidden="true"><span class="tkt-cut-ic">&#9986;</span></div>
+            <details class="tkt-edit">
+              <summary class="tkt-edit-summary">
+                <span class="tkt-edit-lock" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V7.5a4.5 4.5 0 00-9 0v3M5.25 10.5h13.5a1.5 1.5 0 011.5 1.5v7.5a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z"/></svg>
+                </span>
+                <span class="tkt-edit-txt">فتح للتعديل</span>
+                <svg class="tkt-edit-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+              </summary>
+
+              <div class="tkt-edit-body">
+                {# ==== تعديل الأعداد — تسمين و بياض كودجتين جنب بعض + الإضافي تحتهم ==== #}
+                <form method="post" action="{{ url_for('admin_edit_day_total') }}" class="hist-edit-grid2 js-hist-edit" data-day="{{ d.date }}">
+                  <input type="hidden" name="day" value="{{ d.date }}">
+                  <div class="hist-col hist-col-t">
+                    <div class="hist-col-head">
+                      <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg> تسمين</span>
+                      <span class="cnt">{{ tasmeen_names|length }}</span>
+                    </div>
+                    <input type="number" min="0" name="tasmeen_after" value="{{ d.tasmeen_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
+                    <label class="hist-extra-lbl">إضافي تسمين</label>
+                    <input type="number" min="0" name="extra_tasmeen" value="{{ d.extra_tasmeen or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="0">
+                    {% if tasmeen_names %}
+                      <div class="hist-col-names">
+                        {% for nm in tasmeen_names %}<span class="name-chip name-chip-tasmeen">{{ nm }}</span>{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="hist-col hist-col-b">
+                    <div class="hist-col-head">
+                      <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.3 0 6 4.6 6 9a6 6 0 0 1-12 0c0-4.4 2.7-9 6-9z"/></svg> بياض</span>
+                      <span class="cnt">{{ bayad_names|length }}</span>
+                    </div>
+                    <input type="number" min="0" name="bayad_after" value="{{ d.bayad_after }}" required class="hist-col-inp" placeholder="بعد الخصم">
+                    <label class="hist-extra-lbl">إضافي بياض</label>
+                    <input type="number" min="0" name="extra_bayad" value="{{ d.extra_bayad or 0 }}" class="hist-col-inp hist-col-inp-extra" placeholder="0">
+                    {% if bayad_names %}
+                      <div class="hist-col-names">
+                        {% for nm in bayad_names %}<span class="name-chip name-chip-bayad">{{ nm }}</span>{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  <button type="submit" class="hist-edit-save" title="حفظ التعديل">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                    <span class="hist-edit-lbl">حفظ</span>
+                  </button>
+                </form>
+
+                {% if all_workers %}
+                <details class="hist-att-edit">
+                  <summary>تعديل الحضور</summary>
+                  <div class="hist-att-editor">
+                    {% for w in all_workers %}
+                      {% set present = w.id in d.attendee_ids %}
+                      {% set idx = d.attendee_ids.index(w.id) if present else -1 %}
+                      {% set my_farm = d.attendee_farms[idx] if present and d.attendee_farms and idx < d.attendee_farms|length else '' %}
+                      <div class="hist-att-row {% if present %}is-on{% endif %}">
+                        <span class="hist-att-name">{{ w.full_name }}</span>
+                        <div class="hist-att-actions">
+                          <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
+                            <input type="hidden" name="day" value="{{ d.date }}">
+                            <input type="hidden" name="user_id" value="{{ w.id }}">
+                            <input type="hidden" name="farm" value="tasmeen">
+                            <input type="hidden" name="next" value="history">
+                            <button type="submit" class="hist-att-chip is-t {% if present and my_farm == 'tasmeen' %}is-active{% endif %}"
+                                    title="حضور تسمين">تسمين</button>
+                          </form>
+                          <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
+                            <input type="hidden" name="day" value="{{ d.date }}">
+                            <input type="hidden" name="user_id" value="{{ w.id }}">
+                            <input type="hidden" name="farm" value="bayad">
+                            <input type="hidden" name="next" value="history">
+                            <button type="submit" class="hist-att-chip is-b {% if present and my_farm == 'bayad' %}is-active{% endif %}"
+                                    title="حضور بياض">بياض</button>
+                          </form>
+                          {% if present %}
+                          <form method="post" action="{{ url_for('admin_mark_attendance') }}" class="hist-att-mini js-hist-att" data-day="{{ d.date }}" data-uid="{{ w.id }}">
+                            <input type="hidden" name="day" value="{{ d.date }}">
+                            <input type="hidden" name="user_id" value="{{ w.id }}">
+                            <input type="hidden" name="farm" value="{{ my_farm or 'tasmeen' }}">
+                            <input type="hidden" name="next" value="history">
+                            <button type="submit" class="hist-att-chip is-x" title="إلغاء الحضور" aria-label="إلغاء الحضور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                          </form>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </details>
+                {% endif %}
               </div>
             </details>
             {% endif %}
@@ -238,24 +289,72 @@
 .cwg-tile-v{ font-size:19px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; color:var(--text); }
 .cwg-tile-l{ font-size:10.5px; font-weight:700; color:var(--text-3); margin-top:5px; }
 
-/* ---- كروت الأيام: نفس لغة ودجتس close-day (زوايا مستديرة، بلَر، حدود هادية) ---- */
+/* ---- كروت الأيام: كل يوم بقى شكله تذكرة/إيصال مقطوع (ticket stub) ---- */
 .hist-days{ display:flex; flex-direction:column; gap:10px; }
 .hist-day-card{
   background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:20px;
   padding:13px; -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
 }
-.hist-day-head{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px;
-  padding-bottom:11px; border-bottom:1px dashed var(--line); margin-bottom:11px; }
-.hist-day-date{ display:flex; flex-direction:column; align-items:center; justify-content:center;
-  min-width:52px; padding:8px 10px; border-radius:14px; background:var(--gold-soft); border:1px solid var(--gold-line); }
-.hist-day-num{ font-size:20px; font-weight:900; line-height:1; color:var(--gold-2); font-variant-numeric:tabular-nums; }
-.hist-day-wd{ font-size:10.5px; color:var(--text-3); margin-top:3px; font-weight:700; }
-.hist-day-title{ min-width:0; }
-.hist-day-total{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
-.hist-day-total .v{ font-size:19px; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums; }
-.hist-day-total .l{ font-size:11.5px; color:var(--text-3); font-weight:700; }
-.hist-day-iso{ font-size:11px; color:var(--text-3); margin-top:2px; letter-spacing:.3px; }
+
+/* ---- جذمة التذكرة (stub) + الإيصال: كارت بره الـpadding العادي عشان الثقوب تلمس الحواف ---- */
+.hist-day-card.ticket-stub{ padding:0; overflow:hidden; position:relative; }
+.tkt-row{ display:flex; align-items:stretch; position:relative; }
+
+.tkt-stub{
+  flex:0 0 66px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; padding:14px 4px; text-align:center;
+  background:linear-gradient(165deg, var(--gold-soft), rgba(255,255,255,.015));
+}
+.tkt-stub-num{ font-family:"Fraunces",serif; font-size:23px; font-weight:900; line-height:1; color:var(--gold-2); font-variant-numeric:tabular-nums; }
+.tkt-stub-wd{ font-size:10px; font-weight:800; color:var(--text-3); margin-top:3px; }
+.tkt-stub-status{
+  writing-mode:vertical-rl; text-orientation:mixed; margin-top:10px; transform:rotate(180deg);
+  font-family:monospace; font-size:9px; letter-spacing:2px; color:var(--text-3); opacity:.5; font-weight:700;
+}
+
+.tkt-perf{ flex:0 0 1px; position:relative; background-image:repeating-linear-gradient(to bottom, var(--line-strong) 0 6px, transparent 6px 13px); }
+.tkt-hole{ position:absolute; right:50%; transform:translateX(50%); width:16px; height:16px; border-radius:50%; background:var(--bg-0); z-index:2; }
+.tkt-hole-t{ top:-8px; }
+.tkt-hole-b{ bottom:-8px; }
+
+.tkt-receipt{ flex:1 1 auto; min-width:0; padding:13px 14px 12px; }
+.tkt-receipt-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px; }
+.tkt-iso{ font-size:11px; color:var(--text-3); letter-spacing:.4px; }
 .hist-day-badge{ align-self:start; flex-shrink:0; }
+
+/* ---- سطور الإيصال: تسمية + خط منقّط + رقم مطبعي، زي إيصال البقالة بالظبط ---- */
+.tkt-line{ display:flex; align-items:baseline; gap:6px; padding:2.5px 0; }
+.tkt-k{ font-size:12.5px; color:var(--text-2); font-weight:700; white-space:nowrap; }
+.tkt-dots{ flex:1 1 auto; min-width:10px; height:0; margin-bottom:4px; border-bottom:1.5px dotted var(--line-strong); }
+.tkt-v{ font-size:14px; font-weight:900; color:var(--text); font-variant-numeric:tabular-nums; }
+.tkt-line-sub .tkt-k, .tkt-line-sub .tkt-v{ font-size:11.5px; font-weight:700; color:var(--text-3); }
+.tkt-line-total{ margin-top:7px; padding-top:9px; border-top:1px dashed var(--line); }
+.tkt-line-total .tkt-k{ color:var(--gold-2); font-weight:900; }
+.tkt-line-total .hist-day-total{ display:inline-flex; }
+.tkt-line-total .hist-day-total .v{ font-size:16px; font-weight:900; color:var(--gold-2); font-variant-numeric:tabular-nums; }
+.tkt-names{ display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; padding-top:9px; border-top:1px dashed var(--line); }
+
+/* ---- خط القص + كوبونة "فتح للتعديل" المنفصلة ---- */
+.tkt-cut{ position:relative; height:0; margin:0 14px; border-top:1px dashed var(--line-strong); }
+.tkt-cut-ic{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg);
+  background:var(--surface,#14161d); padding:0 6px; font-size:12px; line-height:1; color:var(--text-3);
+}
+.tkt-edit{ margin:11px 13px 13px; }
+.tkt-edit-summary{
+  list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px;
+  padding:11px 13px; border-radius:14px; background:rgba(255,255,255,.03);
+  border:1px dashed var(--line-strong); font-size:12.5px; font-weight:800; color:var(--text-2);
+  transition:.2s;
+}
+.tkt-edit-summary::-webkit-details-marker{ display:none; }
+.tkt-edit-lock{ display:grid; place-items:center; width:20px; height:20px; flex-shrink:0; }
+.tkt-edit-lock svg{ width:15px; height:15px; }
+.tkt-edit-txt{ flex:1; }
+.tkt-edit-chev{ width:14px; height:14px; flex-shrink:0; transition:transform .2s; }
+.tkt-edit[open] .tkt-edit-summary{ border-style:solid; border-color:var(--gold-line); color:var(--gold-2); }
+.tkt-edit[open] .tkt-edit-chev{ transform:rotate(180deg); }
+.tkt-edit-body{ padding-top:11px; display:flex; flex-direction:column; gap:11px; }
 
 /* ---- فورمة تعديل الأعداد: كودجتين جنب بعض (تسمين/بياض) ---- */
 .hist-edit-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -348,6 +447,9 @@
 @media(max-width:420px){
   .hist-edit-grid2, .hist-att-two, .cwg-row{ grid-template-columns:1fr; }
   .hist-edit-grid2 .hist-edit-save{ grid-column:auto; }
+  .tkt-stub{ flex-basis:54px; padding:12px 3px; }
+  .tkt-stub-num{ font-size:19px; }
+  .tkt-receipt{ padding:12px 11px 11px; }
 }
 </style>
 
