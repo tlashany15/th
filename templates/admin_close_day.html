@@ -76,6 +76,70 @@
   @media (max-width:340px){ .wg-name{ font-size:16px; } .wg-num{ font-size:20px; } }
 </style>
 
+<!-- ============================================================
+     TICKET STUB — كارت أرقام الإغلاق بشكل إيصال/تذكرة مقطوعة
+     ============================================================ -->
+<style>
+  .ticket-card{ padding:0!important; }
+  .tk-top{ display:flex; align-items:stretch; min-height:150px; }
+
+  /* --- المنطقة الرئيسية: أرقام بخط مطبعي وخطوط منقطة زي إيصال --- */
+  .tk-main{ flex:1 1 auto; min-width:0; padding:15px 13px 12px; display:flex; flex-direction:column; gap:8px; }
+  .tk-row{ display:flex; align-items:center; gap:6px; }
+  .tk-row-sub{ opacity:.7; }
+  .tk-row-sub .tk-lbl{ font-size:10.5px; }
+  .tk-row-sub .tk-val{ font-size:14px; }
+  .tk-lbl{ flex:0 0 auto; font-size:12.5px; font-weight:800; color:var(--wg-dim); white-space:nowrap; }
+  .tk-dots{ flex:1 1 auto; min-width:10px; height:0; border-bottom:2px dotted rgba(255,255,255,.24); margin:0 2px 6px; }
+  .tk-val{ flex:0 0 auto; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; font-size:19px; font-weight:900; letter-spacing:.2px; }
+  .tk-val.tk-c-gold{ color:var(--wg-gold); }
+  .tk-val.tk-c-blue{ color:var(--wg-blue); }
+
+  .tk-names{ margin-top:5px; display:flex; align-items:center; gap:7px; width:100%; text-align:start;
+    padding:9px 10px; border-radius:12px; background:rgba(255,255,255,.045); border:1px solid var(--wg-line);
+    color:var(--wg-txt); font-family:inherit; font-size:11px; font-weight:800; cursor:pointer; line-height:1.4; }
+  .tk-names .tk-chev{ width:14px; height:14px; flex:0 0 auto; transition:transform .2s ease; }
+  .tk-names span{ min-width:0; flex:1 1 auto; white-space:normal; word-break:break-word; }
+  .tk-names:active{ transform:scale(.98); }
+
+  /* --- الخط المنقط الفاصل + ثقوب التذكرة --- */
+  .tk-divider{ position:relative; flex:0 0 auto; width:1px; margin:12px 0;
+    background-image:repeating-linear-gradient(to bottom, rgba(255,255,255,.24) 0 6px, transparent 6px 13px); }
+  .tk-hole{ position:absolute; left:50%; transform:translateX(-50%); width:13px; height:13px; border-radius:50%;
+    background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.12); box-shadow:inset 0 1px 3px rgba(0,0,0,.55); }
+  .tk-hole-top{ top:-7px; } .tk-hole-bot{ bottom:-7px; }
+
+  /* --- جذمة التذكرة: رقم اليوم + اسم اليوم + حالة عمودية --- */
+  .tk-stub{ flex:0 0 82px; display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding:13px 6px 11px; background:linear-gradient(180deg, rgba(227,185,107,.10), rgba(227,185,107,.02)); }
+  .tk-stub.is-open{ background:linear-gradient(180deg, rgba(74,163,255,.10), rgba(74,163,255,.02)); }
+  .tk-stub-date{ font-size:9px; font-weight:700; color:var(--wg-dim); font-variant-numeric:tabular-nums; margin-bottom:7px; }
+  .tk-stub-day{ font-size:29px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
+  .tk-stub-wd{ font-size:11.5px; font-weight:800; color:var(--wg-dim); margin-top:3px; }
+  .tk-stub-status{ writing-mode:vertical-rl; text-orientation:upright; letter-spacing:2px;
+    font-size:9.5px; font-weight:900; color:rgba(255,255,255,.32); margin-top:auto; padding-top:10px; }
+  .tk-stub-status.is-open{ color:var(--wg-blue); }
+
+  /* --- خط القص + المقص --- */
+  .tk-cut{ display:flex; align-items:center; gap:8px; padding:0 14px; color:rgba(255,255,255,.28); }
+  .tk-cut-line{ flex:1 1 auto; height:0; border-top:1px dashed rgba(255,255,255,.16); }
+  .tk-cut-ico{ width:14px; height:14px; flex:0 0 auto; }
+
+  /* --- كوبونة "فتح للتعديل" --- */
+  .tk-unlock{ display:flex; align-items:center; justify-content:center; gap:8px; width:calc(100% - 24px);
+    margin:9px 12px 12px; padding:11px 14px; border-radius:14px; border:1.5px dashed rgba(255,255,255,.18);
+    background:rgba(255,255,255,.02); color:var(--wg-dim); font-family:inherit; font-size:12.5px; font-weight:800;
+    cursor:pointer; transition:.18s ease; }
+  .tk-unlock:active{ transform:scale(.98); }
+  .tk-unlock.is-unlocked{ color:var(--wg-txt); border-color:rgba(227,185,107,.35); background:rgba(227,185,107,.07); }
+  .tk-unlock-ico{ width:15px; height:15px; flex:0 0 auto; }
+
+  .tk-edit-panel{ padding:0 13px 14px; }
+  .tk-edit-panel[hidden]{ display:none; }
+
+  @media (max-width:340px){ .tk-stub{ flex-basis:72px; } .tk-val{ font-size:17px; } .tk-stub-day{ font-size:25px; } }
+</style>
+
 <div class="wg-wrap">
   <div class="wg-grid">
 
@@ -123,27 +187,78 @@
       <a class="nav-arr {% if is_today %}nav-arr-disabled{% endif %}" href="{% if not is_today %}{{ url_for('admin_close_page', day=next_day) }}{% else %}#{% endif %}" aria-label="اليوم التالي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg></a>
     </div>
 
-    <!-- ودجت عريض: فورمة الأرقام -->
-    <div class="wg-cell wg-form close-card">
-      <div class="wg-form-head">
-        <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span>
-        <div><b>أرقام الإغلاق</b><small>سجّل أعداد اليوم قبل ما تقفله</small></div>
+    <!-- ودجت عريض: كارت أرقام الإغلاق بشكل تذكرة/إيصال مقطوع -->
+    <div class="wg-cell wg-wide ticket-card" id="closeTicketCard">
+      <div class="tk-top">
+        <div class="tk-main">
+          <div class="tk-row">
+            <span class="tk-lbl">تسمين بعد الخصم</span><span class="tk-dots" aria-hidden="true"></span>
+            <span class="tk-val tk-c-gold" id="tkTasmeenAfter">{{ '{:,}'.format(tasmeen_after or 0) }}</span>
+          </div>
+          {% if extra_tasmeen %}
+          <div class="tk-row tk-row-sub">
+            <span class="tk-lbl">إضافي تسمين</span><span class="tk-dots" aria-hidden="true"></span>
+            <span class="tk-val" id="tkExtraTasmeen">{{ '{:,}'.format(extra_tasmeen) }}</span>
+          </div>
+          {% endif %}
+          <div class="tk-row">
+            <span class="tk-lbl">بياض بعد الخصم</span><span class="tk-dots" aria-hidden="true"></span>
+            <span class="tk-val tk-c-blue" id="tkBayadAfter">{{ '{:,}'.format(bayad_after or 0) }}</span>
+          </div>
+          {% if extra_bayad %}
+          <div class="tk-row tk-row-sub">
+            <span class="tk-lbl">إضافي بياض</span><span class="tk-dots" aria-hidden="true"></span>
+            <span class="tk-val" id="tkExtraBayad">{{ '{:,}'.format(extra_bayad) }}</span>
+          </div>
+          {% endif %}
+          <button type="button" class="tk-names" id="tkNamesToggle" aria-expanded="false">
+            <svg class="tk-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            <span><span id="countTasmeen">{{ present_tasmeen }}</span> تسمين · <span id="countBayad">{{ present_bayad }}</span> بياض — عرض الأسماء</span>
+          </button>
+        </div>
+
+        <div class="tk-divider" aria-hidden="true"><i class="tk-hole tk-hole-top"></i><i class="tk-hole tk-hole-bot"></i></div>
+
+        <div class="tk-stub {% if not day_closed %}is-open{% endif %}" id="tkStub">
+          <div class="tk-stub-date">{{ day }}</div>
+          <div class="tk-stub-day tk-c-gold">{{ day[-2:] }}</div>
+          <div class="tk-stub-wd">{{ (day|weekday_ar)[2:] if (day|weekday_ar)[:2] == 'ال' else (day|weekday_ar) }}</div>
+          <div class="tk-stub-status {% if not day_closed %}is-open{% endif %}" id="tkStubStatus">{{ 'CLOSED' if day_closed else 'OPEN' }}</div>
+        </div>
       </div>
-  <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
-    <input type="hidden" name="day" value="{{ day }}">
-    <div class="close-grid close-grid-main">
-      <label class="field-wrap field-gold"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h7"/></svg> تسمين بعد الخصم</span><input id="closeTasmeenInput" name="tasmeen_after" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ tasmeen_after or '' }}" class="field-input"></label>
-      <label class="field-wrap field-blue"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c3.3 0 6 4.6 6 9a6 6 0 0 1-12 0c0-4.4 2.7-9 6-9z"/></svg> بياض بعد الخصم</span><input id="closeBayadInput" name="bayad_after" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ bayad_after or '' }}" class="field-input"><span class="field-hint">يتوزع على حاضري البياض</span></label>
-      <label class="field-wrap field-gold field-extra"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg> إضافي تسمين</span><input id="closeExtraTasmeenInput" name="extra_tasmeen" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ extra_tasmeen or '' }}" class="field-input"><span class="field-hint">يتوزع فقط على المحددين كـ«إضافي» في التسمين</span></label>
-      <label class="field-wrap field-blue field-extra"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg> إضافي بياض</span><input id="closeExtraBayadInput" name="extra_bayad" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ extra_bayad or '' }}" class="field-input"><span class="field-hint">يتوزع فقط على المحددين كـ«إضافي» في البياض</span></label>
-      <label class="field-wrap field-gold"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M4 12h16M4 19h16"/></svg> تسمين بدون خصم</span><input id="closeNoDeductTasmeenInput" name="no_deduct_tasmeen" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_tasmeen or '' }}" class="field-input"><span class="field-hint">يتسجل في سجل الأعداد بدون خصم</span></label>
-      <label class="field-wrap field-blue"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M4 12h16M4 19h16"/></svg> بياض بدون خصم</span><input id="closeNoDeductBayadInput" name="no_deduct_bayad" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_bayad or '' }}" class="field-input"><span class="field-hint">يتسجل في سجل الأعداد بدون خصم</span></label>
-      <div class="field-wrap field-neutral nd-sum-wrap"><span class="field-lbl">إجمالي الأعداد بدون خصم</span><div class="nd-sum-v" id="closeNoDeductSum">{{ '{:,}'.format(no_deduct_total or 0) }}</div></div>
+
+      <div class="tk-cut" aria-hidden="true">
+        <span class="tk-cut-line"></span>
+        <svg class="tk-cut-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88"/><path d="M14.47 14.48 20 20"/><path d="M8.12 8.12 12 12"/></svg>
+        <span class="tk-cut-line"></span>
+      </div>
+
+      <button type="button" class="tk-unlock {% if not day_closed %}is-unlocked{% endif %}" id="tkUnlockBtn" aria-expanded="{{ 'true' if not day_closed else 'false' }}" aria-controls="tkEditPanel">
+        <svg class="tk-unlock-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="9" rx="2.2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0"/></svg>
+        <span class="tk-unlock-txt" id="tkUnlockTxt">{% if day_closed %}فتح للتعديل من صفحة إغلاق اليوم{% else %}إخفاء التعديل{% endif %}</span>
+      </button>
+
+      <div class="tk-edit-panel" id="tkEditPanel" {% if day_closed %}hidden{% endif %}>
+        <div class="wg-form-head">
+          <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span>
+          <div><b>أرقام الإغلاق</b><small>سجّل أعداد اليوم قبل ما تقفله</small></div>
+        </div>
+    <form id="closeDayForm" method="post" action="{{ url_for('admin_close_day') }}">
+      <input type="hidden" name="day" value="{{ day }}">
+      <div class="close-grid close-grid-main">
+        <label class="field-wrap field-gold"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h10M4 18h7"/></svg> تسمين بعد الخصم</span><input id="closeTasmeenInput" name="tasmeen_after" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ tasmeen_after or '' }}" class="field-input"></label>
+        <label class="field-wrap field-blue"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c3.3 0 6 4.6 6 9a6 6 0 0 1-12 0c0-4.4 2.7-9 6-9z"/></svg> بياض بعد الخصم</span><input id="closeBayadInput" name="bayad_after" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ bayad_after or '' }}" class="field-input"><span class="field-hint">يتوزع على حاضري البياض</span></label>
+        <label class="field-wrap field-gold field-extra"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg> إضافي تسمين</span><input id="closeExtraTasmeenInput" name="extra_tasmeen" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ extra_tasmeen or '' }}" class="field-input"><span class="field-hint">يتوزع فقط على المحددين كـ«إضافي» في التسمين</span></label>
+        <label class="field-wrap field-blue field-extra"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg> إضافي بياض</span><input id="closeExtraBayadInput" name="extra_bayad" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ extra_bayad or '' }}" class="field-input"><span class="field-hint">يتوزع فقط على المحددين كـ«إضافي» في البياض</span></label>
+        <label class="field-wrap field-gold"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M4 12h16M4 19h16"/></svg> تسمين بدون خصم</span><input id="closeNoDeductTasmeenInput" name="no_deduct_tasmeen" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_tasmeen or '' }}" class="field-input"><span class="field-hint">يتسجل في سجل الأعداد بدون خصم</span></label>
+        <label class="field-wrap field-blue"><span class="field-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M4 12h16M4 19h16"/></svg> بياض بدون خصم</span><input id="closeNoDeductBayadInput" name="no_deduct_bayad" type="number" inputmode="numeric" min="0" placeholder="0" value="{{ no_deduct_bayad or '' }}" class="field-input"><span class="field-hint">يتسجل في سجل الأعداد بدون خصم</span></label>
+        <div class="field-wrap field-neutral nd-sum-wrap"><span class="field-lbl">إجمالي الأعداد بدون خصم</span><div class="nd-sum-v" id="closeNoDeductSum">{{ '{:,}'.format(no_deduct_total or 0) }}</div></div>
+      </div>
+      <div class="close-actions"><button class="btn-close-primary" type="button" id="btnConfirmClose"><span class="btn-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3.75 21.75h16.5a1.5 1.5 0 001.5-1.5v-8.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v8.25a1.5 1.5 0 001.5 1.5z"/></svg></span><span class="btn-lbl" id="btnCloseLbl">{% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}</span></button></div>
+    </form>
+    <form id="reopenForm" method="post" action="{{ url_for('admin_reopen_day') }}" class="close-actions" {% if not day_closed %}hidden{% endif %}><input type="hidden" name="day" value="{{ day }}"><input type="hidden" name="next" value="close-page"><button class="btn-close-reopen" type="submit"><span class="btn-lbl">إعادة فتح اليوم</span><span class="btn-hint">الأرقام تفضل محفوظة</span></button></form>
+      </div>
     </div>
-    <div class="close-actions"><button class="btn-close-primary" type="button" id="btnConfirmClose"><span class="btn-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75M3.75 21.75h16.5a1.5 1.5 0 001.5-1.5v-8.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v8.25a1.5 1.5 0 001.5 1.5z"/></svg></span><span class="btn-lbl" id="btnCloseLbl">{% if day_closed %}تحديث الإغلاق{% else %}إغلاق اليوم وتسجيل الإجمالي{% endif %}</span></button></div>
-  </form>
-  <form id="reopenForm" method="post" action="{{ url_for('admin_reopen_day') }}" class="close-actions" {% if not day_closed %}hidden{% endif %}><input type="hidden" name="day" value="{{ day }}"><input type="hidden" name="next" value="close-page"><button class="btn-close-reopen" type="submit"><span class="btn-lbl">إعادة فتح اليوم</span><span class="btn-hint">الأرقام تفضل محفوظة</span></button></form>
-</div>
 
 <div class="wg-cell wg-wide wg-form" id="attCard" data-day="{{ day }}">
   <div class="sec-head">
@@ -267,6 +382,10 @@
     if(ht) ht.textContent=closed?'اليوم مغلق':'اليوم مفتوح';
     var dn=document.getElementById('daynavLabel');
     if(dn) dn.textContent=(closed?'اليوم مقفول':'اليوم مفتوح')+(isToday?' · اليوم':'');
+    var tks=document.getElementById('tkStubStatus'),tkStub=document.getElementById('tkStub');
+    if(tks) tks.textContent=closed?'CLOSED':'OPEN';
+    if(tks) tks.classList.toggle('is-open',!closed);
+    if(tkStub) tkStub.classList.toggle('is-open',!closed);
     document.querySelectorAll('.att-actions').forEach(function(el){ el.style.display=closed?'none':''; });
     document.querySelectorAll('.att-status').forEach(function(el){ el.style.display=closed?'':'none'; });
     document.querySelectorAll('.js-extra-toggle').forEach(function(el){ el.style.display=closed?'none':''; });
@@ -297,7 +416,7 @@
   if(ndT)ndT.addEventListener('input',syncNd);
   if(ndB)ndB.addEventListener('input',syncNd);
   syncNd();
-  if(b&&form&&tIn&&bIn){b.addEventListener('click',function(){var t=parseInt(tIn.value||'0',10)||0,y=parseInt(bIn.value||'0',10)||0,nd=ndTotal(),xt=parseInt((eT&&eT.value)||'0',10)||0,xb=parseInt((eB&&eB.value)||'0',10)||0;if(t<0||y<0||nd<0||xt<0||xb<0){(window.appAlert||alert)('ادخل أرقام صحيحة','error');return}var msg='تسمين: '+fmt(t)+' · بياض: '+fmt(y)+(xt?(' · إضافي تسمين: '+fmt(xt)):'')+(xb?(' · إضافي بياض: '+fmt(xb)):'')+' · الإجمالي: '+fmt(t+y+xt+xb)+(nd?(' · بدون خصم: '+fmt(nd)+' (تسمين '+fmt(parseInt((ndT&&ndT.value)||'0',10)||0)+' · بياض '+fmt(parseInt((ndB&&ndB.value)||'0',10)||0)+')'):'')+'. تأكيد؟';(window.appConfirm?window.appConfirm(msg,{okText:isClosed?'تأكيد التحديث':'تأكيد الإغلاق'}):Promise.resolve(confirm(msg))).then(function(ok){if(!ok)return;b.disabled=true;fetch(form.action,{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('bad');return r.json()}).then(function(d){setText('kpiDayTotal',fmt(d.total));document.getElementById('closedHeroTitle').textContent='اليوم مغلق';document.getElementById('closedHero').classList.remove('is-draft');var ex='';if(d.extra_tasmeen)ex+=' · إضافي تسمين <strong>'+fmt(d.extra_tasmeen)+'</strong>';if(d.extra_bayad)ex+=' · إضافي بياض <strong>'+fmt(d.extra_bayad)+'</strong>';setClosedUI(true);if(window.appAlert)window.appAlert('تم حفظ الإغلاق','success')}).catch(function(){(window.appAlert||alert)('تعذّر حفظ الإغلاق','error')}).finally(function(){b.disabled=false})})})}
+  if(b&&form&&tIn&&bIn){b.addEventListener('click',function(){var t=parseInt(tIn.value||'0',10)||0,y=parseInt(bIn.value||'0',10)||0,nd=ndTotal(),xt=parseInt((eT&&eT.value)||'0',10)||0,xb=parseInt((eB&&eB.value)||'0',10)||0;if(t<0||y<0||nd<0||xt<0||xb<0){(window.appAlert||alert)('ادخل أرقام صحيحة','error');return}var msg='تسمين: '+fmt(t)+' · بياض: '+fmt(y)+(xt?(' · إضافي تسمين: '+fmt(xt)):'')+(xb?(' · إضافي بياض: '+fmt(xb)):'')+' · الإجمالي: '+fmt(t+y+xt+xb)+(nd?(' · بدون خصم: '+fmt(nd)+' (تسمين '+fmt(parseInt((ndT&&ndT.value)||'0',10)||0)+' · بياض '+fmt(parseInt((ndB&&ndB.value)||'0',10)||0)+')'):'')+'. تأكيد؟';(window.appConfirm?window.appConfirm(msg,{okText:isClosed?'تأكيد التحديث':'تأكيد الإغلاق'}):Promise.resolve(confirm(msg))).then(function(ok){if(!ok)return;b.disabled=true;fetch(form.action,{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('bad');return r.json()}).then(function(d){setText('kpiDayTotal',fmt(d.total));document.getElementById('closedHeroTitle').textContent='اليوم مغلق';document.getElementById('closedHero').classList.remove('is-draft');var ex='';if(d.extra_tasmeen)ex+=' · إضافي تسمين <strong>'+fmt(d.extra_tasmeen)+'</strong>';if(d.extra_bayad)ex+=' · إضافي بياض <strong>'+fmt(d.extra_bayad)+'</strong>';setText('tkTasmeenAfter',fmt(t));setText('tkBayadAfter',fmt(y));setText('tkExtraTasmeen',fmt(xt));setText('tkExtraBayad',fmt(xb));setClosedUI(true);if(window.appAlert)window.appAlert('تم حفظ الإغلاق','success')}).catch(function(){(window.appAlert||alert)('تعذّر حفظ الإغلاق','error')}).finally(function(){b.disabled=false})})})}
   var card=document.getElementById('attCard');if(!card)return;var day=card.dataset.day;
   function countFarm(f){return document.querySelectorAll('.att-row[data-farm="'+f+'"]').length} function refreshCounts(d){var t=d&&d.present_tasmeen!==undefined?d.present_tasmeen:countFarm('tasmeen'),y=d&&d.present_bayad!==undefined?d.present_bayad:countFarm('bayad'),total=d&&d.present_count!==undefined?d.present_count:t+y;setText('countTasmeen',t);setText('countBayad',y);setText('kpiPresentTop',total);setText('kpiPresentInline',total)}
   function updateRow(row,farm){row.dataset.farm=farm||'';row.classList.toggle('is-on',!!farm);row.classList.toggle('farm-tasmeen',farm==='tasmeen');row.classList.toggle('farm-bayad',farm==='bayad');row.querySelectorAll('.farm-btn').forEach(function(btn){btn.classList.toggle('on',btn.dataset.farm===farm)});var sub=row.querySelector('.att-sub-txt');if(sub)sub.textContent=farm==='tasmeen'?'حاضر تسمين':(farm==='bayad'?'حاضر بياض':'غير مُحضَّر');var st=row.querySelector('.att-status');if(st){st.textContent=farm==='tasmeen'?'تسمين':(farm==='bayad'?'بياض':'—');st.classList.toggle('on',!!farm);}var settle=row.querySelector('.settle-mark-row');if(settle){settle.hidden=false;settle.classList.toggle('is-locked',!farm);}if(!farm){row.classList.remove('is-settled');row.classList.remove('is-extra');row.dataset.extra='0';var xb=row.querySelector('.js-extra-toggle');if(xb){xb.classList.remove('is-on');var xl=xb.querySelector('.sm-lbl');if(xl)xl.textContent='إضافي'}var xf=row.querySelector('.extra-flag');if(xf)xf.remove()}refreshCounts()}
@@ -336,5 +455,28 @@
   document.querySelectorAll('.js-manual-input').forEach(function(inp){ inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); var row=inp.closest('.att-row'); row.querySelector('.js-manual-save').click(); } }); });
 })();
 (function(){document.querySelectorAll('.js-settle-mark').forEach(function(btn){var row=btn.closest('.att-row');btn.addEventListener('click',function(){if(btn.disabled)return;btn.disabled=true;var fd=new FormData();fd.append('user_id',btn.dataset.uid);fd.append('day',btn.dataset.day);fetch('/admin/worker-day-settle?ajax=1',{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}}).then(function(r){return r.json()}).then(function(d){var on=d&&d.state==='settled';btn.classList.toggle('is-settled',on);row&&row.classList.toggle('is-settled',on);btn.querySelector('.sm-lbl').textContent=on?'تمت المحاسبة':'تم المحاسبة'}).catch(function(){(window.appAlert||alert)('تعذّر الحفظ','error')}).finally(function(){btn.disabled=false})})})})();
+(function(){
+  // كوبونة "فتح للتعديل": تفتح/تقفل فورمة الأرقام تحت خط القص
+  var btn=document.getElementById('tkUnlockBtn'),panel=document.getElementById('tkEditPanel'),txt=document.getElementById('tkUnlockTxt');
+  if(!btn||!panel) return;
+  function setUnlocked(open){
+    panel.hidden=!open;
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    btn.classList.toggle('is-unlocked',open);
+    if(txt) txt.textContent=open?'إخفاء التعديل':'فتح للتعديل من صفحة إغلاق اليوم';
+  }
+  btn.addEventListener('click',function(){ setUnlocked(panel.hidden); });
+})();
+(function(){
+  // زر "عرض الأسماء": ينزّل لقائمة اليوم تحت
+  var namesBtn=document.getElementById('tkNamesToggle');
+  if(!namesBtn) return;
+  namesBtn.addEventListener('click',function(){
+    var card=document.getElementById('attCard');
+    if(card&&card.scrollIntoView) card.scrollIntoView({behavior:'smooth',block:'start'});
+    var search=document.getElementById('workerSearch');
+    if(search) setTimeout(function(){ search.focus({preventScroll:true}); },380);
+  });
+})();
 </script>
 {% endblock %}
