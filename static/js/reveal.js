@@ -64,17 +64,17 @@
     if (e.persisted) revealPage();
   });
 
-  /* ---------- 2) الشريط الجانبي: العناصر تدخل من اليمين واحدة ورا التانية ---------- */
+  /* ---------- 2) الشريط الجانبي (شيت من تحت): العناصر تظهر واحدة ورا التانية ---------- */
   function revealSidebar(side) {
     var groups = [];
-    var header = side.querySelector('.sidebar-header');
-    if (header) groups.push(header);
+    var handle = side.querySelector('.sidebar-handle');
+    if (handle) groups.push(handle);
     Array.prototype.forEach.call(
       side.querySelectorAll('.sidebar-nav > *, .sidebar-section-title, .sidebar-workers > *'),
       function (el) { groups.push(el); }
     );
     if (!groups.length) return;
-    stagger(groups, { step: 38, duration: 340, x: 26, y: 0 });
+    stagger(groups, { step: 22, duration: 300, x: 0, y: 10 });
   }
 
   function watchSidebar() {
