@@ -877,6 +877,7 @@ def inject_user():
         "is_super_admin": _is_super_admin(u),
         "impersonator": impersonator,
         "is_real_super_admin": _is_super_admin(ru),
+        "maintenance_on": _maintenance_on() if u else False,
         "ADMIN_BOT_USERNAME": ADMIN_BOT_USERNAME,
     }
 
@@ -2284,7 +2285,7 @@ def admin_toggle_maintenance():
         flash("تم إيقاف البرنامج لكل المستخدمين ⏸️ — أنت الوحيد اللي تقدر تدخل الآن.", "success")
     else:
         flash("تم تشغيل البرنامج من جديد ▶️ — كل المستخدمين يقدروا يدخلوا.", "success")
-    return redirect(url_for("admin_panel"))
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 
