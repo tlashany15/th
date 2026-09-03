@@ -66,64 +66,62 @@
 {% if current_user %}
 <!-- SIDEBAR -->
 <aside id="appSidebar" class="app-sidebar" aria-hidden="true">
-  <div class="sidebar-header">
-    <div class="sidebar-me">
-      <div class="sidebar-avatar">{% if current_user.avatar %}<img src="{{ current_user.avatar }}" alt="">{% else %}{{ (current_user.full_name or '?')[:1] }}{% endif %}</div>
-      <div>
-        <div class="sidebar-name">{{ current_user.full_name }}</div>
-      </div>
-    </div>
-  </div>
+  <div class="sidebar-handle"><span></span></div>
 
   <nav class="sidebar-nav">
     {% if current_user.role == 'admin' %}
-    <a href="{{ url_for('dashboard') }}" class="snav-main"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية — الحضور اليومي</span></a>
+    <a href="{{ url_for('dashboard') }}" class="snav-main-row">الرئيسية — الحضور اليومي</a>
 
-    <div class="snav-grid-title">الفريق والتقارير</div>
-    <div class="snav-grid snav-grid-2">
-      <a href="{{ url_for('history') }}" class="snav-tile"><span class="snav-ico">{{ snav_icon('history') }}</span><span>الأعداد</span></a>
-      <a href="{{ url_for('admin_range_report') }}" class="snav-tile"><span class="snav-ico">{{ snav_icon('range') }}</span><span>التقارير</span></a>
-      <a href="{{ url_for('admin_close_page', day=nav_day) }}" class="snav-tile"><span class="snav-ico">{{ snav_icon('close') }}</span><span>إغلاق اليوم</span></a>
-      {% if is_super_admin %}
-      <a href="{{ url_for('admin_users') }}" class="snav-tile"><span class="snav-ico">{{ snav_icon('users') }}</span><span>المستخدمين</span></a>
-      {% endif %}
-      {% if is_super_admin %}
-      <a href="{{ url_for('admin_storage') }}" class="snav-tile"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/></svg></span><span>المساحة</span></a>
-      {% endif %}
-    </div>
-
-    <div class="snav-grid-title">التواصل</div>
-    <div class="snav-grid snav-grid-3">
-      <a href="{{ url_for('chats_list') }}" class="snav-tile"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>دردشة</span></a>
-      <a href="{{ url_for('admin_notify') }}" class="snav-tile"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg></span><span>إشعار</span></a>
-      <a href="{{ url_for('admin_notes') }}" class="snav-tile"><span class="snav-ico">{{ snav_icon('note') }}</span><span>ملاحظات</span></a>
-    </div>
-
-    <div class="snav-divider"></div>
-    <a href="{{ url_for('admin_profile') }}" class="snav-center"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي</span></a>
-    {% else %}
-    <a href="{{ url_for('dashboard') }}"><span class="snav-ico">{{ snav_icon('dashboard') }}</span><span>الرئيسية</span></a>
-    <a href="{{ url_for('history') }}"><span class="snav-ico">{{ snav_icon('history') }}</span><span>اجمالي اعداد المده</span></a>
-    <a href="{{ url_for('worker_stats', worker_id=current_user.id) }}"><span class="snav-ico">{{ snav_icon('range') }}</span><span>نصيبي هذا الشهر</span></a>
-    <a href="{{ url_for('worker_profile') }}"><span class="snav-ico">{{ snav_icon('profile') }}</span><span>بياناتي وكلمة السر</span></a>
-    <a href="{{ url_for('chats_list') }}"><span class="snav-ico">{{ snav_icon('chat') }}</span><span>الدردشة</span></a>
+    <div class="snav-row-title">الفريق والتقارير</div>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('history') }}">الأعداد</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('admin_range_report') }}">التقارير</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('admin_close_page', day=nav_day) }}">إغلاق اليوم</a>
+    {% if is_super_admin %}
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('admin_users') }}">إدارة المستخدمين</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('admin_storage') }}">إدارة المساحة</a>
     {% endif %}
 
-    {% if current_user.role == 'admin' %}<div class="snav-divider"></div>{% endif %}
-    <div class="snav-grid snav-grid-3">
-      <a href="{{ url_for('muslim_page') }}" class="snav-center"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6c-1.1 1.9-1.1 3.3 0 5.2M6.5 21c-2.2-2-3.5-4.6-3.5-7.6C3 8.7 7 5 12 5s9 3.7 9 8.4c0 3-1.3 5.6-3.5 7.6"/><path d="M3 21h18"/><path d="M8.5 21v-4a3.5 3.5 0 0 1 7 0v4"/></svg></span><span>مسلم</span></a>
-      <a href="#" id="sidebarThemeLink" class="snav-center"><span class="snav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.7 0 2-1.4 1-2.4-.8-.8-.3-2.6 1-2.6h2a5 5 0 005-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/></svg></span><span>مظهر الدردشة</span></a>
-      <a href="{{ url_for('logout') }}" class="snav-center sidebar-danger"><span class="snav-ico">{{ snav_icon('logout') }}</span><span>خروج</span></a>
-    </div>
+    <div class="snav-row-title">التواصل</div>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('chats_list') }}">الدردشة</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('admin_notify') }}">إرسال إشعار</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('admin_notes') }}">ملاحظاتي</a>
+
+    <div class="snav-row-divider" style="margin-top:6px"></div>
+    <a href="{{ url_for('admin_profile') }}">بياناتي</a>
+    {% else %}
+    <a href="{{ url_for('dashboard') }}" class="snav-main-row">الرئيسية</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('history') }}">اجمالي اعداد المده</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('worker_stats', worker_id=current_user.id) }}">نصيبي هذا الشهر</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('worker_profile') }}">بياناتي وكلمة السر</a>
+    <div class="snav-row-divider"></div>
+    <a href="{{ url_for('chats_list') }}">الدردشة</a>
+    {% endif %}
+
+    <div class="snav-row-divider" style="margin-top:6px"></div>
+    <a href="{{ url_for('muslim_page') }}">مسلم</a>
+    <div class="snav-row-divider"></div>
+    <a href="#" id="sidebarThemeLink">مظهر الدردشة</a>
 
     {% if is_real_super_admin %}
+    <div class="snav-row-divider" style="margin-top:6px"></div>
     <form method="post" action="{{ url_for('admin_toggle_maintenance') }}" class="snav-maint-form" onsubmit="return confirm('{% if maintenance_on %}هل تريد تشغيل البرنامج تاني؟{% else %}هل تريد إيقاف البرنامج للصيانة؟{% endif %}');">
-      <button type="submit" class="snav-maint-btn {% if maintenance_on %}is-on{% endif %}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 5.25v13.5l13.5-6.75L5.25 5.25z"/></svg>
-        <span>{% if maintenance_on %}البرنامج متوقف — تشغيل{% else %}إيقاف البرنامج للصيانة{% endif %}</span>
-      </button>
+      <button type="submit" class="snav-maint-btn {% if maintenance_on %}is-on{% endif %}">{% if maintenance_on %}البرنامج متوقف — تشغيل{% else %}إيقاف البرنامج للصيانة{% endif %}</button>
     </form>
     {% endif %}
+
+    <div class="snav-row-divider" style="margin-top:6px"></div>
+    <a href="{{ url_for('logout') }}" class="sidebar-danger">تسجيل الخروج</a>
   </nav>
 
   {% if current_user.role == 'admin' and sidebar_workers %}
