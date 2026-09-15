@@ -460,6 +460,11 @@ def init_db(url=None):
         ALTER TABLE chat_messages  ADD COLUMN IF NOT EXISTS edited_at   TIMESTAMPTZ;
         ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS edited_at   TIMESTAMPTZ;
 
+        -- ==== وسم رسايل حساب المدة (عشان تتمسح لما المدة تتصفّى) ====
+        ALTER TABLE chat_messages  ADD COLUMN IF NOT EXISTS period_key  TEXT;
+        CREATE INDEX IF NOT EXISTS idx_chat_period_key
+            ON chat_messages(receiver_id, period_key);
+
         -- ==== تفاعلات (Reactions) على الرسائل ====
         CREATE TABLE IF NOT EXISTS chat_reactions (
             id SERIAL PRIMARY KEY,
@@ -1681,8 +1686,10 @@ def admin_worker_clear_period():
               cleared_at=NOW(), cleared_by=EXCLUDED.cleared_by,
               total_snapshot=0, days_snapshot=0""",
                     (user_id, y, m, half, me_u["id"]))
+        # نمسح رسالة حساب المدة دي من شات (خدمة العمال) مع العامل
+        _delete_period_shares_dm(cur, user_id, y, m, half)
         db.commit()
-        flash("تم تأكيد استلام الأموال وتصفير المدة — توزيع الكتاكيت على باقي العمال متغيّرش", "success")
+        flash("تم تأكيد استلام الأموال وتصفير المدة — واتمسحت رسالة الحساب من شات خدمة العمال", "success")
     except Exception as ex:
         db.rollback()
         flash("خطأ أثناء التصفير: " + str(ex), "error")
@@ -2067,23 +2074,60 @@ def _send_period_telegram_report(cur, s_iso, e_iso, label, rows=None):
         print("telegram period report error:", e)
 
 
+
+def _period_key_from_range(s_iso, e_iso=None):
+    """مفتاح المدة (سنة-شهر-نصف) — بنستخدمه عشان نعرف نمسح رسالة الحساب بعدين."""
+    try:
+        d = datetime.strptime(str(s_iso), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+    half = 1 if d.day <= 15 else 2
+    return f"{d.year:04d}-{d.month:02d}-{half}"
+
+
+def _send_period_shares_dm(cur, s_iso, e_iso, label, rows=None):
     """
     يبعت لكل شخص رسالة خاصة في الشات من حساب (الإدارة) فيها حسابه في المدة دي.
-    بيرجّع عدد الرسائل اللي اتبعتت.
+    الحساب بنفس طريقة التقارير: العدد + (الألف بـ السعر) = المبلغ بالألف.
+    بيرجّع (قائمة اللي اتبعتلهم، رقم حساب خدمة العمال).
     """
+    cur.execute("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS period_key TEXT")
     rows = rows if rows is not None else _compute_shares_range(cur, s_iso, e_iso)
     bot_id = _get_admin_bot_id(cur)
+    pkey = _period_key_from_range(s_iso, e_iso)
     sent_ids = []
     for r in rows:
         if r["id"] == bot_id:
             continue
         if r["days"] <= 0 and r["bonus"] == 0 and r["deduct"] == 0:
             continue
-        body = f"{r['chicks']:,} × {CHICK_PRICE} = {r['money']:,}"
-        cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body)
-                       VALUES(%s,%s,'text',%s)""", (bot_id, r["id"], body))
+        body_lines = [
+            f"حسابك عن {label}",
+            f"عدد أيام الحضور: {r['days']}",
+            f"{r['chicks']:,} (الألف بـ {CHICK_PRICE}) = {_money_k(r['money']):,} ج",
+        ]
+        if r["bonus"]:
+            body_lines.append(f"مكافأة: {_money_k(r['bonus']):,} ج")
+        if r["deduct"]:
+            body_lines.append(f"خصم: {_money_k(r['deduct']):,} ج")
+        body = "\n".join(body_lines)
+        cur.execute("""INSERT INTO chat_messages(sender_id, receiver_id, kind, body, period_key)
+                       VALUES(%s,%s,'text',%s,%s)""", (bot_id, r["id"], body, pkey))
         sent_ids.append(r["id"])
     return sent_ids, bot_id
+
+
+def _delete_period_shares_dm(cur, user_id, year, month, half):
+    """يمسح رسالة حساب المدة دي من شات (خدمة العمال) مع العامل بعد التصفية."""
+    try:
+        bot_id = _get_admin_bot_id(cur)
+        pkey = f"{int(year):04d}-{int(month):02d}-{int(half)}"
+        cur.execute("""DELETE FROM chat_messages
+                        WHERE sender_id=%s AND receiver_id=%s AND period_key=%s""",
+                    (bot_id, int(user_id), pkey))
+    except Exception as _e:
+        print("delete period share dm error:", _e)
+
 
 
 @app.route("/admin/all-shares")
