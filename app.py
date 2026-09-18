@@ -943,6 +943,30 @@ def chat_edit_msg(msg_id):
     return jsonify({"ok": True, "id": msg_id, "body": new_body, "edited": True})
 
 
+# ---------- حذف رسالة من الدردشة (حساب خدمة العمال / الإدارة فقط) ----------
+@app.route("/chat/<int:other_id>/delete/<int:msg_id>", methods=["POST"])
+@login_required
+def chat_delete_msg(other_id, msg_id):
+    u = current_user()
+    if not _is_idara(u):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    db = get_db(); cur = db.cursor()
+    cur.execute("""SELECT id FROM chat_messages
+                   WHERE id=%s AND ((sender_id=%s AND receiver_id=%s)
+                                 OR (sender_id=%s AND receiver_id=%s))""",
+                (msg_id, u["id"], other_id, other_id, u["id"]))
+    if not cur.fetchone():
+        cur.close(); return jsonify({"ok": False, "error": "not_found"}), 404
+    try:
+        cur.execute("DELETE FROM chat_reactions WHERE message_id=%s", (msg_id,))
+    except Exception:
+        pass
+    cur.execute("UPDATE chat_messages SET reply_to_id=NULL WHERE reply_to_id=%s", (msg_id,))
+    cur.execute("DELETE FROM chat_messages WHERE id=%s", (msg_id,))
+    db.commit(); cur.close()
+    return jsonify({"ok": True, "id": msg_id})
+
+
 @app.route("/group/edit/<int:msg_id>", methods=["POST"])
 @login_required
 def group_edit_msg(msg_id):
@@ -3699,6 +3723,7 @@ def chat_messages_api(other_id):
         "other_last_seen": _iso_utc(other_row["last_seen"]) if other_row else None,
         "other_typing": other_typing,
         "reactions_updates": reactions_updates,
+        "alive_ids": recent_ids,
     })
 
 
