@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 
-<div class="wa-wrap" data-other-id="{{ other.id }}" data-me-id="{{ current_user.id }}">
+<div class="wa-wrap" data-other-id="{{ other.id }}" data-me-id="{{ current_user.id }}" data-can-delete="{{ 1 if current_user.username == ADMIN_BOT_USERNAME else 0 }}">
 
   <!-- HEADER -->
   <header class="wa-head">
@@ -138,6 +138,8 @@
     return '<div class="wa-av wa-av-fb">'+ChatHelpers.escape(OTHER_INITIAL)+'</div>';
   }
 
+  var CAN_DELETE = document.querySelector('.wa-wrap').dataset.canDelete === '1';
+
   function bubbleHTML(m, showAvatar, tail){
     var side = m.mine ? 'me' : 'them';
     var inner = '';
@@ -160,6 +162,7 @@
     var tailCls = tail ? ' wa-tail' : '';
     var editedMark = m.edited ? '<span class="wa-edited">معدَّلة</span>' : '';
     var editBtn = (m.mine && m.kind === 'text') ? '<button type="button" class="wa-edit-btn" data-edit-id="'+m.id+'" aria-label="تعديل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg></button>' : '';
+    var delBtn = CAN_DELETE ? '<button type="button" class="wa-del-btn" data-del-id="'+m.id+'" aria-label="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5h6v2m-8 0l1 13h8l1-13"/></svg></button>' : '';
     return '<div class="wa-msg wa-'+side+(tail?' wa-last':'')+'" data-id="'+m.id+'" data-mine="'+(m.mine?1:0)+'">'+
              av +
              '<div class="wa-bubble'+tailCls+'">'+quoted+inner+
@@ -167,7 +170,7 @@
                  (m.mine ? ticksHTML(m.read) : '')+
                '</div>'+
              '</div>'+
-             editBtn +
+             editBtn + delBtn +
            '</div>';
   }
 
@@ -242,6 +245,14 @@
         });
         // حدّث التفاعلات على الرسائل الظاهرة
         if (window.__applyReactionsUpdates) window.__applyReactionsUpdates(d.reactions_updates);
+        if (d.alive_ids && d.alive_ids.length){
+          var alive = {}; var minId = Infinity;
+          d.alive_ids.forEach(function(x){ alive[x] = 1; if (x < minId) minId = x; });
+          msgsEl.querySelectorAll('.wa-msg[data-id]').forEach(function(el){
+            var id = parseInt(el.dataset.id, 10);
+            if (id >= minId && !alive[id]) el.remove();
+          });
+        }
       }).catch(function(){})
       .finally(function(){ pollBusy = false; });
   }
@@ -409,6 +420,25 @@
   msgsEl.addEventListener('click', function(ev){
     var img = ev.target.closest && ev.target.closest('.wa-img-tap');
     if (img) { ev.preventDefault(); openLB(img.src, img.dataset.msgId); }
+    var db_ = ev.target.closest && ev.target.closest('.wa-del-btn');
+    if (db_){
+      ev.preventDefault(); ev.stopPropagation();
+      var did = db_.dataset.delId;
+      (window.appConfirm ? window.appConfirm('حذف الرسالة نهائيًا؟', {danger:true, okText:'حذف'})
+                         : Promise.resolve(confirm('حذف الرسالة نهائيًا؟')))
+      .then(function(ok){
+        if (!ok) return;
+        fetch('/chat/'+OTHER_ID+'/delete/'+did, {method:'POST', credentials:'same-origin'})
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d && d.ok){
+              var el = msgsEl.querySelector('.wa-msg[data-id="'+did+'"]');
+              if (el) el.remove();
+            }
+          });
+      });
+      return;
+    }
     var eb = ev.target.closest && ev.target.closest('.wa-edit-btn');
     if (eb){
       ev.preventDefault();
@@ -422,6 +452,9 @@
 })();
 </script>
 <style>
+.wa-del-btn{flex:0 0 auto;align-self:center;width:26px;height:26px;display:grid;place-items:center;border:none;background:transparent;color:#e2556a;border-radius:50%;cursor:pointer;opacity:.75}
+.wa-del-btn:hover{opacity:1;background:rgba(226,85,106,.12)}
+.wa-del-btn svg{width:15px;height:15px}
 .wa-img-tap{cursor:zoom-in}
 .wa-lightbox{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px}
 .wa-lb-back{position:absolute;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(6px)}
