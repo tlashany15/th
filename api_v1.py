@@ -175,11 +175,154 @@ def init_api(app, ns):
             "id": u["id"], "full_name": u["full_name"], "role": u["role"],
             "is_admin": _is_admin(u)}})
 
-    # ---------- نصيبي ----------
+    # ---------- نصيبي / نصيب عامل (للمسؤول) ----------
+    # بنفس دالة worker_stats بتاعة الموقع، فالأرقام مطابقة تماماً (نفس المدد والتصفيات).
+    def _worker_stats_json(worker_id):
+        resp = _run_view(ns["worker_stats"], worker_id)
+        if getattr(resp, "status_code", 200) != 200:
+            return resp
+        try:
+            data = json.loads(resp.get_data(as_text=True))
+        except Exception:
+            return resp
+        w = data.get("worker") or {}
+        return _json({"ok": True,
+                      "worker": {"id": w.get("id"), "full_name": w.get("full_name"),
+                                 "role": w.get("role"), "avatar": w.get("avatar")},
+                      "is_admin_view": bool(data.get("is_admin_view")),
+                      "is_self": bool(data.get("is_self")),
+                      "periods": data.get("periods", [])})
+
     @app.route(API_PREFIX + "my-share")
     def api_my_share():
         u = ns["current_user"]()
-        return _run_view(ns["worker_stats"], u["id"])
+        return _worker_stats_json(u["id"])
+
+    @app.route(API_PREFIX + "worker/<int:worker_id>/stats")
+    def api_worker_stats(worker_id):
+        return _worker_stats_json(worker_id)
+
+    # ---------- تأكيد استلام أموال مدة + تصفيرها لعامل — نفس منطق admin_worker_clear_period ----------
+    @app.route(API_PREFIX + "admin/worker-clear-period", methods=["POST"])
+    def api_worker_clear_period():
+        import calendar as _cal
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("الصلاحية دي للمسؤول فقط", 403)
+        body = request.get_json(silent=True) or {}
+        try:
+            user_id = int(body.get("user_id") or 0)
+            y = int(body.get("year") or 0)
+            m = int(body.get("month") or 0)
+            half = int(body.get("half") or 0)
+        except (TypeError, ValueError):
+            return _err("مدخلات غير صالحة", 400)
+        if not (user_id and y and 1 <= m <= 12 and half in (1, 2)):
+            return _err("مدخلات غير صالحة", 400)
+        last_day = _cal.monthrange(y, m)[1]
+        if half == 1:
+            s = date(y, m, 1).isoformat()
+            e = date(y, m, min(15, last_day)).isoformat()
+        else:
+            s = date(y, m, 16).isoformat()
+            e = date(y, m, last_day).isoformat()
+        db = ns["get_db"]()
+        cur = db.cursor()
+        try:
+            cur.execute("""CREATE TABLE IF NOT EXISTS worker_period_clears (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                year INTEGER NOT NULL, month INTEGER NOT NULL,
+                half INTEGER NOT NULL CHECK(half IN (1,2)),
+                cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                cleared_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                total_snapshot INTEGER NOT NULL DEFAULT 0,
+                days_snapshot INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (user_id, year, month, half)
+            )""")
+            cur.execute("DELETE FROM worker_adjustments WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+            cur.execute("DELETE FROM worker_day_settle  WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+            cur.execute("DELETE FROM worker_settlements WHERE user_id=%s AND day BETWEEN %s AND %s", (user_id, s, e))
+            cur.execute("""INSERT INTO worker_period_clears
+                (user_id, year, month, half, cleared_by, total_snapshot, days_snapshot)
+                VALUES(%s,%s,%s,%s,%s,0,0)
+                ON CONFLICT (user_id, year, month, half) DO UPDATE SET
+                  cleared_at=NOW(), cleared_by=EXCLUDED.cleared_by,
+                  total_snapshot=0, days_snapshot=0""",
+                        (user_id, y, m, half, u["id"]))
+            ns["_delete_period_shares_dm"](cur, user_id, y, m, half)
+            db.commit()
+        except Exception as ex:
+            db.rollback()
+            return _err("خطأ أثناء التصفير: " + str(ex), 500)
+        finally:
+            cur.close()
+        return _json({"ok": True,
+                      "message": "تم تأكيد استلام الأموال وتصفير المدة"})
+
+    # ---------- محاسبة يوم (تبديل تم / إلغاء) — نفس منطق admin_worker_day_settle ----------
+    @app.route(API_PREFIX + "admin/worker-day-settle", methods=["POST"])
+    def api_worker_day_settle():
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("الصلاحية دي للمسؤول فقط", 403)
+        body = request.get_json(silent=True) or {}
+        try:
+            user_id = int(body.get("user_id") or 0)
+        except (TypeError, ValueError):
+            user_id = 0
+        if not user_id:
+            return _err("مدخلات غير صالحة", 400)
+        day = ns["_parse_day"](str(body.get("day") or date.today().isoformat())).isoformat()
+        db = ns["get_db"]()
+        cur = db.cursor()
+        try:
+            cur.execute("""CREATE TABLE IF NOT EXISTS worker_day_settle (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                day DATE NOT NULL,
+                created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY(user_id, day)
+            )""")
+            cur.execute("SELECT 1 FROM worker_day_settle WHERE user_id=%s AND day=%s", (user_id, day))
+            if cur.fetchone() is not None:
+                cur.execute("DELETE FROM worker_day_settle WHERE user_id=%s AND day=%s", (user_id, day))
+                state = "unsettled"
+            else:
+                cur.execute("""INSERT INTO worker_day_settle(user_id, day, created_by)
+                               VALUES(%s,%s,%s) ON CONFLICT DO NOTHING""", (user_id, day, u["id"]))
+                state = "settled"
+            db.commit()
+        except Exception as ex:
+            db.rollback()
+            return _err("خطأ: " + str(ex), 500)
+        finally:
+            cur.close()
+        return _json({"ok": True, "state": state})
+
+    # ---------- حذف تصفية — نفس منطق admin_worker_settle_delete ----------
+    @app.route(API_PREFIX + "admin/worker-settle-delete", methods=["POST"])
+    def api_worker_settle_delete():
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("الصلاحية دي للمسؤول فقط", 403)
+        body = request.get_json(silent=True) or {}
+        try:
+            sid = int(body.get("id") or 0)
+        except (TypeError, ValueError):
+            sid = 0
+        if not sid:
+            return _err("مدخلات غير صالحة", 400)
+        db = ns["get_db"]()
+        cur = db.cursor()
+        try:
+            cur.execute("DELETE FROM worker_settlements WHERE id=%s", (sid,))
+            db.commit()
+        except Exception as ex:
+            db.rollback()
+            return _err("خطأ: " + str(ex), 500)
+        finally:
+            cur.close()
+        return _json({"ok": True, "message": "تم حذف التصفية"})
 
     # ---------- لوحة الحضور اليومي (الرئيسية) ----------
     # بنفس دالة dashboard بتاعة الموقع، فالأرقام مطابقة تماماً. بنضيف بس تاريخ اليوم واسم اليوم.
