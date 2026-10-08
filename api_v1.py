@@ -197,6 +197,30 @@ def init_api(app, ns):
         data["weekday"] = ns["weekday_ar"](t)
         return _json(data)
 
+    # ---------- بيانات قايمة الهمبرجر (صلاحيات + وضع الصيانة) ----------
+    @app.route(API_PREFIX + "menu")
+    def api_menu():
+        u = ns["current_user"]()
+        return _json({"ok": True,
+                      "role": u["role"],
+                      "is_super_admin": bool(ns["_is_super_admin"](u)),
+                      "maintenance_on": bool(ns["_maintenance_on"]())})
+
+    # ---------- إيقاف/تشغيل البرنامج للصيانة (المسؤول الرئيسي فقط) ----------
+    @app.route(API_PREFIX + "maintenance", methods=["POST"])
+    def api_maintenance():
+        u = ns["current_user"]()
+        if not ns["_is_super_admin"](u):
+            return _err("الصلاحية دي للمسؤول الرئيسي فقط", 403)
+        db = ns["get_db"]()
+        cur = db.cursor()
+        cur.execute("UPDATE system_settings SET maintenance_mode = NOT maintenance_mode, "
+                    "updated_at = NOW() WHERE id = 1 RETURNING maintenance_mode")
+        row = cur.fetchone()
+        db.commit()
+        cur.close()
+        return _json({"ok": True, "maintenance_on": bool(row["maintenance_mode"]) if row else False})
+
     # ---------- تسجيل الحضور (تسمين / بياض) ----------
     # نفس منطق check_in في الموقع، بس بيرجّع JSON بدل redirect.
     @app.route(API_PREFIX + "check-in", methods=["POST"])
