@@ -5626,3 +5626,8 @@ def admin_db_migrate_revert():
         flash(f"فشل الرجوع: {e}", "error")
     return redirect(url_for("admin_db_migrate"))
 
+
+
+# ==== API لتطبيق الأندرويد (/api/v1) — إضافة فقط، مبتغيّرش في الموقع ====
+import api_v1
+api_v1.init_api(app, globals())
