@@ -280,6 +280,61 @@ def init_api(app, ns):
             cur.close()
         return _json({"ok": True, "message": "تم تصفير الفترة من " + start_d + " إلى " + end_d})
 
+    # ---------- السجل / أعداد بدون خصم (مسؤول) ----------
+    @app.route(API_PREFIX + "admin/gross-log")
+    def api_gross_log():
+        resp = _run_view(ns["admin_gross_log"])
+        if getattr(resp, "status_code", 200) != 200:
+            return resp
+        try:
+            data = json.loads(resp.get_data(as_text=True))
+        except Exception:
+            return resp
+        rows = [{"date": str(r.get("day"))[:10],
+                 "tasmeen": int(r.get("no_deduct_tasmeen") or 0),
+                 "bayad": int(r.get("no_deduct_bayad") or 0),
+                 "no_deduct": int(r.get("no_deduct_total") or 0),
+                 "total": int(r.get("total_count") or 0)}
+                for r in data.get("rows", [])]
+        return _json({"ok": True, "current": data.get("current_period", {}),
+                      "past": data.get("past_periods", []), "rows": rows})
+
+    # ---------- تصفير «بدون خصم» لمدة (مسؤول) — نفس منطق admin_gross_clear_period ----------
+    @app.route(API_PREFIX + "admin/gross-clear", methods=["POST"])
+    def api_gross_clear():
+        import calendar as _cal
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("الصلاحية دي للمسؤول فقط", 403)
+        body = request.get_json(silent=True) or {}
+        try:
+            y = int(body.get("year") or 0)
+            m = int(body.get("month") or 0)
+            half = int(body.get("half") or 0)
+        except (TypeError, ValueError):
+            return _err("مدخلات غير صالحة", 400)
+        if not (y and 1 <= m <= 12 and half in (1, 2)):
+            return _err("مدخلات غير صالحة", 400)
+        last_day = _cal.monthrange(y, m)[1]
+        if half == 1:
+            s_d = date(y, m, 1).isoformat()
+            e_d = date(y, m, min(15, last_day)).isoformat()
+        else:
+            s_d = date(y, m, 16).isoformat()
+            e_d = date(y, m, last_day).isoformat()
+        db = ns["get_db"]()
+        cur = db.cursor()
+        try:
+            cur.execute("UPDATE day_closures SET no_deduct_total=0, no_deduct_tasmeen=0, no_deduct_bayad=0 "
+                        "WHERE day BETWEEN %s AND %s", (s_d, e_d))
+            db.commit()
+        except Exception as ex:
+            db.rollback()
+            return _err("خطأ: " + str(ex), 500)
+        finally:
+            cur.close()
+        return _json({"ok": True, "message": "تم تصفير الأعداد بدون خصم للمدة"})
+
     # ---------- بيانات قايمة الهمبرجر (صلاحيات + وضع الصيانة) ----------
     @app.route(API_PREFIX + "menu")
     def api_menu():
