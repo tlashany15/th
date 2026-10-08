@@ -5629,5 +5629,8 @@ def admin_db_migrate_revert():
 
 
 # ==== API لتطبيق الأندرويد (/api/v1) — إضافة فقط، مبتغيّرش في الموقع ====
-import api_v1
-api_v1.init_api(app, globals())
+try:
+    import api_v1
+    api_v1.init_api(app, globals())
+except Exception as _api_e:  # لو فشل، الموقع يفضل شغال
+    print("[api_v1] not loaded:", _api_e)

@@ -8,7 +8,8 @@
         "includeFiles": [
           "static/**",
           "templates/**",
-          "report_image.py"
+          "report_image.py",
+          "api_v1.py"
         ]
       }
     }
