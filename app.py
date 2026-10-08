@@ -217,14 +217,38 @@ def _clear_active_db_url():
 
 
 _SCHEMA_READY = False
+_SCHEMA_RETRY_AT = 0
+
+
 def _ensure_schema():
-    global _SCHEMA_READY
+    global _SCHEMA_READY, _SCHEMA_RETRY_AT
     if _SCHEMA_READY: return
+    import time as _t
+    # لو المحاولة السابقة فشلت (مثلاً قفل على جدول) منعيدش المحاولة مع كل طلب
+    if _t.time() < _SCHEMA_RETRY_AT: return
     try:
         init_db()
         _SCHEMA_READY = True
     except Exception as e:
         print("init_db error:", e)
+        _SCHEMA_RETRY_AT = _t.time() + 20
+
+
+def _set_session_timeouts(conn, with_idle=False):
+    """مهلات على مستوى الجلسة: بدل ما الطلب يعلّق 300 ثانية على قفل، يفشل بسرعة.
+    idle_in_transaction بيقتل المعاملات المعلّقة (اللي بتفضل ماسكة قفل لو الـ function اتجمّدت)."""
+    try:
+        c = conn.cursor()
+        c.execute("SET lock_timeout = '15s'")
+        if with_idle:
+            c.execute("SET idle_in_transaction_session_timeout = '90s'")
+        conn.commit()
+        c.close()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
 
 
 # ---------- قاعدة البيانات ----------
@@ -245,6 +269,7 @@ def get_db():
             conn = psycopg2.connect(_BOOTSTRAP_DB_URL,
                                     cursor_factory=psycopg2.extras.RealDictCursor,
                                     connect_timeout=10)
+        _set_session_timeouts(conn, with_idle=True)
         conn.autocommit = False
         g.db = conn
     return g.db
@@ -259,7 +284,16 @@ def close_db(_):
 
 def init_db(url=None):
     """يُستدعى مرة واحدة لإنشاء الجداول. url اختياري لإنشاء الاسكيمة على قاعدة أخرى."""
-    conn = psycopg2.connect(url or _active_db_url())
+    conn = psycopg2.connect(url or _active_db_url(), connect_timeout=10)
+    # أوامر ALTER TABLE بتحتاج قفل حصري — لو في حد ماسك الجدول نفشل بعد 4 ثواني
+    # بدل ما نقف في الطابور ونعلّق كل الطلبات التانية وراها
+    try:
+        _lc = conn.cursor()
+        _lc.execute("SET lock_timeout = '4s'")
+        _lc.execute("SET statement_timeout = '60s'")
+        _lc.close()
+    except Exception:
+        conn.rollback()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
