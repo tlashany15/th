@@ -197,6 +197,89 @@ def init_api(app, ns):
         data["weekday"] = ns["weekday_ar"](t)
         return _json(data)
 
+    # ---------- السجل / أعداد بعد الخصم ----------
+    # بنفس دالة history بتاعة الموقع، ونرتّب الشكل اللي التطبيق محتاجه (الأيام المغلقة بس).
+    @app.route(API_PREFIX + "history")
+    def api_history():
+        resp = _run_view(ns["history"])
+        if getattr(resp, "status_code", 200) != 200:
+            return resp
+        try:
+            data = json.loads(resp.get_data(as_text=True))
+        except Exception:
+            return resp
+        u = ns["current_user"]()
+        is_admin = bool(u and u["role"] == "admin")
+        periods = []
+        for p in data.get("periods", []):
+            closed = [d for d in p.get("days", []) if d.get("has_data")]
+            if not closed and not p.get("is_current"):
+                continue
+            days = []
+            for d in reversed(closed):          # الأحدث فوق
+                names = d.get("names") or []
+                farms = d.get("attendee_farms") or []
+                t_names, b_names = [], []
+                for i, nm in enumerate(names):
+                    fm = farms[i] if i < len(farms) else ""
+                    (b_names if fm == "bayad" else t_names).append(nm)
+                t_after = int(d.get("tasmeen_after") or 0)
+                b_after = int(d.get("bayad_after") or 0)
+                total = int(d.get("total") or 0)
+                if (t_after + b_after) == 0 and total:
+                    if t_names and not b_names:
+                        t_after = total
+                    elif b_names and not t_names:
+                        b_after = total
+                days.append({"date": d["date"], "day_num": d["day_num"], "weekday": d["weekday"],
+                             "tasmeen_after": t_after, "bayad_after": b_after,
+                             "extra_tasmeen": int(d.get("extra_tasmeen") or 0),
+                             "extra_bayad": int(d.get("extra_bayad") or 0),
+                             "total": total,
+                             "tasmeen_names": t_names, "bayad_names": b_names})
+            all_days = p.get("days", [])
+            periods.append({
+                "label": p.get("label", ""),
+                "first_day": all_days[0]["day_num"] if all_days else 1,
+                "last_day": all_days[-1]["day_num"] if all_days else 15,
+                "start": closed[0]["date"] if closed else "",
+                "end": closed[-1]["date"] if closed else "",
+                "is_current": bool(p.get("is_current")),
+                "closed_count": len(closed),
+                "sum_tasmeen": sum(int(d.get("tasmeen_after") or 0) for d in closed),
+                "sum_bayad": sum(int(d.get("bayad_after") or 0) for d in closed),
+                "days": days,
+            })
+        return _json({"ok": True, "is_admin": is_admin, "periods": periods})
+
+    # ---------- تصفير فترة (مسؤول فقط) — نفس منطق admin_reset_period ----------
+    @app.route(API_PREFIX + "admin/reset-period", methods=["POST"])
+    def api_reset_period():
+        u = ns["current_user"]()
+        if not (u and u["role"] == "admin"):
+            return _err("الصلاحية دي للمسؤول فقط", 403)
+        body = request.get_json(silent=True) or {}
+        start_d = str(body.get("start") or "").strip()
+        end_d = str(body.get("end") or "").strip()
+        if not (start_d and end_d):
+            return _err("فترة غير صالحة", 400)
+        db = ns["get_db"]()
+        cur = db.cursor()
+        try:
+            cur.execute("DELETE FROM vaccinations WHERE day BETWEEN %s AND %s", (start_d, end_d))
+            cur.execute("DELETE FROM attendance   WHERE day BETWEEN %s AND %s", (start_d, end_d))
+            cur.execute("DELETE FROM day_closures WHERE day BETWEEN %s AND %s", (start_d, end_d))
+            cur.execute("""DELETE FROM period_summaries
+                           WHERE make_date(year, month, CASE WHEN half=1 THEN 1 ELSE 16 END) BETWEEN %s AND %s""",
+                        (start_d, end_d))
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            return _err("خطأ أثناء التصفير: " + str(e), 500)
+        finally:
+            cur.close()
+        return _json({"ok": True, "message": "تم تصفير الفترة من " + start_d + " إلى " + end_d})
+
     # ---------- بيانات قايمة الهمبرجر (صلاحيات + وضع الصيانة) ----------
     @app.route(API_PREFIX + "menu")
     def api_menu():
