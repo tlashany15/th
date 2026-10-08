@@ -181,6 +181,49 @@ def init_api(app, ns):
         u = ns["current_user"]()
         return _run_view(ns["worker_stats"], u["id"])
 
+    # ---------- لوحة الحضور اليومي (الرئيسية) ----------
+    # بنفس دالة dashboard بتاعة الموقع، فالأرقام مطابقة تماماً. بنضيف بس تاريخ اليوم واسم اليوم.
+    @app.route(API_PREFIX + "dashboard")
+    def api_dashboard():
+        resp = _run_view(ns["dashboard"])
+        if getattr(resp, "status_code", 200) != 200:
+            return resp
+        try:
+            data = json.loads(resp.get_data(as_text=True))
+        except Exception:
+            return resp
+        t = date.today()
+        data["today"] = t.isoformat()
+        data["weekday"] = ns["weekday_ar"](t)
+        return _json(data)
+
+    # ---------- تسجيل الحضور (تسمين / بياض) ----------
+    # نفس منطق check_in في الموقع، بس بيرجّع JSON بدل redirect.
+    @app.route(API_PREFIX + "check-in", methods=["POST"])
+    def api_check_in():
+        u = ns["current_user"]()
+        today = date.today().isoformat()
+        if ns["is_day_closed"](today):
+            return _err("اليوم مغلق من المسؤول — لا يمكن تسجيل حضور جديد", 409)
+        data = request.get_json(silent=True) or {}
+        farm = data.get("farm") if data.get("farm") in ("tasmeen", "bayad") else "tasmeen"
+        db = ns["get_db"]()
+        cur = db.cursor()
+        try:
+            cur.execute("INSERT INTO attendance(user_id, day, farm) VALUES(%s,%s,%s)",
+                        (u["id"], today, farm))
+            db.commit()
+            msg = "تم تسجيل حضورك اليوم"
+        except ns["psycopg2"].IntegrityError:
+            db.rollback()
+            cur.execute("UPDATE attendance SET farm=%s WHERE user_id=%s AND day=%s",
+                        (farm, u["id"], today))
+            db.commit()
+            msg = "تم تحديث نوع الحضور"
+        finally:
+            cur.close()
+        return _json({"ok": True, "message": msg, "farm": farm})
+
     # ---------- إغلاق اليوم (للمسؤول) ----------
     @app.route(API_PREFIX + "admin/close-day", methods=["GET", "POST"])
     def api_close_day():
