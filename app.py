@@ -5668,3 +5668,8 @@ try:
     api_v1.init_api(app, globals())
 except Exception as _api_e:  # لو فشل، الموقع يفضل شغال
     print("[api_v1] not loaded:", _api_e)
+  try:
+    import api_pages
+    api_pages.init_pages(app, globals())
+except Exception as _pg_e:
+    print("[api_pages] not loaded:", _pg_e)
