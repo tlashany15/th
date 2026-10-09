@@ -9,7 +9,8 @@
           "static/**",
           "templates/**",
           "report_image.py",
-          "api_v1.py"
+          "api_v1.py",
+          "api_pages.py"
         ]
       }
     }
