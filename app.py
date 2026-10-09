@@ -5668,8 +5668,11 @@ try:
     api_v1.init_api(app, globals())
 except Exception as _api_e:  # لو فشل، الموقع يفضل شغال
     print("[api_v1] not loaded:", _api_e)
-  try:
+
+
+# ==== صفحات إضافية للأندرويد (الإشعارات / ملاحظاتي / إرسال إشعار / حسابي) ====
+try:
     import api_pages
     api_pages.init_pages(app, globals())
-except Exception as _pg_e:
+except Exception as _pg_e:  # لو فشل، الموقع والـ api_v1 يفضلوا شغالين
     print("[api_pages] not loaded:", _pg_e)
