@@ -278,3 +278,72 @@ def init_pages(app, ns):
         cur.execute("UPDATE users SET avatar=%s WHERE id=%s", (data_url, u["id"]))
         db.commit(); cur.close()
         return _json({"ok": True, "message": "تم تحديث صورتك", "avatar": data_url})
+
+    # ───────────────────────── الفريق (قايمة الهمبرجر) + الدخول بحساب مستخدم ─────────────────────────
+    # بيطابق sidebar_workers / is_real_super_admin في app.py (inject_user)
+
+    @app.route(API + "team")
+    def api_team():
+        u = ns["current_user"]()
+        if not u or u["role"] != "admin":
+            return _json({"ok": True, "items": [], "can_impersonate": False})
+        ru = ns["real_user"]()
+        real_super = bool(ns["_is_super_admin"](ru))
+        cur_super = bool(ns["_is_super_admin"](u))
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("SELECT id, full_name, username, role, avatar FROM users "
+                    "WHERE role IN ('worker','admin') AND role<>'system' "
+                    "ORDER BY (role='admin') DESC, full_name")
+        rows = cur.fetchall(); cur.close()
+        items = []
+        for w in rows:
+            can_imp = bool(real_super and w["id"] != u["id"]
+                           and not (w["role"] == "admin" and str(w["username"]) == "1"))
+            items.append({
+                "id": w["id"],
+                "full_name": w["full_name"] or "",
+                "role": w["role"],
+                "avatar": w["avatar"] or "",
+                "show_admin_tag": bool(w["role"] == "admin" and w["id"] != u["id"] and cur_super),
+                "can_impersonate": can_imp,
+            })
+        return _json({"ok": True, "items": items, "can_impersonate": real_super})
+
+    @app.route(API + "admin/impersonate", methods=["POST"])
+    def api_impersonate_check():
+        """بيتأكد إن الدخول بحساب المستخدم مسموح (نفس شروط admin_impersonate) ويرجّع بياناته."""
+        ru = ns["real_user"]()
+        if not ru or not ns["_is_super_admin"](ru):
+            return _err("هذه الميزة للمسؤول الرئيسي فقط", 403)
+        uid = _int(_body().get("uid"))
+        target = ns["_load_user"](uid) if uid else None
+        if not target:
+            return _err("المستخدم غير موجود", 404)
+        if target["role"] == "system":
+            return _err("حساب خدمة العمال بيتفتح من صفحة إرسال إشعار فقط", 400)
+        role = "admin" if (target["role"] == "admin" or ns["_is_idara"](target)) else target["role"]
+        return _json({"ok": True, "id": target["id"], "full_name": target["full_name"] or "",
+                      "role": role})
+
+    # الهيدر X-Impersonate: التطبيق بيبعته لما المسؤول الرئيسي يدخل بحساب مستخدم.
+    # بيتحط في session للطلب ده بس (مسارات الـ API مبتحفظش كوكي)، فكل الدوال اللي بتستخدم
+    # current_user() بتشوف المستخدم المنتحَل زي الموقع بالظبط.
+    def _impersonate_before():
+        if not request.path.startswith(API):
+            return None
+        from flask import session
+        session.pop("impersonate_id", None)
+        raw = (request.headers.get("X-Impersonate") or "").strip()
+        if not raw.isdigit():
+            return None
+        ru = ns["real_user"]()
+        if not ru or not ns["_is_super_admin"](ru):
+            return None
+        target = ns["_load_user"](int(raw))
+        if not target or target["role"] == "system":
+            return None
+        session["impersonate_id"] = target["id"]
+        return None
+
+    funcs = app.before_request_funcs.setdefault(None, [])
+    funcs.insert(min(1, len(funcs)), _impersonate_before)
