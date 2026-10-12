@@ -279,6 +279,32 @@ def init_pages(app, ns):
         db.commit(); cur.close()
         return _json({"ok": True, "message": "تم تحديث صورتك", "avatar": data_url})
 
+    # ───────────────────────── إغلاق اليوم: مسارات التحضير والإضافي والنصيب اليدوي ─────────────────────────
+    # بتنادي نفس دوال app.py (admin_reopen_day / admin_mark_attendance / admin_mark_extra /
+    # admin_set_manual_share) — التطبيق بيبعت form عادي + الهيدر X-Requested-With: fetch زي الموقع بالظبط.
+
+    def _forward_admin(view_name):
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("للمسؤول فقط", 403)
+        return ns[view_name]()
+
+    @app.route(API + "admin/reopen-day", methods=["POST"])
+    def api_reopen_day():
+        return _forward_admin("admin_reopen_day")
+
+    @app.route(API + "admin/mark-attendance", methods=["POST"])
+    def api_mark_attendance():
+        return _forward_admin("admin_mark_attendance")
+
+    @app.route(API + "admin/mark-extra", methods=["POST"])
+    def api_mark_extra():
+        return _forward_admin("admin_mark_extra")
+
+    @app.route(API + "admin/set-manual-share", methods=["POST"])
+    def api_set_manual_share():
+        return _forward_admin("admin_set_manual_share")
+
     # ───────────────────────── الفريق (قايمة الهمبرجر) + الدخول بحساب مستخدم ─────────────────────────
     # بيطابق sidebar_workers / is_real_super_admin في app.py (inject_user)
 
