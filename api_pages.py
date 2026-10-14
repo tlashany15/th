@@ -305,6 +305,199 @@ def init_pages(app, ns):
     def api_set_manual_share():
         return _forward_admin("admin_set_manual_share")
 
+    # ───────────────────────── إدارة المستخدمين (للمسؤول الرئيسي) ─────────────────────────
+    # نفس منطق admin_users في app.py بس بـ JSON بدل redirect+flash (الدالة الأصلية بترجّع redirect حتى في النجاح)
+
+    def _super_only():
+        u = ns["current_user"]()
+        if not u or not ns["_is_super_admin"](u):
+            return None, _err("هذه الصفحة للمسؤول الرئيسي فقط", 403)
+        return u, None
+
+    @app.route(API + "admin/users")
+    def api_users_list():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("SELECT id, username, full_name, role, avatar FROM users WHERE role<>'system' "
+                    "ORDER BY (role='admin') DESC, full_name")
+        rows = cur.fetchall(); cur.close()
+        items = [{
+            "id": r["id"], "username": str(r["username"] or ""), "full_name": r["full_name"] or "",
+            "role": r["role"], "avatar": r["avatar"] or "",
+        } for r in rows]
+        return _json({"ok": True, "items": items, "current_id": u["id"]})
+
+    @app.route(API + "admin/users/create", methods=["POST"])
+    def api_users_create():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        b = _body()
+        full_name = (b.get("full_name") or "").strip()
+        password = b.get("password") or ""
+        role = b.get("role") or "worker"
+        if role not in ("worker", "admin"):
+            role = "worker"
+        if not (full_name and password):
+            return _err("الاسم وكلمة السر مطلوبين", 400)
+        db = ns["get_db"](); cur = db.cursor()
+        try:
+            new_uid = ns["_next_free_userid"](cur)
+            cur.execute("INSERT INTO users(username, full_name, password_hash, role) VALUES(%s,%s,%s,%s)",
+                        (new_uid, full_name, ns["generate_password_hash"](password), role))
+            db.commit()
+        except ns["psycopg2"].IntegrityError:
+            db.rollback(); cur.close()
+            return _err("حصل تعارض في الرقم — حاول تاني", 409)
+        cur.close()
+        return _json({"ok": True, "message": f"تم إضافة المستخدم برقم {new_uid}"})
+
+    @app.route(API + "admin/users/delete", methods=["POST"])
+    def api_users_delete():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        uid = _int(_body().get("user_id"))
+        if not uid:
+            return _err("مستخدم غير صحيح", 400)
+        if uid == u["id"]:
+            return _err("مينفعش تحذف حسابك", 400)
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("DELETE FROM users WHERE id=%s", (uid,))
+        db.commit(); cur.close()
+        return _json({"ok": True, "message": "تم حذف المستخدم"})
+
+    @app.route(API + "admin/users/rename", methods=["POST"])
+    def api_users_rename():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        b = _body()
+        uid = _int(b.get("user_id"))
+        new_name = (b.get("full_name") or "").strip()
+        if not new_name:
+            return _err("الاسم مطلوب", 400)
+        db = ns["get_db"](); cur = db.cursor()
+        try:
+            cur.execute("UPDATE users SET full_name=%s WHERE id=%s AND role<>'system'", (new_name[:80], uid))
+            db.commit()
+        except ns["psycopg2"].IntegrityError:
+            db.rollback(); cur.close()
+            return _err("الاسم ده موجود بالفعل", 409)
+        cur.close()
+        return _json({"ok": True, "message": "تم تعديل الاسم"})
+
+    @app.route(API + "admin/users/reset-password", methods=["POST"])
+    def api_users_reset_pw():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        b = _body()
+        uid = _int(b.get("user_id"))
+        new_pw = b.get("password") or ""
+        if not new_pw:
+            return _err("اكتب كلمة السر الجديدة", 400)
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("UPDATE users SET password_hash=%s WHERE id=%s", (ns["generate_password_hash"](new_pw), uid))
+        db.commit(); cur.close()
+        return _json({"ok": True, "message": "تم تغيير كلمة السر"})
+
+    # ───────────────────────── إدارة المساحة (للمسؤول الرئيسي) ─────────────────────────
+    # نفس بيانات admin_storage وعمليات التنظيف/الأرشفة/حذف النسخ/التحميل في app.py بـ JSON
+
+    @app.route(API + "admin/storage")
+    def api_storage():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        stats = ns["_table_stats"]()
+        limit = ns["_AUTO_ARCHIVE_LIMIT"]
+        usage_pct = int(min(100, (stats["db_size"] / limit) * 100)) if limit > 0 else 0
+        info = ns["_server_info"]()
+        return _json({
+            "ok": True,
+            "stats": stats,
+            "backups": ns["_list_backups"](),
+            "limit_h": ns["_fmt_bytes"](limit),
+            "usage_pct": usage_pct,
+            "keep_days": ns["_AUTO_ARCHIVE_KEEP_DAYS"],
+            "server_info": info,
+        })
+
+    @app.route(API + "admin/storage/cleanup", methods=["POST"])
+    def api_storage_cleanup():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        b = _body()
+        table = (b.get("table") or "").strip()
+        try:
+            days = max(0, int(b.get("days") or 0))
+        except (TypeError, ValueError):
+            days = 0
+        valid = {t[0]: t for t in ns["_STORAGE_TABLES"]}
+        if table not in valid:
+            return _err("جدول غير معروف", 400)
+        _tname, _label, date_col = valid[table]
+        db = ns["get_db"](); cur = db.cursor()
+        if days == 0:
+            where_sql, params = "", ()
+        elif date_col:
+            where_sql = f"WHERE {date_col} < NOW() - INTERVAL '{days} days'"
+            params = ()
+        else:
+            cur.close()
+            return _err("الجدول ده مفيهوش عمود تاريخ يقدر يفلتر عليه", 400)
+        fname, n = ns["_backup_before_delete"](table, where_sql, params)
+        if n == 0:
+            cur.close()
+            return _json({"ok": True, "message": "لا يوجد سطور مطابقة للحذف", "deleted": 0})
+        cur.execute(f"DELETE FROM {table} {where_sql}", params)
+        db.commit(); cur.close()
+        return _json({"ok": True, "deleted": n,
+                      "message": f"تم حذف {n} سطر من ({_label}) وحفظهم في ملف: {fname}"})
+
+    @app.route(API + "admin/storage/delete-backup", methods=["POST"])
+    def api_storage_delete_backup():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        import os as _os
+        name = (_body().get("name") or "").strip()
+        if "/" in name or "\\" in name or ".." in name or not name:
+            return _err("اسم ملف غير صالح", 400)
+        fpath = _os.path.join(ns["_BACKUP_DIR"], name)
+        if _os.path.isfile(fpath):
+            try:
+                _os.remove(fpath)
+            except Exception as e:
+                return _err(f"خطأ في الحذف: {e}", 500)
+        return _json({"ok": True, "message": "تم حذف الملف الاحتياطي"})
+
+    @app.route(API + "admin/storage/auto-archive", methods=["POST"])
+    def api_storage_auto_archive():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        r = ns["_auto_archive_if_needed"]()
+        if r is None:
+            msg = "لسه المساحة تحت الحد — مفيش داعي للأرشيف"
+        elif r:
+            msg = "تم أرشفة السطور القديمة وحذفها"
+        else:
+            msg = "مفيش سطور قديمة تتأرشف"
+        return _json({"ok": True, "message": msg})
+
+    @app.route(API + "admin/storage/download")
+    def api_storage_download():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        name = (request.args.get("name") or "").strip()
+        return ns["admin_storage_download"](name)
+
     # ───────────────────────── الفريق (قايمة الهمبرجر) + الدخول بحساب مستخدم ─────────────────────────
     # بيطابق sidebar_workers / is_real_super_admin في app.py (inject_user)
 
