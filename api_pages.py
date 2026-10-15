@@ -498,6 +498,89 @@ def init_pages(app, ns):
         name = (request.args.get("name") or "").strip()
         return ns["admin_storage_download"](name)
 
+    # ───────────────────────── نصيب كل الفريق (للمسؤول الرئيسي) ─────────────────────────
+    # نفس admin_all_shares و admin_all_shares_send و admin_all_shares_send_telegram في app.py بـ JSON
+
+    def _shares_bounds(src):
+        from datetime import datetime as _dt
+        s_arg = (src.get("start_day") or "").strip()
+        e_arg = (src.get("end_day") or "").strip()
+        try:
+            start_d = _dt.strptime(s_arg, "%Y-%m-%d").date()
+            end_d = _dt.strptime(e_arg, "%Y-%m-%d").date()
+            if end_d < start_d:
+                start_d, end_d = end_d, start_d
+            half = None
+        except ValueError:
+            start_d, end_d, half = ns["_period_bounds"]()
+        return start_d, end_d, half
+
+    @app.route(API + "admin/all-shares")
+    def api_all_shares():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        start_d, end_d, half = _shares_bounds(request.args)
+        s_iso, e_iso = start_d.isoformat(), end_d.isoformat()
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("""CREATE TABLE IF NOT EXISTS worker_adjustments (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day DATE NOT NULL, amount INTEGER NOT NULL, reason TEXT,
+            created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(user_id, day))""")
+        rows = ns["_compute_shares_range"](cur, s_iso, e_iso)
+        db.commit(); cur.close()
+        items = [{
+            "id": r["id"], "full_name": r.get("full_name") or "", "avatar": r.get("avatar") or "",
+            "days": r.get("days") or 0, "chicks": r.get("chicks") or 0, "money": r.get("money") or 0,
+            "bonus": r.get("bonus") or 0, "deduct": r.get("deduct") or 0,
+        } for r in rows]
+        return _json({
+            "ok": True, "items": items, "start_day": s_iso, "end_day": e_iso,
+            "period_label": ns["_period_label"](start_d, end_d, half),
+        })
+
+    @app.route(API + "admin/all-shares/send", methods=["POST"])
+    def api_all_shares_send():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        from flask import url_for
+        start_d, end_d, half = _shares_bounds(_body())
+        s_iso, e_iso = start_d.isoformat(), end_d.isoformat()
+        label = ns["_period_label"](start_d, end_d, half)
+        db = ns["get_db"](); cur = db.cursor()
+        try:
+            sent_ids, _bot = ns["_send_period_shares_dm"](cur, s_iso, e_iso, label)
+            db.commit(); cur.close()
+            try:
+                ns["_notify_users"](sent_ids, "رسالة من خدمة العمال", f"حسابك عن {label} وصلك في الدردشة",
+                                    url=url_for("chats_list"), type_="general")
+            except Exception as _e:
+                print("notify shares error:", _e)
+            return _json({"ok": True, "message": f"تم إرسال الحساب لـ {len(sent_ids)} شخص من حساب خدمة العمال"})
+        except Exception as ex:
+            db.rollback(); cur.close()
+            return _err("خطأ أثناء الإرسال: " + str(ex), 500)
+
+    @app.route(API + "admin/all-shares/send-telegram", methods=["POST"])
+    def api_all_shares_send_telegram():
+        u, bad = _super_only()
+        if bad:
+            return bad
+        start_d, end_d, half = _shares_bounds(_body())
+        s_iso, e_iso = start_d.isoformat(), end_d.isoformat()
+        label = ns["_period_label"](start_d, end_d, half)
+        db = ns["get_db"](); cur = db.cursor()
+        try:
+            ns["_send_period_telegram_report"](cur, s_iso, e_iso, label)
+            db.commit(); cur.close()
+            return _json({"ok": True, "message": "تم إرسال التقرير لقناة تليجرام"})
+        except Exception as ex:
+            db.rollback(); cur.close()
+            return _err("خطأ أثناء الإرسال لتليجرام: " + str(ex), 500)
+
     # ───────────────────────── الفريق (قايمة الهمبرجر) + الدخول بحساب مستخدم ─────────────────────────
     # بيطابق sidebar_workers / is_real_super_admin في app.py (inject_user)
 
