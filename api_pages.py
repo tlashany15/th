@@ -581,6 +581,82 @@ def init_pages(app, ns):
             db.rollback(); cur.close()
             return _err("خطأ أثناء الإرسال لتليجرام: " + str(ex), 500)
 
+    # ───────────────────────── الدردشة (قايمة + محادثة خاصة) ─────────────────────────
+    # الدوال الأصلية بتشتغل زي ما هي (chat_messages_api / chat_send / chat_typing / chat_react / chat_edit_msg
+    # / chat_delete_msg) — الراوتات هنا بس بتعدّي عليها بتوكن الـ API.
+
+    def _capture_view(view, *args):
+        """نفس _run_view في api_v1: يشغّل دالة صفحة ويرجّع بيانات render_template كـ dict"""
+        from flask import g
+        g._api_capture = {}
+        try:
+            resp = view(*args)
+        finally:
+            captured = g._api_capture
+            g._api_capture = None
+        if captured and "data" in captured:
+            return captured["data"], None
+        return None, resp
+
+    @app.route(API + "chats")
+    def api_chats():
+        data, resp = _capture_view(ns["chats_list"])
+        if data is None:
+            return _err("الطلب مرفوض", 400)
+        data = dict(data)
+        data["ok"] = True
+        data["admin_bot_username"] = str(ns.get("ADMIN_BOT_USERNAME", ""))
+        return _json(data)
+
+    @app.route(API + "chat/<int:other_id>/info")
+    def api_chat_info(other_id):
+        u = ns["current_user"]()
+        if not u:
+            return _err("غير مسجّل", 401)
+        if other_id == u["id"]:
+            return _err("مينفعش تدردش مع نفسك", 400)
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("SELECT id, full_name, username, avatar, last_seen, role FROM users WHERE id=%s", (other_id,))
+        o = cur.fetchone()
+        if not o:
+            cur.close()
+            return _err("المستخدم غير موجود", 404)
+        cur.execute("UPDATE chat_messages SET read_at = NOW() WHERE sender_id=%s AND receiver_id=%s AND read_at IS NULL",
+                    (other_id, u["id"]))
+        db.commit(); cur.close()
+        bot = str(ns.get("ADMIN_BOT_USERNAME", ""))
+        return _json({
+            "ok": True, "me_id": u["id"],
+            "other": {"id": o["id"], "full_name": o["full_name"] or "", "username": str(o["username"] or ""),
+                      "role": o["role"], "avatar": o["avatar"] or "", "online": bool(ns["_is_online"](o["last_seen"])),
+                      "last_seen": ns["_iso_utc"](o["last_seen"]) if o["last_seen"] else None},
+            "is_bot": str(o["username"] or "") == bot, "can_delete": bool(ns["_is_idara"](u)),
+        })
+
+    @app.route(API + "chat/<int:other_id>/messages")
+    def api_chat_messages(other_id):
+        return ns["chat_messages_api"](other_id)
+
+    @app.route(API + "chat/<int:other_id>/send", methods=["POST"])
+    def api_chat_send(other_id):
+        return ns["chat_send"](other_id)
+
+    @app.route(API + "chat/<int:other_id>/typing", methods=["POST"])
+    def api_chat_typing(other_id):
+        return ns["chat_typing"](other_id)
+
+    @app.route(API + "chat/<int:other_id>/react/<int:msg_id>", methods=["POST"])
+    def api_chat_react(other_id, msg_id):
+        return ns["chat_react"](other_id, msg_id)
+
+    @app.route(API + "chat/edit/<int:msg_id>", methods=["POST"])
+    def api_chat_edit(msg_id):
+        return ns["chat_edit_msg"](msg_id)
+
+    @app.route(API + "chat/<int:other_id>/delete/<int:msg_id>", methods=["POST"])
+    def api_chat_delete(other_id, msg_id):
+        return ns["chat_delete_msg"](other_id, msg_id)
+
     # ───────────────────────── الفريق (قايمة الهمبرجر) + الدخول بحساب مستخدم ─────────────────────────
     # بيطابق sidebar_workers / is_real_super_admin في app.py (inject_user)
 
