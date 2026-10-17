@@ -657,6 +657,106 @@ def init_pages(app, ns):
     def api_chat_delete(other_id, msg_id):
         return ns["chat_delete_msg"](other_id, msg_id)
 
+    # ───────────────────────── دردشة المجموعة ─────────────────────────
+    # بتعدّي على دوال app.py الأصلية (group_messages_api / group_send / group_typing / group_react / group_edit_msg
+    # / group_delete_msg / group_members_api / group_set_perm / group_toggle_lock) وبتضيف info و rename و avatar بـ JSON.
+
+    @app.route(API + "group/info")
+    def api_group_info():
+        u = ns["current_user"]()
+        if not u:
+            return _err("غير مسجّل", 401)
+        gs = ns["_get_group_settings"]()
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("SELECT COALESCE(MAX(id),0) AS m FROM group_messages")
+        max_id = cur.fetchone()["m"]
+        cur.execute("""INSERT INTO group_reads(user_id, last_read_id) VALUES(%s,%s)
+                       ON CONFLICT (user_id) DO UPDATE SET last_read_id=EXCLUDED.last_read_id, updated_at=NOW()""",
+                    (u["id"], max_id))
+        db.commit()
+        cur.execute("SELECT COUNT(*) AS c FROM users")
+        members = cur.fetchone()["c"]
+        cur.execute("SELECT can_delete FROM group_perms WHERE user_id=%s", (u["id"],))
+        mp = cur.fetchone(); cur.close()
+        is_admin = bool(u["role"] == "admin" or ns["_is_idara"](u))
+        return _json({
+            "ok": True, "me_id": u["id"], "is_admin": is_admin,
+            "my_can_delete": bool(mp and mp["can_delete"]),
+            "group": {"name": gs["name"], "avatar": gs["avatar"] or "", "members": members,
+                      "is_locked": bool(gs["is_locked"]) if "is_locked" in gs else False},
+        })
+
+    @app.route(API + "group/messages")
+    def api_group_messages():
+        return ns["group_messages_api"]()
+
+    @app.route(API + "group/send", methods=["POST"])
+    def api_group_send():
+        return ns["group_send"]()
+
+    @app.route(API + "group/typing", methods=["POST"])
+    def api_group_typing():
+        return ns["group_typing"]()
+
+    @app.route(API + "group/react/<int:msg_id>", methods=["POST"])
+    def api_group_react(msg_id):
+        return ns["group_react"](msg_id)
+
+    @app.route(API + "group/edit/<int:msg_id>", methods=["POST"])
+    def api_group_edit(msg_id):
+        return ns["group_edit_msg"](msg_id)
+
+    @app.route(API + "group/delete/<int:msg_id>", methods=["POST"])
+    def api_group_delete(msg_id):
+        return ns["group_delete_msg"](msg_id)
+
+    @app.route(API + "group/members")
+    def api_group_members():
+        return ns["group_members_api"]()
+
+    @app.route(API + "group/perms/<int:uid>", methods=["POST"])
+    def api_group_perms(uid):
+        return ns["group_set_perm"](uid)
+
+    @app.route(API + "group/lock", methods=["POST"])
+    def api_group_lock():
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("للمسؤول فقط", 403)
+        return ns["group_toggle_lock"]()
+
+    @app.route(API + "group/rename", methods=["POST"])
+    def api_group_rename():
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("للمسؤول فقط", 403)
+        name = (request.form.get("name") or _body().get("name") or "").strip()
+        if not name:
+            return _err("ادخل اسم", 400)
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("UPDATE group_settings SET name=%s WHERE id=1", (name[:60],))
+        db.commit(); cur.close()
+        return _json({"ok": True, "message": "تم تحديث اسم المجموعة"})
+
+    @app.route(API + "group/avatar", methods=["POST"])
+    def api_group_avatar():
+        import base64 as _b64
+        u = ns["current_user"]()
+        if not _is_admin(u):
+            return _err("للمسؤول فقط", 403)
+        f = request.files.get("file")
+        if not f:
+            return _err("اختر صورة", 400)
+        data = f.read()
+        if len(data) > 5 * 1024 * 1024:
+            return _err("الصورة كبيرة (الحد 5 ميجا)", 413)
+        mime = f.mimetype or "image/jpeg"
+        data_url = "data:" + mime + ";base64," + _b64.b64encode(data).decode("ascii")
+        db = ns["get_db"](); cur = db.cursor()
+        cur.execute("UPDATE group_settings SET avatar=%s WHERE id=1", (data_url,))
+        db.commit(); cur.close()
+        return _json({"ok": True, "message": "تم تحديث صورة المجموعة"})
+
     # ───────────────────────── الفريق (قايمة الهمبرجر) + الدخول بحساب مستخدم ─────────────────────────
     # بيطابق sidebar_workers / is_real_super_admin في app.py (inject_user)
 
